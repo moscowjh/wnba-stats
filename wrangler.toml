@@ -1,0 +1,9 @@
+name = "wnba-stats"
+compatibility_date = "2025-06-01"
+
+# Serve the built static site (public/index.html) — no Worker code, no build
+# step. `npx wrangler deploy` uploads this directory and serves index.html at
+# the root URL. The daily GitHub Action regenerates public/index.html and
+# pushes; Cloudflare redeploys on each push.
+[assets]
+directory = "./public"
