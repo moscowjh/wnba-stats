@@ -1,0 +1,62 @@
+name: Daily WNBA stats build
+
+# Runs every morning, rebuilds the static page from fresh box scores, and
+# commits the result. Cloudflare Pages (connected to this repo via Git) sees
+# the commit and redeploys automatically — so this workflow needs no
+# Cloudflare credentials.
+on:
+  schedule:
+    # 11:00 UTC = 7:00am ET during the WNBA season (EDT, UTC-4).
+    # West-coast games finish ~1am ET, so the prior night's finals are in.
+    # Note: GitHub may delay scheduled runs under load, and disables them
+    # after 60 days of repo inactivity — the daily commit keeps it active.
+    - cron: "0 11 * * *"
+  workflow_dispatch: {}   # adds a manual "Run workflow" button in the Actions tab
+
+permissions:
+  contents: write          # allow the job to commit the rebuilt HTML
+
+# If a run is still going when the next fires, let the new one wait rather
+# than clobber.
+concurrency:
+  group: daily-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch latest box scores
+        run: python fetch_data.py
+
+      - name: Build static page
+        run: |
+          python build_stats_page.py
+          mkdir -p public
+          # Cloudflare serves public/ — index.html makes the bare URL work.
+          cp WNBA-2026-stats-explorer.html public/index.html
+
+      - name: Commit updated site
+        run: |
+          git config user.name  "wnba-stats-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/index.html
+          # Only commit if something actually changed (e.g. skip on an off-day).
+          if git diff --staged --quiet; then
+            echo "No changes to publish today."
+          else
+            git commit -m "Daily stats update: $(date -u +'%Y-%m-%d')"
+            git push
+          fi

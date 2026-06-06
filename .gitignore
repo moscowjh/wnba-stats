@@ -1,0 +1,17 @@
+# Box-score CSVs are fetched fresh in CI on every run — they are build
+# artifacts, not source. Keeping them out of git avoids bloating history
+# (the play-by-play file is ~13 MB and would churn daily).
+*.csv
+
+# Reference / scratch files that don't belong in the deployable repo
+*.xlsx
+.Rhistory
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# macOS
+.DS_Store
