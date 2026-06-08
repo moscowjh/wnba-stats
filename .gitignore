@@ -8,6 +8,9 @@
 .Rhistory
 .ipynb_checkpoints/
 
+# Private product/strategy docs — keep out of the public repo
+COLUMN-REDESIGN.*
+
 # Python
 __pycache__/
 *.pyc

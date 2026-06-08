@@ -1,5 +1,8 @@
 name = "wnba-stats"
 compatibility_date = "2025-06-01"
+# Public URL is now wnba.statsataglance.com (a Worker Custom Domain).
+# Disable the name-bearing *.workers.dev URL so it's no longer served.
+workers_dev = false
 
 # Serve the built static site (public/index.html) — no Worker code, no build
 # step. `npx wrangler deploy` uploads this directory and serves index.html at
