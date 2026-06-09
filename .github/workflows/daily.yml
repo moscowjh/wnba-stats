@@ -5,15 +5,11 @@ name: Daily WNBA stats build
 # the commit and redeploys automatically — so this workflow needs no
 # Cloudflare credentials.
 on:
-  schedule:
-    # 11:17 UTC = 7:17am ET during the WNBA season (EDT, UTC-4).
-    # West-coast games finish ~1am ET, so the prior night's finals are in.
-    # The :17 minute is deliberate — GitHub heavily delays/drops scheduled
-    # runs at the top of the hour (:00) due to load, so we avoid it.
-    # Note: GitHub may still delay scheduled runs, and disables them after
-    # 60 days of repo inactivity — the daily commit keeps it active.
-    - cron: "17 11 * * *"
-  workflow_dispatch: {}   # adds a manual "Run workflow" button in the Actions tab
+  # Scheduling is handled by the Cloudflare cron-trigger Worker (see
+  # cron-worker/), which calls workflow_dispatch at 11:17 UTC (7:17am ET) and
+  # fires reliably and on time. GitHub's native `schedule:` was removed
+  # 2026-06-09 because it ran 2.5–3.5 hours late every morning under load.
+  workflow_dispatch: {}   # manual "Run workflow" button + the Cloudflare Worker's API call
 
 permissions:
   contents: write          # allow the job to commit the rebuilt HTML

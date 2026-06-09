@@ -11,6 +11,9 @@
 # Private product/strategy docs — keep out of the public repo
 COLUMN-REDESIGN.*
 
+# Work-in-progress prototypes — anything with "prototype" in the name
+*prototype*
+
 # Python
 __pycache__/
 *.pyc
