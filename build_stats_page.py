@@ -775,6 +775,12 @@ def assemble_page(display_date, standings_df, ff_df, team_stats_df,
         f'<!-- PLAYER STATS -->\n{build_players_section(player_stats_df, player_options)}\n'
         f'<!-- LEADERS -->\n{build_leaders_section(leaders)}\n'
         f'<script>\n{PAGE_JS}\n</script>\n'
+        # Cloudflare Web Analytics beacon (privacy-first, cookieless). The token
+        # is a public client-side identifier, safe to commit.
+        '<!-- Cloudflare Web Analytics -->'
+        '<script defer src="https://static.cloudflareinsights.com/beacon.min.js" '
+        'data-cf-beacon=\'{"token": "7397748b2cd6455b8887cfe01269a48b"}\'></script>'
+        '<!-- End Cloudflare Web Analytics -->\n'
         '</body>\n</html>'
     )
 
