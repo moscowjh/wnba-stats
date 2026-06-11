@@ -749,7 +749,7 @@ def build_option_lists(team_list, player_stats_df):
     return team_options, player_options
 
 
-def assemble_page(display_date, standings_df, ff_df, team_stats_df,
+def assemble_page(display_date, data_through_iso, standings_df, ff_df, team_stats_df,
                   player_stats_df, leaders, team_options, player_options):
     """Combine all sections into the final HTML string."""
     return (
@@ -757,6 +757,10 @@ def assemble_page(display_date, standings_df, ff_df, team_stats_df,
         '<html lang="en">\n<head>\n'
         '<meta charset="UTF-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        # Machine-readable freshness marker, used by the wnba-stats-cron
+        # health check (cron-worker/worker.js) to verify the deployed site
+        # matches the latest build. ISO date of the most recent game covered.
+        f'<meta name="data-through" content="{data_through_iso}">\n'
         '<title>WNBA 2026 \u2014 Stats</title>\n'
         f'<style>\n{PAGE_CSS}\n</style>\n'
         '</head>\n<body>\n\n'
@@ -792,6 +796,7 @@ def main():
 
     through_dt   = pd.to_datetime(player_raw['game_date'].max())
     display_date = through_dt.strftime('%B %d, %Y')
+    data_through_iso = through_dt.strftime('%Y-%m-%d')
 
     standings_df   = compute_standings(team_raw)
     p_base         = compute_player_base(player_raw)
@@ -802,7 +807,7 @@ def main():
 
     team_options, player_options = build_option_lists(team_list, player_stats_df)
 
-    html = assemble_page(display_date, standings_df, ff_df, team_stats_df,
+    html = assemble_page(display_date, data_through_iso, standings_df, ff_df, team_stats_df,
                          player_stats_df, leaders, team_options, player_options)
 
     OUTPUT.write_text(html)
