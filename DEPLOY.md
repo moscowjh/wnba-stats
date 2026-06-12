@@ -186,3 +186,53 @@ against.
 | `.github/workflows/daily.yml` | Daily cron: fetch → build → commit |
 | `requirements.txt` | Python deps for the Action (`pandas`, `sportsdataverse`) |
 | `public/index.html` | The built site Cloudflare serves (regenerated daily) |
+
+## Health check + email alerts (added 2026-06-11)
+
+The cron Worker (`cron-worker/`) now has a second job: at **11:45 UTC** daily it
+verifies the morning build end-to-end and emails horowitz.jason@gmail.com
+**only on failure**. Silence = all good. This replaces the temporary Claude
+scheduled check.
+
+What it verifies, in order:
+1. A "Daily WNBA stats build" run exists today and succeeded (GitHub API; if
+   still in progress it waits 3 min and re-checks once).
+2. If the run committed today's update, the **live site** at
+   wnba.statsataglance.com actually shows data through yesterday — read from the
+   `<meta name="data-through">` tag that `build_stats_page.py` now embeds
+   (falls back to the visible "Stats as of …" text). Retries once after 2 min
+   to allow for Cloudflare's redeploy lag.
+3. If the run committed nothing, it checks ESPN's public scoreboard for
+   yesterday: no games → legitimate off-day, silence; games played → alert
+   (the fetch silently returned nothing).
+
+### One-time setup
+1. **Email Routing** (free): Cloudflare dashboard → statsataglance.com zone →
+   Email → Email Routing → enable. Add horowitz.jason@gmail.com as a
+   destination address and click the verification email it sends. (You don't
+   need any routing rules — the Worker only *sends*.)
+2. **Push the build-script change** so the next gameday build embeds the
+   `data-through` meta tag:
+   ```bash
+   git add build_stats_page.py && git commit -m "Embed data-through meta for health check" && git push
+   ```
+3. **Redeploy the Worker** (picks up the new code, second cron, and email
+   binding):
+   ```bash
+   cd cron-worker && npx wrangler deploy
+   ```
+   `GH_TOKEN` and `CRON_KEY` secrets carry over; no changes needed.
+4. **Test it**:
+   - `https://<worker-url>/?key=CRON_KEY&action=testemail` — confirms an alert
+     can reach your inbox.
+   - `https://<worker-url>/?key=CRON_KEY&action=check` — runs the health check
+     now and returns its findings as JSON.
+
+### Notes
+- The alert sender is `alerts@statsataglance.com`; Gmail may put the first one
+  in spam — mark it "not spam" once.
+- Worker emails can only go to addresses verified in Email Routing. To change
+  the recipient, update both `wrangler.toml` (`destination_address`) and
+  `ALERT_TO` in `worker.js`, verify the new address, and redeploy.
+- All dates are UTC, matching the build's "Daily stats update: YYYY-MM-DD"
+  commit messages.
