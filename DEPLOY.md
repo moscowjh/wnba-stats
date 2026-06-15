@@ -10,22 +10,42 @@ GitHub Actions (cron, 7am ET)
     └─ python fetch_data.py        # pulls box scores (no R)
     └─ python build_stats_page.py  # bakes data into one static HTML
     └─ copies it to public/index.html and commits + pushes
+    └─ npx wrangler deploy         # deploys directly to Cloudflare
             │
-            ▼  (push triggers a deploy)
-Cloudflare  →  runs `npx wrangler deploy` → https://wnba-stats.<you>.workers.dev
+            ▼
+Cloudflare Workers  →  serves public/index.html at wnba.statsataglance.com
 ```
 
-GitHub does the work; Cloudflare just serves the result. Because Cloudflare
-watches the repo, the Actions workflow needs **no Cloudflare credentials**.
+GitHub does all the work — fetching, building, committing, AND deploying. The
+Action calls `npx wrangler deploy` directly using a Cloudflare API token stored
+as a GitHub secret. Cloudflare just serves the static result.
 
-## A note on Cloudflare's two flows
+## Deploy architecture (revised June 2026)
 
-Cloudflare has merged "Pages" into "Workers," and the Connect-to-Git wizard now
-puts you in the **Workers** flow, which deploys with a `wrangler deploy` command
-instead of a "build output directory" setting. This repo includes a small
+**Cloudflare's Connect-to-Git integration has been disconnected.** The GitHub
+Actions workflow is the ONLY deploy path. This was changed after an incident on
+June 12 where the Git-trigger promoted the wrong Cloudflare version: a human
+push (code change, no HTML rebuild) was promoted to active, while the subsequent
+bot push (with the correct rebuilt HTML) was deployed but not promoted. The site
+reverted to the old version and required manual intervention in the Cloudflare
+dashboard to fix.
+
+Root cause: when two pushes arrive close together, Cloudflare's Git-trigger may
+promote the first and leave the second as an inactive version. With a single
+deploy path (the Action calling `wrangler deploy`), every deploy uses the commit
+that just rebuilt `public/index.html`, so the correct version is always active.
+
+**Manual deploys:** push your code changes to `main`, then trigger the Action
+(GitHub Actions tab → "Run workflow", or `gh workflow run daily.yml` from CLI).
+The Action checks out the latest code, fetches data, rebuilds, commits, and
+deploys — all in one run.
+
+## Static site on Cloudflare Workers
+
+Cloudflare has merged "Pages" into "Workers." This repo includes a small
 `wrangler.toml` that tells Wrangler to serve the `public/` folder as a static
-site, so that command just works. You do **not** need to write any Worker code —
-it's still a plain static site under the hood.
+site, so `npx wrangler deploy` just works. You do **not** need to write any
+Worker code — it's still a plain static site under the hood.
 
 ## One-time setup
 
@@ -68,26 +88,42 @@ git push
 > (step 4) and let it create and commit `public/index.html` for you. Either way,
 > the folder must contain `index.html` before Cloudflare can serve anything.
 
-### 3. Connect the repo to Cloudflare
-1. Sign up / log in at <https://dash.cloudflare.com> (free).
-2. **Workers & Pages → Create → Connect to Git** (authorize GitHub, grant access
-   to only the `wnba-stats` repo).
-3. Pick `moscowjh/wnba-stats`, click **Next**.
-4. On "Set up your application":
-   - **Project name:** `wnba-stats`
-   - **Build command:** *(leave empty)*
-   - **Deploy command:** `npx wrangler deploy` (the default — leave it)
-   - Leave "Builds for non-production branches" as is.
-5. Click **Deploy.** In ~1 minute you'll get a
-   `https://wnba-stats.<subdomain>.workers.dev` URL.
+### 3. Create Cloudflare API credentials
+The Action deploys directly to Cloudflare via `npx wrangler deploy`. It needs
+two secrets:
 
-From now on, every push — including the daily Action's commit — redeploys
-automatically.
+1. **Get your Account ID:** Cloudflare dashboard → Workers & Pages → Overview.
+   The Account ID is in the right sidebar (a 32-character hex string).
+2. **Create an API token:** Cloudflare dashboard → My Profile (top-right icon) →
+   API Tokens → Create Token → **Custom token** with:
+   - **Permissions:** Account / Workers Scripts / Edit
+   - **Account Resources:** Include → your account
+   - Leave everything else as default → Continue → Create Token
+   - Copy the token (shown once).
+3. **Store both as GitHub secrets:** GitHub repo → Settings → Secrets and
+   variables → Actions → New repository secret:
+   - `CLOUDFLARE_ACCOUNT_ID` → paste Account ID
+   - `CLOUDFLARE_API_TOKEN` → paste the API token
 
-### 4. Test the automation
+### 4. Disconnect Cloudflare Connect-to-Git
+This prevents the old Git-trigger from competing with the Action's deploy:
+
+1. Cloudflare dashboard → Workers & Pages → `wnba-stats`
+2. Settings → Build → **Disconnect from Git** (or Build Configuration →
+   disconnect)
+3. The Worker and its custom domain (`wnba.statsataglance.com`) remain intact —
+   only the automatic Git-trigger is removed.
+
+> **Note:** The `wnba-stats` Worker must already exist in Cloudflare before the
+> Action can deploy to it. If starting from scratch, create it via Connect-to-Git
+> first, verify it works, then disconnect and switch to Action-based deploys.
+
+### 5. Test the automation
 - In GitHub, open the **Actions** tab → **Daily WNBA stats build** → **Run
-  workflow** (the `workflow_dispatch` button). Watch it fetch, build, and commit.
-- Within a minute, Cloudflare shows a new deployment and your URL updates.
+  workflow** (the `workflow_dispatch` button). Watch it fetch, build, commit,
+  and deploy.
+- The run log should show a successful `wrangler deploy` step at the end.
+- The live site should update within seconds of the run completing.
 
 ## Cost
 Cloudflare's free tier covers this comfortably: a static site on Workers serves
@@ -120,13 +156,13 @@ Setup steps:
    `wrangler.toml` and push, so the only public URL is the custom domain.
 
 No `wrangler.toml` change is needed for steps 1–4 — the custom domain is wired in
-the dashboard, and the Git-connected deploys keep working unchanged.
+the dashboard.
 
 ## Adjusting the schedule
-Edit the `cron` line in `.github/workflows/daily.yml`. It's in **UTC**.
-`17 11 * * *` = 11:17 UTC = 7:17am ET in summer (EDT). Later in the year, when ET
-shifts to EST (UTC-5), 11:17 UTC becomes 6:17am ET — nudge to `17 12 * * *` if you
-want to hold ~7am. (The `:17` minute is deliberate — see the known issue below.)
+The schedule is controlled by the Cloudflare cron Worker (`cron-worker/`), which
+calls GitHub's `workflow_dispatch` API at 11:17 UTC (7:17am ET in summer). Later
+in the year, when ET shifts to EST (UTC-5), 11:17 UTC becomes 6:17am ET — adjust
+the cron trigger in `cron-worker/wrangler.toml` if you want to hold ~7am.
 
 ## RESOLVED ISSUE — scheduled run not firing (opened 2026-06-08, resolved 2026-06-09)
 **Resolution:** GitHub's native `schedule` missed three mornings straight (June 7,
@@ -183,9 +219,10 @@ against.
 | `fetch_data.py` | Pulls 2026 box scores → two CSVs (replaces the R step) |
 | `build_stats_page.py` | Builds the self-contained HTML from the CSVs |
 | `wrangler.toml` | Tells Cloudflare to serve `public/` as a static site |
-| `.github/workflows/daily.yml` | Daily cron: fetch → build → commit |
+| `.github/workflows/daily.yml` | Daily cron: fetch → build → commit → deploy |
 | `requirements.txt` | Python deps for the Action (`pandas`, `sportsdataverse`) |
 | `public/index.html` | The built site Cloudflare serves (regenerated daily) |
+| `cron-worker/` | Cloudflare Worker: triggers daily builds + health check |
 
 ## Health check + email alerts (added 2026-06-11)
 

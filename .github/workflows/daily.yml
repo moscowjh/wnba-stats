@@ -1,9 +1,10 @@
 name: Daily WNBA stats build
 
-# Runs every morning, rebuilds the static page from fresh box scores, and
-# commits the result. Cloudflare Pages (connected to this repo via Git) sees
-# the commit and redeploys automatically — so this workflow needs no
-# Cloudflare credentials.
+# Runs every morning, rebuilds the static page from fresh box scores, commits
+# the result, and deploys directly to Cloudflare via wrangler. This is the
+# ONLY deploy path — Cloudflare's Connect-to-Git integration has been
+# disconnected (June 2026) to avoid version-promotion conflicts when human
+# pushes and bot pushes arrive close together.
 on:
   # Scheduling is handled by the Cloudflare cron-trigger Worker (see
   # cron-worker/), which calls workflow_dispatch at 11:17 UTC (7:17am ET) and
@@ -43,7 +44,6 @@ jobs:
         run: |
           python build_stats_page.py
           mkdir -p public
-          # Cloudflare serves public/ — index.html makes the bare URL work.
           cp WNBA-2026-stats-explorer.html public/index.html
 
       - name: Commit updated site
@@ -58,3 +58,9 @@ jobs:
             git commit -m "Daily stats update: $(date -u +'%Y-%m-%d')"
             git push
           fi
+
+      - name: Deploy to Cloudflare
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
