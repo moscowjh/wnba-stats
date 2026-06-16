@@ -36,7 +36,7 @@ deploy path (the Action calling `wrangler deploy`), every deploy uses the commit
 that just rebuilt `public/index.html`, so the correct version is always active.
 
 **Manual deploys:** push your code changes to `main`, then trigger the Action
-(GitHub Actions tab → "Run workflow", or `gh workflow run daily.yml` from CLI).
+(GitHub Actions tab → "Run workflow", or `gh workflow run build.yml` from CLI).
 The Action checks out the latest code, fetches data, rebuilds, commits, and
 deploys — all in one run.
 
@@ -124,6 +124,8 @@ This prevents the old Git-trigger from competing with the Action's deploy:
   and deploy.
 - The run log should show a successful `wrangler deploy` step at the end.
 - The live site should update within seconds of the run completing.
+- Each deploy includes a message ("Daily stats update: YYYY-MM-DD") visible in
+  the Cloudflare deployments list (Workers & Pages → wnba-stats → Deployments).
 
 ## Cost
 Cloudflare's free tier covers this comfortably: a static site on Workers serves
@@ -206,6 +208,47 @@ re-registers the schedule and tends to skip the first occurrence after a change.
 **Workaround until resolved:** trigger manually (Actions → Daily WNBA stats build
 → Run workflow) whenever you want a fresh build.
 
+## RESOLVED ISSUE — workflow_dispatch silently broken (opened 2026-06-16, resolved same day)
+
+**Symptom:** The 11:17 UTC cron dispatch failed on June 16. The health check
+correctly alerted at 11:45. Manual `gh workflow run daily.yml` returned HTTP 422:
+"Workflow does not have 'workflow_dispatch' trigger" — even though the file
+clearly contained `workflow_dispatch: {}`.
+
+**Root cause:** A YAML parse error introduced on June 15 when adding a
+`--message` flag to the `wrangler deploy` step:
+```yaml
+run: npx wrangler deploy --message "Daily stats update: $(date -u +'%Y-%m-%d')"
+```
+The colon-space in `update: $(date...)` is valid shell but invalid YAML — the
+parser reads it as a nested mapping key, silently fails to parse the file, and
+falls back to using the file path as the workflow name (visible in the API:
+`"name": ".github/workflows/daily.yml"` instead of `"Daily WNBA stats build"`).
+Because the file couldn't be parsed, GitHub didn't register `workflow_dispatch`
+as a trigger, so all dispatches — both the cron Worker's and manual — were
+rejected.
+
+**Why it was hard to diagnose:** The file looked correct in both the repo and
+the API's base64 content endpoint. GitHub returned no parse-error feedback on
+push — the only clue was the wrong workflow name in the API response. Nudge
+commits (trivial changes to force re-parsing) didn't help because the parse
+error was still present.
+
+**Fix (two parts):**
+1. Removed the colon from the message: `"Daily stats update $(date ...)"`.
+2. Renamed the workflow file from `daily.yml` to `build.yml` because GitHub's
+   internal workflow registry was stuck on the broken state even after the parse
+   error was fixed. The rename forced re-registration as a new workflow. The cron
+   Worker (`cron-worker/worker.js`) was updated to dispatch `build.yml` and
+   redeployed.
+
+**Lesson — YAML gotcha for workflow files:** Never use an unquoted colon-space
+inside a `run:` value in GitHub Actions YAML. The shell string looks fine, but
+the YAML parser sees it as a mapping separator. Either drop the colon or wrap
+the entire value in a YAML block scalar (`run: |`). This is especially
+dangerous because GitHub gives no feedback when a workflow file fails to parse —
+it silently degrades.
+
 ## If the data ever lags
 `fetch_data.py` prints how old the newest game is and warns past 2 days. If you
 see lag in practice, the upgrade path is to swap the cached loaders for the live
@@ -219,7 +262,7 @@ against.
 | `fetch_data.py` | Pulls 2026 box scores → two CSVs (replaces the R step) |
 | `build_stats_page.py` | Builds the self-contained HTML from the CSVs |
 | `wrangler.toml` | Tells Cloudflare to serve `public/` as a static site |
-| `.github/workflows/daily.yml` | Daily cron: fetch → build → commit → deploy |
+| `.github/workflows/build.yml` | Daily cron: fetch → build → commit → deploy |
 | `requirements.txt` | Python deps for the Action (`pandas`, `sportsdataverse`) |
 | `public/index.html` | The built site Cloudflare serves (regenerated daily) |
 | `cron-worker/` | Cloudflare Worker: triggers daily builds + health check |
