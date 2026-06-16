@@ -10,7 +10,7 @@ on:
   # cron-worker/), which calls workflow_dispatch at 11:17 UTC (7:17am ET) and
   # fires reliably and on time. GitHub's native `schedule:` was removed
   # 2026-06-09 because it ran 2.5–3.5 hours late every morning under load.
-  workflow_dispatch: {}   # manual "Run workflow" button + the Cloudflare Worker's API call
+  workflow_dispatch: {}   # manual "Run workflow" button + Cloudflare cron Worker's API call
 
 permissions:
   contents: write          # allow the job to commit the rebuilt HTML
