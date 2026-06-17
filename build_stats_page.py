@@ -891,7 +891,7 @@ def assemble_page(display_date, data_through_iso,
         f'<style>\n{PAGE_CSS}\n</style>\n'
         '</head>\n<body>\n\n'
         '<h1>WNBA 2026 \u2014 Season Stats</h1>\n'
-        f'<div class="meta">Stats as of {display_date}</div>\n\n'
+        f'<div class="meta">Fast, ad-free — updated {display_date}</div>\n\n'
         f'<div class="tabs">\n{tab_buttons}\n</div>\n\n'
         f'{standings_html}\n'
         f'{leaders_html}\n'
