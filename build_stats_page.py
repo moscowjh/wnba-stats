@@ -131,6 +131,50 @@ def load_data():
     return player_raw, team_raw
 
 
+# Core counting stats. A genuine did-not-play row has all of these blank;
+# a played game always records at least zeros.
+_CORE_STATS = ['minutes', 'points', 'rebounds', 'assists',
+               'steals', 'blocks', 'turnovers']
+
+
+def run_data_guards(player_raw, p_base):
+    """Fail the build loudly if the box-score data drifts in a way that would
+    silently corrupt per-game averages. Cheap insurance: these have no effect
+    in the normal case and only fire when something upstream has broken.
+
+    Guards against two real failure modes:
+      1. The did-not-play filter in load_data() silently stops working (e.g. an
+         upstream dtype change makes `!= True` a no-op), letting DNP rows inflate
+         games-played counts and deflate every per-game average.
+      2. Duplicate box scores double-count a player's games.
+    """
+    # 1. DNP leakage. We test the *symptom* — a row that contributes to GP but
+    #    nothing to the stat sums (all core stats blank) — rather than the
+    #    did_not_play flag itself, so the check still holds if that flag's dtype
+    #    or meaning changes upstream. (A played game records at least zeros, so
+    #    legitimate rows with an odd blank field like minutes won't trip this.)
+    dnp_leak = int(player_raw[_CORE_STATS].isna().all(axis=1).sum())
+    assert dnp_leak == 0, (
+        f"{dnp_leak} player row(s) have every core stat blank — did-not-play "
+        f"rows are leaking past the load_data() filter and will deflate "
+        f"per-game averages. Check the `did_not_play` column upstream."
+    )
+
+    # 2. Games-played sanity. A (player, team) row can't show more games than
+    #    that team has played. Counting games per team_abbreviation keeps this
+    #    correct for players traded mid-season: each appears as a separate
+    #    per-team row, and each row is bounded by its own team's game count.
+    team_games = player_raw.groupby('team_abbreviation')['game_id'].nunique()
+    chk = p_base.assign(team_gp=p_base['team_abbreviation'].map(team_games))
+    bad = chk[chk['GP'] > chk['team_gp']]
+    assert bad.empty, (
+        "Player(s) credited with more games than their team has played — "
+        "duplicate box scores or DNP leakage likely:\n"
+        + bad[['athlete_display_name', 'team_abbreviation', 'GP', 'team_gp']]
+            .to_string(index=False)
+    )
+
+
 def compute_standings(team_raw):
     """Win-loss standings with Pythagorean expected record."""
     std = team_raw.groupby('team_display_name').agg(
@@ -519,6 +563,8 @@ def build_players_section(p_base, team_abbrevs):
     return (
         '<div id="players" class="section">\n'
         '<h2>Players \u2014 Season Stats</h2>\n'
+        '<span id="backToLeaders" class="back-link" style="display:none"'
+        ' onclick="backToLeaders()">\u2190 Back to Leaders</span>\n'
         f'{controls}'
         '<div class="table-scroll"><div class="table-wrap">'
         f'<table id="tbl_players"><thead><tr>{headers}</tr></thead>'
@@ -554,7 +600,7 @@ def build_leaders_section(leaders, team_abbrevs):
             val_str = f'{val:.1f}' if isinstance(val, float) else str(val)
             rows += (
                 f'<tr class="ldr-row{rank_cls}" data-team="{esc(team)}">'
-                f'<td>{i+1}. <span class="ldr-name" onclick="goToPlayer(\'{esc(name)}\')">'
+                f'<td>{i+1}. <span class="ldr-name" data-player="{esc(name)}" onclick="goToPlayer(this.dataset.player)">'
                 f'{esc(sn)}</span> <span class="tm">{esc(team)}</span></td>'
                 f'<td>{val_str}</td></tr>\n'
             )
@@ -696,6 +742,11 @@ PAGE_CSS = """\
   .ldr-name{color:var(--accent);text-decoration:underline;text-decoration-color:rgba(218,165,32,0.4);
       text-underline-offset:2px;cursor:pointer}
   .ldr-name:hover{text-decoration-color:var(--accent)}
+  /* Back-to-leaders link (shown only after a leader click) */
+  .back-link{display:inline-block;color:var(--accent);cursor:pointer;font-size:13px;
+      padding:6px 0;margin-bottom:6px;text-decoration:underline;
+      text-decoration-color:rgba(218,165,32,0.4);text-underline-offset:2px}
+  .back-link:hover{text-decoration-color:var(--accent)}
   /* Abbreviations */
   .abbrev-group{font-size:12px;color:var(--accent);margin:18px 0 6px;letter-spacing:.5px}
   .abbrev-list{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin-bottom:10px}
@@ -715,6 +766,10 @@ function showTab(id, btn) {
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
   document.querySelectorAll('#'+id+' .table-wrap').forEach(updateScrollFades);
+  /* The back-to-leaders link is only relevant right after a leader click;
+     hide it on any manual tab switch. goToPlayer re-shows it afterward. */
+  const bl = document.getElementById('backToLeaders');
+  if (bl) bl.style.display = 'none';
 }
 
 /* -- Horizontal-scroll fade -- */
@@ -800,16 +855,29 @@ function filterLeaders() {
 }
 
 /* -- Click a leader name -> jump to Players tab and search -- */
+let leadersScrollY = 0;
 function goToPlayer(name) {
+  /* Remember where we were in the Leaders list so we can return to it */
+  leadersScrollY = window.scrollY;
   /* Reset player filters */
   document.getElementById('pA').value = '';
   document.getElementById('pB').value = '';
   document.getElementById('pmin').value = '0';
   document.getElementById('psearch').value = name;
-  /* Switch to players tab */
+  /* Switch to players tab (showTab hides the back link; we re-show it below) */
   const btn = document.querySelector('[data-tab="players"]');
   showTab('players', btn);
   filterPlayers();
+  /* Reveal the contextual back link and bring the result into view */
+  document.getElementById('backToLeaders').style.display = '';
+  window.scrollTo(0, 0);
+}
+
+/* -- Return from a player jump back to the Leaders tab, restoring scroll -- */
+function backToLeaders() {
+  const btn = document.querySelector('[data-tab="leaders"]');
+  showTab('leaders', btn);
+  window.scrollTo(0, leadersScrollY);
 }
 
 /* -- Team efficiency matchup filter -- */
@@ -919,6 +987,7 @@ def main():
 
     standings_df    = compute_standings(team_raw)
     p_base          = compute_player_base(player_raw)
+    run_data_guards(player_raw, p_base)
     team_stats_df   = compute_team_stats(team_raw)
     ff_df, team_list = compute_four_factors(team_raw, player_raw)
     leaders         = compute_leaders(p_base)
