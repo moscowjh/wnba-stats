@@ -91,6 +91,56 @@
   tr.lg-avg td:first-child{background:var(--bg)}
   tr.playoff-cutoff td:first-child{background:var(--bg)}
   thead tr:first-child th:first-child{position:sticky;left:0;z-index:4;background:var(--surface)}
+  /* ── Games tab ── */
+  .gm-daybar{color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    border-bottom:1px solid var(--border);padding:10px 0 5px;margin-top:6px}
+  .gm-daybar:first-child{margin-top:0}
+  .gm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 2px;border-bottom:1px solid #161618}
+  .gm-row .gm-match{font-size:15px}
+  .gm-row.gm-sched .gm-match{color:var(--text)}
+  .gm-row.gm-sched .gm-when{color:var(--muted);font-size:12px}
+  .gm-row.gm-result{cursor:pointer}
+  .gm-row.gm-result .gm-s{color:var(--muted)}
+  .gm-row.gm-result .gm-s.gm-win{color:var(--text);font-weight:700}
+  .gm-row .gm-dash{color:var(--muted)}
+  .gm-row .gm-chev{color:var(--muted);font-size:18px}
+  .gm-row.gm-result:active{background:var(--surface)}
+  .gm-hint{color:var(--muted);font-size:11px;margin-top:14px}
+  .gm-empty{color:var(--muted);font-size:12px;padding:14px 2px}
+  .gm-back{color:var(--accent);font-size:13px;padding:4px 0 12px;cursor:pointer;display:inline-block}
+  .gm-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px}
+  .gm-hd .gm-tm{font-size:15px;font-weight:700}
+  .gm-hd .gm-sc{font-size:22px;font-weight:700}
+  .gm-hd .gm-rec{color:var(--muted);font-weight:400;font-size:12px}
+  .gm-fin{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:11px;text-align:center}
+  .gm-win{color:#7ec27e}
+  .gm-meta{color:var(--muted);font-size:11px;margin:8px 0 14px}
+  .gm-h2{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;
+    border-bottom:1px solid var(--border);padding-bottom:5px;margin:18px 0 6px}
+  .gm-ls{border-collapse:collapse;width:auto;margin:10px 0 20px;font-size:13px}
+  .gm-ls th,.gm-ls td{padding:3px 10px;text-align:right}
+  .gm-ls .gm-pl{text-align:left;color:var(--muted)}.gm-ls .gm-t{border-left:1px solid var(--border)}
+  .gm-ts{border-collapse:collapse;width:auto;margin:4px 0 8px;font-size:12px}
+  .gm-ts th,.gm-ts td{padding:2px 10px;text-align:right;white-space:nowrap}
+  .gm-ts .gm-pl{text-align:left}
+  .gm-ts .gm-cols th{color:var(--muted);font-weight:400;border-bottom:1px solid var(--border)}
+  .gm-ts .gm-v td{padding-top:7px}.gm-ts .gm-v .gm-pl{font-weight:700}
+  .gm-ts .gm-p td{color:var(--muted);font-size:10px;padding-top:0;padding-bottom:3px}
+  .gm-tcap{font-weight:700;margin:18px 0 3px}.gm-tcap .gm-rec{color:var(--muted);font-weight:400;font-size:12px}
+  .gm-tscroll{position:relative;margin-bottom:6px}
+  .gm-tscroll::after{content:"";position:absolute;top:0;bottom:0;right:0;width:26px;
+    pointer-events:none;opacity:0;transition:opacity .15s ease;z-index:5;
+    background:linear-gradient(to right, rgba(15,15,15,0), var(--bg))}
+  .gm-tscroll.more-right::after{opacity:1}
+  .gm-tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .gm-bx{border-collapse:collapse;min-width:520px;width:100%;font-size:12px}
+  .gm-bx th,.gm-bx td{padding:3px 6px;text-align:right;white-space:nowrap}
+  .gm-bx .gm-pl{text-align:left;position:sticky;left:0;background:var(--bg);min-width:88px;padding-left:0}
+  .gm-bx .gm-cols th{border-bottom:1px solid var(--accent);color:var(--muted);font-weight:400}
+  .gm-bx .gm-sec td{color:var(--accent);font-size:10px;letter-spacing:.1em;padding-top:9px;text-transform:uppercase}
+  .gm-bx tr:not(.gm-cols):not(.gm-sec) td{border-top:1px solid #18181b}
+  .gm-pos{color:var(--muted);font-size:10px;display:inline-block;min-width:18px}
 </style>
 </head>
 <body>
@@ -99,15 +149,19 @@
 <div class="meta">Fast, ad-free — updated June 20, 2026</div>
 
 <div class="tabs">
-  <button class="tab active" data-tab="standings" onclick="showTab('standings',this)">Standings</button>
+  <button class="tab active" data-tab="games" onclick="showTab('games',this)">Games</button>
+  <button class="tab" data-tab="standings" onclick="showTab('standings',this)">Standings</button>
   <button class="tab" data-tab="leaders" onclick="showTab('leaders',this)">Leaders</button>
-  <button class="tab" data-tab="teameff" onclick="showTab('teameff',this)">Team Efficiency</button>
+  <button class="tab" data-tab="teameff" onclick="showTab('teameff',this)">Efficiency</button>
   <button class="tab" data-tab="teamtotals" onclick="showTab('teamtotals',this)">Team Totals</button>
   <button class="tab" data-tab="players" onclick="showTab('players',this)">Players</button>
-  <button class="tab" data-tab="abbreviations" onclick="showTab('abbreviations',this)">Abbreviations</button>
+  <button class="tab" data-tab="abbreviations" onclick="showTab('abbreviations',this)">Key</button>
 </div>
 
-<div id="standings" class="section active">
+<div id="games" class="section active">
+<section id="games-view"><div class="gm-daybar">Today · Sun, Jun 21</div><div class="gm-row gm-sched"><span class="gm-match">Golden State vs Las Vegas</span><span class="gm-when">4:00 PM ET</span></div><div class="gm-row gm-sched"><span class="gm-match">Washington vs Minnesota</span><span class="gm-when">6:00 PM ET</span></div><div class="gm-row gm-sched"><span class="gm-match">New York vs Los Angeles</span><span class="gm-when">8:00 PM ET</span></div><div class="gm-daybar">Sat, Jun 20</div><div class="gm-row gm-result" onclick="showGame(401857006)"><span class="gm-match"><span class="gm-s">Indiana 96</span> <span class="gm-dash">–</span> <span class="gm-s gm-win">Atlanta 113</span></span><span class="gm-chev">›</span></div><div class="gm-row gm-result" onclick="showGame(401857007)"><span class="gm-match"><span class="gm-s">Seattle 73</span> <span class="gm-dash">–</span> <span class="gm-s gm-win">Phoenix 93</span></span><span class="gm-chev">›</span></div><div class="gm-row gm-result" onclick="showGame(401857008)"><span class="gm-match"><span class="gm-s">Chicago 92</span> <span class="gm-dash">–</span> <span class="gm-s gm-win">Dallas 93</span></span><span class="gm-chev">›</span></div><div class="gm-hint">Tap a final score to open its box score.</div></section></div>
+
+<div id="standings" class="section">
 <h2>Standings</h2>
 <p class="tab-note"><em>Dashed line = playoff cutoff (top 8)</em></p>
 <div class="table-scroll"><div class="table-wrap"><table id="tbl_standings"><thead><tr><th onclick="sortTable('tbl_standings',0)">Team</th><th onclick="sortTable('tbl_standings',1)">W</th><th onclick="sortTable('tbl_standings',2)">L</th><th onclick="sortTable('tbl_standings',3)">Win%</th><th onclick="sortTable('tbl_standings',4)">PF</th><th onclick="sortTable('tbl_standings',5)">PA</th><th onclick="sortTable('tbl_standings',6)">+/-</th><th onclick="sortTable('tbl_standings',7)">XW</th><th onclick="sortTable('tbl_standings',8)">XL</th></tr></thead><tbody><tr class=""><td>Minnesota Lynx</td><td>13</td><td>3</td><td>.812</td><td>92.3</td><td>79.4</td><td>12.9</td><td>14.3</td><td>1.7</td></tr>
@@ -698,24 +752,29 @@ function showTab(id, btn) {
      hide it on any manual tab switch. goToPlayer re-shows it afterward. */
   const bl = document.getElementById('backToLeaders');
   if (bl) bl.style.display = 'none';
+  /* When switching to/from Games, restore the games list view and hide any
+     open box score so returning to Games shows the list, not a stale box. */
+  const gv = document.getElementById('games-view');
+  if (gv) gv.style.display = 'block';
+  document.querySelectorAll('.gm-box').forEach(s => s.style.display = 'none');
 }
 
 /* -- Horizontal-scroll fade -- */
 function updateScrollFades(wrap) {
-  const scroll = wrap.closest('.table-scroll');
+  const scroll = wrap.closest('.table-scroll') || wrap.closest('.gm-tscroll');
   if (!scroll) return;
   scroll.classList.toggle('more-right',
     wrap.scrollWidth - wrap.clientWidth - wrap.scrollLeft > 1);
 }
 function initScrollFades() {
-  document.querySelectorAll('.table-wrap').forEach(wrap => {
+  document.querySelectorAll('.table-wrap, .gm-tw').forEach(wrap => {
     updateScrollFades(wrap);
     wrap.addEventListener('scroll', () => updateScrollFades(wrap), {passive:true});
   });
 }
 window.addEventListener('load', initScrollFades);
 window.addEventListener('resize', () =>
-  document.querySelectorAll('.table-wrap').forEach(updateScrollFades));
+  document.querySelectorAll('.table-wrap, .gm-tw').forEach(updateScrollFades));
 
 let sortState = {};
 function sortTable(id, col) {
@@ -854,6 +913,21 @@ function clearTeamStats() {
   document.getElementById('ts_team1').value = '';
   document.getElementById('ts_team2').value = '';
   filterTeamStats();
+}
+
+/* -- Games tab: show/hide box scores -- */
+function showGame(id) {
+  document.getElementById('games-view').style.display = 'none';
+  document.querySelectorAll('.gm-box').forEach(function(s) { s.style.display = 'none'; });
+  var el = document.getElementById('g' + id);
+  el.style.display = 'block';
+  el.querySelectorAll('.gm-tw').forEach(updateScrollFades);
+  window.scrollTo(0, 0);
+}
+function backToGames() {
+  document.querySelectorAll('.gm-box').forEach(function(s) { s.style.display = 'none'; });
+  document.getElementById('games-view').style.display = 'block';
+  window.scrollTo(0, 0);
 }
 </script>
 <!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "7397748b2cd6455b8887cfe01269a48b"}'></script><!-- End Cloudflare Web Analytics -->
