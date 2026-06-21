@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Fetch 2026 WNBA player + team box scores and today's schedule, writing
-the two CSVs and a JSON file that build_stats_page.py consumes.
+"""Fetch 2026 WNBA player + team box scores, play-by-play, and today's schedule,
+writing three CSVs and a JSON file that build_stats_page.py consumes.
 
 Data source: the `sportsdataverse` package (the Python sibling of the R
 `wehoop` package). It reads the same cached box-score data wehoop reads, so
@@ -35,6 +35,7 @@ SEASON = 2026
 HERE = Path(__file__).resolve().parent
 PLAYER_CSV = HERE / "wnba_player_box_2026.csv"
 TEAM_CSV = HERE / "wnba_team_box_2026.csv"
+PBP_CSV = HERE / "wnba_pbp_2026.csv"
 SCHEDULE_JSON = HERE / "wnba_schedule_today.json"
 ESPN_SCOREBOARD = (
     "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard"
@@ -45,8 +46,8 @@ ET = ZoneInfo("America/New_York")
 MAX_STALENESS_DAYS = 2
 
 
-def fetch() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Pull player and team box scores as pandas DataFrames."""
+def fetch() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame | None]:
+    """Pull player and team box scores + play-by-play as pandas DataFrames."""
     player = wnba.load_wnba_player_boxscore(seasons=[SEASON], return_as_pandas=True)
     team = wnba.load_wnba_team_boxscore(seasons=[SEASON], return_as_pandas=True)
 
@@ -54,7 +55,18 @@ def fetch() -> tuple[pd.DataFrame, pd.DataFrame]:
     # upstream outage). Exiting non-zero makes the CI step fail loudly.
     if player is None or team is None or player.empty or team.empty:
         sys.exit("ERROR: fetch returned no rows — aborting without touching the CSVs.")
-    return player, team
+
+    # PBP is needed for line scores in box scores. Fail soft — box scores
+    # still render without it, just missing the quarter-by-quarter breakdown.
+    pbp = None
+    try:
+        pbp = wnba.load_wnba_pbp(seasons=[SEASON], return_as_pandas=True)
+        if pbp is not None and pbp.empty:
+            pbp = None
+    except Exception as e:
+        print(f"WARNING: PBP fetch failed ({e}) — box scores will omit line scores.")
+
+    return player, team, pbp
 
 
 def freshness_check(player: pd.DataFrame) -> None:
@@ -133,11 +145,16 @@ def fetch_schedule() -> None:
 
 
 def main() -> None:
-    player, team = fetch()
+    player, team, pbp = fetch()
     freshness_check(player)
     player.to_csv(PLAYER_CSV, index=False)
     team.to_csv(TEAM_CSV, index=False)
     print(f"Wrote {PLAYER_CSV.name} and {TEAM_CSV.name}")
+    if pbp is not None:
+        pbp.to_csv(PBP_CSV, index=False)
+        print(f"Wrote {PBP_CSV.name} ({len(pbp):,} rows)")
+    else:
+        print("WARNING: no PBP data written — line scores will be unavailable.")
     fetch_schedule()
 
 
