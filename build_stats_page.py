@@ -7,16 +7,20 @@ Usage:
     python3 /Users/jasonhhorowitz/projects/basketball-data/WNBA/build_stats_page.py
 """
 
+import json
 import pandas as pd
 import numpy as np
+from datetime import datetime, timedelta
 from pathlib import Path
 from html import escape as esc
+from zoneinfo import ZoneInfo
 
 HERE   = Path(__file__).parent
 OUTPUT = HERE / 'WNBA-2026-stats-explorer.html'
 
 PYTH_EXP = 13.91  # Pythagorean exponent for basketball
 PLAYOFF_SPOTS = 8  # teams that make the WNBA playoffs
+ET = ZoneInfo("America/New_York")
 
 
 # ── Formatting helpers ────────────────────────────────────────────────────
@@ -451,7 +455,7 @@ def build_standings_section(standings_df):
         cells = ''.join(f'<td>{v}</td>' for v in row)
         rows += f'<tr class="{cutoff}">{cells}</tr>\n'
     return (
-        '<div id="standings" class="section active">\n'
+        '<div id="standings" class="section">\n'
         '<h2>Standings</h2>\n'
         '<p class="tab-note"><em>Dashed line = playoff cutoff (top 8)</em></p>\n'
         '<div class="table-scroll"><div class="table-wrap">'
@@ -670,6 +674,253 @@ def build_abbreviations_section():
     return html
 
 
+# ── Games tab builder ────────────────────────────────────────────────────
+
+def _dow(d):
+    """'Sat, Jun 21' from a date string or date object."""
+    return pd.to_datetime(d).strftime('%a, %b %-d')
+
+
+def _fmt_min(m):
+    try:    return str(int(round(float(m))))
+    except Exception: return '0'
+
+
+_CITY = {
+    'ATL': 'Atlanta', 'CHI': 'Chicago', 'CON': 'Connecticut', 'DAL': 'Dallas',
+    'GS': 'Golden State', 'IND': 'Indiana', 'LA': 'Los Angeles', 'LV': 'Las Vegas',
+    'MIN': 'Minnesota', 'NY': 'New York', 'PHX': 'Phoenix', 'POR': 'Portland',
+    'SEA': 'Seattle', 'TOR': 'Toronto', 'WSH': 'Washington',
+}
+
+
+def _game_ma(m, a):
+    return '%d/%d' % (int(m), int(a))
+
+
+def _game_pct(m, a):
+    return ('%.1f%%' % (100.0 * m / a)) if a else '\u2014'
+
+
+def _record_through(team_raw, abbr, date):
+    """W-L record for a team through a given date."""
+    t = team_raw[(team_raw['team_abbreviation'] == abbr) & (team_raw['game_date'] <= date)]
+    return (int((t['team_score'] > t['opponent_team_score']).sum()),
+            int((t['team_score'] < t['opponent_team_score']).sum()))
+
+
+def _game_sides(player_raw, team_raw, gid, date):
+    """Return (away_meta, home_meta) dicts for a game."""
+    g = player_raw[player_raw['game_id'] == gid]
+    a = g[g['home_away'] == 'away'].iloc[0]
+    h = g[g['home_away'] == 'home'].iloc[0]
+    def meta(r):
+        w, l = _record_through(team_raw, r['team_abbreviation'], date)
+        return dict(abbr=r['team_abbreviation'], name=r['team_display_name'],
+                    score=int(r['team_score']), w=w, l=l)
+    return meta(a), meta(h)
+
+
+def _team_totals(g, abbr):
+    """Sum player stats for one team in a game (played players only)."""
+    t = g[(g['team_abbreviation'] == abbr) & (g['did_not_play'] != True) & (g['minutes'].notna())]
+    s = lambda c: int(t[c].sum())
+    return dict(fg=(s('field_goals_made'), s('field_goals_attempted')),
+                tp=(s('three_point_field_goals_made'), s('three_point_field_goals_attempted')),
+                ft=(s('free_throws_made'), s('free_throws_attempted')),
+                tr=s('rebounds'), orb=s('offensive_rebounds'),
+                a=s('assists'), to=s('turnovers'), pf=s('fouls'))
+
+
+_TS_COLS = ['FG', '3PT', 'FT', 'TR/OR', 'A', 'TO', 'PF']
+_STAT_COLS = ['MIN', 'PTS', 'FG', '3PT', 'FT', 'R', 'OR', 'A', 'S', 'B', 'TO', 'PF', '+/\u2212']
+
+
+def _team_stats_block(g, away, home):
+    """Team comparison block (FG, 3PT, FT with percentages, etc.)."""
+    head = '<tr class="gm-cols"><th class="gm-pl"></th>' + ''.join('<th>%s</th>' % c for c in _TS_COLS) + '</tr>'
+    rows = ''
+    for m in (away, home):
+        t = _team_totals(g, m['abbr'])
+        vals = [_game_ma(*t['fg']), _game_ma(*t['tp']), _game_ma(*t['ft']),
+                '%d/%d' % (t['tr'], t['orb']), str(t['a']), str(t['to']), str(t['pf'])]
+        pcts = [_game_pct(*t['fg']), _game_pct(*t['tp']), _game_pct(*t['ft']), '', '', '', '']
+        rows += ('<tr class="gm-v"><td class="gm-pl">%s</td>%s</tr>'
+                 '<tr class="gm-p"><td class="gm-pl"></td>%s</tr>'
+                 % (m['abbr'], ''.join('<td>%s</td>' % v for v in vals),
+                    ''.join('<td>%s</td>' % p for p in pcts)))
+    return '<table class="gm-ts">%s%s</table>' % (head, rows)
+
+
+def _player_row(r):
+    """One player row in the box score."""
+    pm = r['plus_minus']
+    pm_s = ('+%d' % int(pm)) if pd.notna(pm) and pm > 0 else ('%d' % int(pm) if pd.notna(pm) else '\u2014')
+    pos = '' if pd.isna(r['athlete_position_abbreviation']) else r['athlete_position_abbreviation']
+    cells = [_fmt_min(r['minutes']), '<b>%d</b>' % int(r['points']),
+             _game_ma(r['field_goals_made'], r['field_goals_attempted']),
+             _game_ma(r['three_point_field_goals_made'], r['three_point_field_goals_attempted']),
+             _game_ma(r['free_throws_made'], r['free_throws_attempted']),
+             str(int(r['rebounds'])), str(int(r['offensive_rebounds'])), str(int(r['assists'])),
+             str(int(r['steals'])), str(int(r['blocks'])), str(int(r['turnovers'])),
+             str(int(r['fouls'])), pm_s]
+    return ('<tr><td class="gm-pl"><span class="gm-pos">%s</span> %s</td>%s</tr>'
+            % (pos, short_name(r['athlete_display_name']),
+               ''.join('<td>%s</td>' % c for c in cells)))
+
+
+def _team_table(g, meta):
+    """Full box score table for one team."""
+    t = g[g['team_abbreviation'] == meta['abbr']].copy()
+    played = t[(t['did_not_play'] != True) & (t['minutes'].notna())]
+    starters = played[played['starter'] == True].sort_values('minutes', ascending=False)
+    bench = played[played['starter'] != True].sort_values('minutes', ascending=False)
+    head = '<tr class="gm-cols"><th class="gm-pl"></th>%s</tr>' % ''.join(
+        '<th>%s</th>' % c for c in _STAT_COLS)
+    def section(label, rows):
+        if rows.empty: return ''
+        return ('<tr class="gm-sec"><td class="gm-pl" colspan="%d">%s</td></tr>%s'
+                % (len(_STAT_COLS)+1, label,
+                   ''.join(_player_row(r) for _, r in rows.iterrows())))
+    cap = '<div class="gm-tcap">%s <span class="gm-rec">%d-%d</span></div>' % (
+        meta['name'], meta['w'], meta['l'])
+    return ('%s<div class="gm-tscroll"><div class="gm-tw"><table class="gm-bx">%s%s%s</table></div></div>'
+            % (cap, head, section('STARTERS', starters), section('BENCH', bench)))
+
+
+def _line_score(pbp, gid, away, home):
+    """Quarter-by-quarter line score from play-by-play data."""
+    gpp = pbp[pbp['game_id'] == gid].copy()
+    if gpp.empty:
+        return ''
+    ha = gpp[['home_team_abbrev', 'away_team_abbrev']].dropna().iloc[0]
+    periods = sorted(gpp['period_number'].dropna().unique())
+    prev_h = prev_a = 0; lh = []; la = []
+    for p in periods:
+        seg = gpp[gpp['period_number'] == p].sort_values('game_play_number')
+        eh = int(seg['home_score'].dropna().iloc[-1])
+        ea = int(seg['away_score'].dropna().iloc[-1])
+        lh.append(eh - prev_h); la.append(ea - prev_a)
+        prev_h, prev_a = eh, ea
+    L = {ha['home_team_abbrev']: lh, ha['away_team_abbrev']: la}
+    qhdr = ''.join('<th>%d</th>' % int(p) for p in periods) + '<th class="gm-t">T</th>'
+    def row(m):
+        scores = L.get(m['abbr'], [])
+        return ('<tr><td class="gm-pl">%s</td>%s<td class="gm-t"><b>%d</b></td></tr>'
+                % (m['abbr'], ''.join('<td>%d</td>' % x for x in scores), m['score']))
+    return ('<table class="gm-ls"><tr class="gm-cols"><th class="gm-pl"></th>%s</tr>%s%s</table>'
+            % (qhdr, row(away), row(home)))
+
+
+def _box_section(player_raw, team_raw, pbp, gid, date):
+    """Full box score section for one game (hidden by default)."""
+    g = player_raw[player_raw['game_id'] == gid].copy()
+    away, home = _game_sides(player_raw, team_raw, gid, date)
+    winner = home if home['score'] > away['score'] else away
+    def hd(m):
+        cls = ' gm-win' if m is winner else ''
+        return ('<div><span class="gm-tm%s">%s</span> <span class="gm-rec">%d-%d</span></div>'
+                '<div class="gm-sc%s">%d</div>' % (cls, m['abbr'], m['w'], m['l'], cls, m['score']))
+    return ('<section class="gm-box" id="g%d" style="display:none">'
+            '<div class="gm-back" onclick="backToGames()">\u2190 Back to Games</div>'
+            '<div class="gm-hd">%s<div class="gm-fin">Final</div>%s</div>'
+            '<div class="gm-meta">%s</div>%s'
+            '<h2 class="gm-h2">Team Stats</h2>%s'
+            '<h2 class="gm-h2">Box Score</h2>%s%s</section>'
+            % (gid, hd(away), hd(home), _dow(date), _line_score(pbp, gid, away, home),
+               _team_stats_block(g, away, home), _team_table(g, away), _team_table(g, home)))
+
+
+def _result_row(player_raw, team_raw, gid, date):
+    """One result row in the games list (clickable)."""
+    away, home = _game_sides(player_raw, team_raw, gid, date)
+    aw = ' gm-win' if away['score'] > home['score'] else ''
+    hw = ' gm-win' if home['score'] > away['score'] else ''
+    return ('<div class="gm-row gm-result" onclick="showGame(%d)">'
+            '<span class="gm-match"><span class="gm-s%s">%s %d</span> '
+            '<span class="gm-dash">\u2013</span> '
+            '<span class="gm-s%s">%s %d</span></span>'
+            '<span class="gm-chev">\u203A</span></div>'
+            % (gid, aw, _CITY.get(away['abbr'], away['abbr']), away['score'],
+               hw, _CITY.get(home['abbr'], home['abbr']), home['score']))
+
+
+def _sched_row(away, home, tip_et):
+    """One schedule row (upcoming game)."""
+    return ('<div class="gm-row gm-sched"><span class="gm-match">%s vs %s</span>'
+            '<span class="gm-when">%s</span></div>'
+            % (esc(_CITY.get(away, away)), esc(_CITY.get(home, home)), esc(tip_et)))
+
+
+def build_games_section(player_raw, team_raw):
+    """Build the Games tab: today's schedule + yesterday's results with
+    inline box scores. Returns HTML string."""
+    today_et = datetime.now(ET).date()
+    yest_et = today_et - timedelta(days=1)
+
+    # Load today's schedule from JSON (written by fetch_data.py)
+    sched_path = HERE / 'wnba_schedule_today.json'
+    sched_games = []
+    if sched_path.exists():
+        try:
+            sched_data = json.loads(sched_path.read_text())
+            sched_games = sched_data.get('games', [])
+        except Exception:
+            pass
+
+    # Yesterday's completed games from box score data
+    yest_ids = sorted(player_raw[player_raw['game_date'] == str(yest_et)]['game_id'].unique())
+
+    # Load pbp for line scores (only if there are results)
+    pbp = None
+    if yest_ids:
+        pbp_path = HERE / 'wnba_pbp_2026.csv'
+        if pbp_path.exists():
+            try:
+                pbp = pd.read_csv(pbp_path)
+            except Exception:
+                pass
+
+    # Build schedule rows
+    if sched_games:
+        sched_html = ''.join(
+            _sched_row(g['away'], g['home'], g['tip_et'])
+            for g in sched_games
+        )
+    else:
+        sched_html = '<div class="gm-empty">No games today.</div>'
+
+    # Build result rows + box sections
+    if yest_ids:
+        results_html = ''.join(
+            _result_row(player_raw, team_raw, gid, str(yest_et))
+            for gid in yest_ids
+        )
+        results_html += '<div class="gm-hint">Tap a final score to open its box score.</div>'
+        box_html = ''
+        if pbp is not None:
+            box_html = ''.join(
+                _box_section(player_raw, team_raw, pbp, gid, str(yest_et))
+                for gid in yest_ids
+            )
+    else:
+        results_html = '<div class="gm-empty">No games yesterday.</div>'
+        box_html = ''
+
+    return (
+        '<div id="games" class="section active">\n'
+        '<section id="games-view">'
+        '<div class="gm-daybar">Today \u00B7 %s</div>'
+        '%s'
+        '<div class="gm-daybar">%s</div>'
+        '%s'
+        '</section>'
+        '%s'
+        '</div>\n'
+        % (_dow(today_et), sched_html, _dow(yest_et), results_html, box_html)
+    )
+
+
 # ── CSS & JS ──────────────────────────────────────────────────────────────
 
 PAGE_CSS = """\
@@ -757,7 +1008,57 @@ PAGE_CSS = """\
   tr:hover td:first-child{background:var(--surface)}
   tr.lg-avg td:first-child{background:var(--bg)}
   tr.playoff-cutoff td:first-child{background:var(--bg)}
-  thead tr:first-child th:first-child{position:sticky;left:0;z-index:4;background:var(--surface)}"""
+  thead tr:first-child th:first-child{position:sticky;left:0;z-index:4;background:var(--surface)}
+  /* ── Games tab ── */
+  .gm-daybar{color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    border-bottom:1px solid var(--border);padding:10px 0 5px;margin-top:6px}
+  .gm-daybar:first-child{margin-top:0}
+  .gm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 2px;border-bottom:1px solid #161618}
+  .gm-row .gm-match{font-size:15px}
+  .gm-row.gm-sched .gm-match{color:var(--text)}
+  .gm-row.gm-sched .gm-when{color:var(--muted);font-size:12px}
+  .gm-row.gm-result{cursor:pointer}
+  .gm-row.gm-result .gm-s{color:var(--muted)}
+  .gm-row.gm-result .gm-s.gm-win{color:var(--text);font-weight:700}
+  .gm-row .gm-dash{color:var(--muted)}
+  .gm-row .gm-chev{color:var(--muted);font-size:18px}
+  .gm-row.gm-result:active{background:var(--surface)}
+  .gm-hint{color:var(--muted);font-size:11px;margin-top:14px}
+  .gm-empty{color:var(--muted);font-size:12px;padding:14px 2px}
+  .gm-back{color:var(--accent);font-size:13px;padding:4px 0 12px;cursor:pointer;display:inline-block}
+  .gm-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px}
+  .gm-hd .gm-tm{font-size:15px;font-weight:700}
+  .gm-hd .gm-sc{font-size:22px;font-weight:700}
+  .gm-hd .gm-rec{color:var(--muted);font-weight:400;font-size:12px}
+  .gm-fin{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:11px;text-align:center}
+  .gm-win{color:#7ec27e}
+  .gm-meta{color:var(--muted);font-size:11px;margin:8px 0 14px}
+  .gm-h2{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;
+    border-bottom:1px solid var(--border);padding-bottom:5px;margin:18px 0 6px}
+  .gm-ls{border-collapse:collapse;width:auto;margin:10px 0 20px;font-size:13px}
+  .gm-ls th,.gm-ls td{padding:3px 10px;text-align:right}
+  .gm-ls .gm-pl{text-align:left;color:var(--muted)}.gm-ls .gm-t{border-left:1px solid var(--border)}
+  .gm-ts{border-collapse:collapse;width:auto;margin:4px 0 8px;font-size:12px}
+  .gm-ts th,.gm-ts td{padding:2px 10px;text-align:right;white-space:nowrap}
+  .gm-ts .gm-pl{text-align:left}
+  .gm-ts .gm-cols th{color:var(--muted);font-weight:400;border-bottom:1px solid var(--border)}
+  .gm-ts .gm-v td{padding-top:7px}.gm-ts .gm-v .gm-pl{font-weight:700}
+  .gm-ts .gm-p td{color:var(--muted);font-size:10px;padding-top:0;padding-bottom:3px}
+  .gm-tcap{font-weight:700;margin:18px 0 3px}.gm-tcap .gm-rec{color:var(--muted);font-weight:400;font-size:12px}
+  .gm-tscroll{position:relative;margin-bottom:6px}
+  .gm-tscroll::after{content:"";position:absolute;top:0;bottom:0;right:0;width:26px;
+    pointer-events:none;opacity:0;transition:opacity .15s ease;z-index:5;
+    background:linear-gradient(to right, rgba(15,15,15,0), var(--bg))}
+  .gm-tscroll.more-right::after{opacity:1}
+  .gm-tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .gm-bx{border-collapse:collapse;min-width:520px;width:100%;font-size:12px}
+  .gm-bx th,.gm-bx td{padding:3px 6px;text-align:right;white-space:nowrap}
+  .gm-bx .gm-pl{text-align:left;position:sticky;left:0;background:var(--bg);min-width:88px;padding-left:0}
+  .gm-bx .gm-cols th{border-bottom:1px solid var(--accent);color:var(--muted);font-weight:400}
+  .gm-bx .gm-sec td{color:var(--accent);font-size:10px;letter-spacing:.1em;padding-top:9px;text-transform:uppercase}
+  .gm-bx tr:not(.gm-cols):not(.gm-sec) td{border-top:1px solid #18181b}
+  .gm-pos{color:var(--muted);font-size:10px;display:inline-block;min-width:18px}"""
 
 PAGE_JS = """\
 function showTab(id, btn) {
@@ -770,24 +1071,29 @@ function showTab(id, btn) {
      hide it on any manual tab switch. goToPlayer re-shows it afterward. */
   const bl = document.getElementById('backToLeaders');
   if (bl) bl.style.display = 'none';
+  /* When switching to/from Games, restore the games list view and hide any
+     open box score so returning to Games shows the list, not a stale box. */
+  const gv = document.getElementById('games-view');
+  if (gv) gv.style.display = 'block';
+  document.querySelectorAll('.gm-box').forEach(s => s.style.display = 'none');
 }
 
 /* -- Horizontal-scroll fade -- */
 function updateScrollFades(wrap) {
-  const scroll = wrap.closest('.table-scroll');
+  const scroll = wrap.closest('.table-scroll') || wrap.closest('.gm-tscroll');
   if (!scroll) return;
   scroll.classList.toggle('more-right',
     wrap.scrollWidth - wrap.clientWidth - wrap.scrollLeft > 1);
 }
 function initScrollFades() {
-  document.querySelectorAll('.table-wrap').forEach(wrap => {
+  document.querySelectorAll('.table-wrap, .gm-tw').forEach(wrap => {
     updateScrollFades(wrap);
     wrap.addEventListener('scroll', () => updateScrollFades(wrap), {passive:true});
   });
 }
 window.addEventListener('load', initScrollFades);
 window.addEventListener('resize', () =>
-  document.querySelectorAll('.table-wrap').forEach(updateScrollFades));
+  document.querySelectorAll('.table-wrap, .gm-tw').forEach(updateScrollFades));
 
 let sortState = {};
 function sortTable(id, col) {
@@ -926,22 +1232,39 @@ function clearTeamStats() {
   document.getElementById('ts_team1').value = '';
   document.getElementById('ts_team2').value = '';
   filterTeamStats();
+}
+
+/* -- Games tab: show/hide box scores -- */
+function showGame(id) {
+  document.getElementById('games-view').style.display = 'none';
+  document.querySelectorAll('.gm-box').forEach(function(s) { s.style.display = 'none'; });
+  var el = document.getElementById('g' + id);
+  el.style.display = 'block';
+  el.querySelectorAll('.gm-tw').forEach(updateScrollFades);
+  window.scrollTo(0, 0);
+}
+function backToGames() {
+  document.querySelectorAll('.gm-box').forEach(function(s) { s.style.display = 'none'; });
+  document.getElementById('games-view').style.display = 'block';
+  window.scrollTo(0, 0);
 }"""
 
 
 # ── Page assembly ─────────────────────────────────────────────────────────
 
 def assemble_page(display_date, data_through_iso,
+                  games_html,
                   standings_html, leaders_html, team_eff_html,
                   team_totals_html, players_html, abbreviations_html):
     """Combine all sections into the final HTML string."""
     tabs = [
+        ('games', 'Games'),
         ('standings', 'Standings'),
         ('leaders', 'Leaders'),
-        ('teameff', 'Team Efficiency'),
+        ('teameff', 'Efficiency'),
         ('teamtotals', 'Team Totals'),
         ('players', 'Players'),
-        ('abbreviations', 'Abbreviations'),
+        ('abbreviations', 'Key'),
     ]
     tab_buttons = '\n'.join(
         f'  <button class="tab{" active" if i == 0 else ""}" '
@@ -961,6 +1284,7 @@ def assemble_page(display_date, data_through_iso,
         '<h1>WNBA 2026 \u2014 Season Stats</h1>\n'
         f'<div class="meta">Fast, ad-free — updated {display_date}</div>\n\n'
         f'<div class="tabs">\n{tab_buttons}\n</div>\n\n'
+        f'{games_html}\n'
         f'{standings_html}\n'
         f'{leaders_html}\n'
         f'{team_eff_html}\n'
@@ -1001,6 +1325,7 @@ def main():
     )
 
     # Build each section
+    games_html         = build_games_section(player_raw, team_raw)
     standings_html     = build_standings_section(standings_df)
     leaders_html       = build_leaders_section(leaders, team_abbrevs)
     team_eff_html      = build_team_efficiency_section(ff_df, team_options)
@@ -1009,6 +1334,7 @@ def main():
     abbreviations_html = build_abbreviations_section()
 
     html = assemble_page(display_date, data_through_iso,
+                         games_html,
                          standings_html, leaders_html, team_eff_html,
                          team_totals_html, players_html, abbreviations_html)
 
