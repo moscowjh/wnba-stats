@@ -790,6 +790,8 @@ def _team_table(g, meta):
 
 def _line_score(pbp, gid, away, home):
     """Quarter-by-quarter line score from play-by-play data."""
+    if pbp is None:
+        return ''
     gpp = pbp[pbp['game_id'] == gid].copy()
     if gpp.empty:
         return ''
@@ -897,12 +899,10 @@ def build_games_section(player_raw, team_raw):
             for gid in yest_ids
         )
         results_html += '<div class="gm-hint">Tap a final score to open its box score.</div>'
-        box_html = ''
-        if pbp is not None:
-            box_html = ''.join(
-                _box_section(player_raw, team_raw, pbp, gid, str(yest_et))
-                for gid in yest_ids
-            )
+        box_html = ''.join(
+            _box_section(player_raw, team_raw, pbp, gid, str(yest_et))
+            for gid in yest_ids
+        )
     else:
         results_html = '<div class="gm-empty">No games yesterday.</div>'
         box_html = ''
