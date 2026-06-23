@@ -144,9 +144,35 @@ def fetch_schedule() -> None:
     print(f"Schedule for {today_et}: {len(games)} game(s) → {SCHEDULE_JSON.name}")
 
 
+def regression_check(player: pd.DataFrame, team: pd.DataFrame) -> None:
+    """Abort if the new pull has fewer games than the existing CSVs.
+
+    The sportsdataverse cache is periodically rebuilt; a mid-rebuild fetch can
+    return fewer games than the previous pull. This guard prevents overwriting
+    good data with a regressed cache.
+    """
+    for label, df, path in [("player", player, PLAYER_CSV), ("team", team, TEAM_CSV)]:
+        if not path.exists():
+            continue
+        try:
+            old = pd.read_csv(path)
+        except Exception:
+            continue
+        old_games = old["game_id"].nunique()
+        new_games = df["game_id"].nunique()
+        if new_games < old_games:
+            sys.exit(
+                f"ERROR: {label} regression — new pull has {new_games} games, "
+                f"existing CSV has {old_games}. Cache may be mid-rebuild; "
+                f"aborting without overwriting."
+            )
+        print(f"{label}: {old_games} → {new_games} games ({new_games - old_games:+d})")
+
+
 def main() -> None:
     player, team, pbp = fetch()
     freshness_check(player)
+    regression_check(player, team)
     player.to_csv(PLAYER_CSV, index=False)
     team.to_csv(TEAM_CSV, index=False)
     print(f"Wrote {PLAYER_CSV.name} and {TEAM_CSV.name}")
