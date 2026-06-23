@@ -2,36 +2,26 @@
 """Fetch 2026 WNBA player + team box scores, play-by-play, and today's schedule,
 writing three CSVs and a JSON file that build_stats_page.py consumes.
 
-Data source: the `sportsdataverse` package (the Python sibling of the R
-`wehoop` package). It reads the same cached box-score data wehoop reads, so
-the column schema is identical to the CSVs you've been generating by hand —
-this is a drop-in replacement, no changes to build_stats_page.py required.
-
-Freshness note: load_wnba_*_boxscore() reads a community-maintained cache
-that is refreshed on a regular cadence during the season. In practice a
-morning run will include the prior night's finals, but if you ever observe a
-lag you can upgrade the fetch to hit ESPN's live endpoints directly
-(sportsdataverse exposes espn_wnba_schedule() + espn_wnba_summary() for that).
-The freshness_check() below prints how old the newest game is and warns if it
-looks stale, so a lag won't fail silently.
-
-Schedule: the ESPN scoreboard endpoint provides today's game slate (tip times,
-home/away teams, game state). This is needed because the box score CSVs only
-contain completed games. The scoreboard returns UTC times; we convert to ET.
+Data source: ESPN's public API endpoints (scoreboard + game summary).
+The scoreboard endpoint discovers completed games; the summary endpoint
+provides box scores and play-by-play for each game. Fetches are incremental:
+only new games are fetched and appended to existing CSVs.
 """
 from __future__ import annotations
 
 import json
+import os
 import sys
-from datetime import datetime, timezone
+import time
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
-import sportsdataverse.wnba as wnba
 
 SEASON = 2026
+SEASON_START = "2026-05-08"
 HERE = Path(__file__).resolve().parent
 PLAYER_CSV = HERE / "wnba_player_box_2026.csv"
 TEAM_CSV = HERE / "wnba_team_box_2026.csv"
@@ -40,34 +30,342 @@ SCHEDULE_JSON = HERE / "wnba_schedule_today.json"
 ESPN_SCOREBOARD = (
     "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard"
 )
+ESPN_SUMMARY = (
+    "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/summary"
+)
 ET = ZoneInfo("America/New_York")
-
-# Warn (don't fail) if the newest game in the data is older than this.
 MAX_STALENESS_DAYS = 2
+FETCH_DELAY = 0.5
 
 
-def fetch() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame | None]:
-    """Pull player and team box scores + play-by-play as pandas DataFrames."""
-    player = wnba.load_wnba_player_boxscore(seasons=[SEASON], return_as_pandas=True)
-    team = wnba.load_wnba_team_boxscore(seasons=[SEASON], return_as_pandas=True)
+# ── HTTP helper ──────────────────────────────────────────────────────────
 
-    # Guard: never overwrite good CSVs with an empty pull (e.g. a transient
-    # upstream outage). Exiting non-zero makes the CI step fail loudly.
-    if player is None or team is None or player.empty or team.empty:
-        sys.exit("ERROR: fetch returned no rows — aborting without touching the CSVs.")
+def espn_get(url: str, params: dict | None = None) -> dict:
+    """GET JSON from ESPN with one retry on transient errors."""
+    headers = {"User-Agent": "wnba-stats-fetch"}
+    for attempt in range(2):
+        try:
+            resp = requests.get(url, params=params, headers=headers, timeout=15)
+            resp.raise_for_status()
+            return resp.json()
+        except (requests.ConnectionError, requests.Timeout) as e:
+            if attempt == 0:
+                time.sleep(2)
+                continue
+            raise
+        except requests.HTTPError as e:
+            if attempt == 0 and resp.status_code >= 500:
+                time.sleep(2)
+                continue
+            raise
 
-    # PBP is needed for line scores in box scores. Fail soft — box scores
-    # still render without it, just missing the quarter-by-quarter breakdown.
-    pbp = None
-    try:
-        pbp = wnba.load_wnba_pbp(seasons=[SEASON], return_as_pandas=True)
-        if pbp is not None and pbp.empty:
-            pbp = None
-    except Exception as e:
-        print(f"WARNING: PBP fetch failed ({e}) — box scores will omit line scores.")
 
-    return player, team, pbp
+# ── Game discovery ───────────────────────────────────────────────────────
 
+def discover_games(start: date, end: date) -> list[tuple[int, str]]:
+    """Scan date range via scoreboard, return [(game_id, "YYYY-MM-DD")] for
+    completed games."""
+    completed = []
+    d = start
+    while d <= end:
+        date_str = d.strftime("%Y%m%d")
+        try:
+            data = espn_get(ESPN_SCOREBOARD, {"dates": date_str})
+        except Exception as e:
+            print(f"WARNING: scoreboard fetch failed for {d} ({e})")
+            d += timedelta(days=1)
+            continue
+
+        iso_date = d.isoformat()
+        for event in data.get("events", []):
+            state = event.get("status", {}).get("type", {}).get("state", "")
+            if state == "post":
+                game_id = int(event["id"])
+                completed.append((game_id, iso_date))
+        d += timedelta(days=1)
+    return completed
+
+
+# ── Parsing helpers ──────────────────────────────────────────────────────
+
+def _split_ma(val: str) -> tuple[int, int]:
+    """Split "M-A" string like "5-12" into (made, attempted)."""
+    parts = val.split("-")
+    return int(parts[0]), int(parts[1])
+
+
+def _parse_plus_minus(val: str) -> float | None:
+    """Parse "+3" → 3, "-7" → -7, empty/missing → NaN."""
+    if not val or val == "--":
+        return float("nan")
+    return int(val)
+
+
+def _extract_header_info(summary: dict) -> dict:
+    """Extract team metadata from header.competitions[0].competitors[]."""
+    competitors = summary["header"]["competitions"][0]["competitors"]
+    teams = {}
+    for comp in competitors:
+        team_id = int(comp["id"])
+        ha = comp["homeAway"]
+        teams[ha] = {
+            "team_id": team_id,
+            "team_abbreviation": comp["team"]["abbreviation"],
+            "team_display_name": comp["team"].get("displayName", ""),
+            "score": int(comp["score"]),
+            "home_away": ha,
+        }
+    return teams
+
+
+# ── Player box parsing ───────────────────────────────────────────────────
+
+def parse_player_box(
+    summary: dict, game_id: int, game_date: str
+) -> list[dict]:
+    """Parse boxscore.players[] into player row dicts."""
+    header_teams = _extract_header_info(summary)
+    abbr_to_info = {
+        info["team_abbreviation"]: info for info in header_teams.values()
+    }
+
+    rows = []
+    for team_entry in summary.get("boxscore", {}).get("players", []):
+        team_abbr = team_entry["team"]["abbreviation"]
+        team_info = abbr_to_info.get(team_abbr, {})
+        team_id = team_info.get("team_id", 0)
+        team_display_name = team_entry["team"].get(
+            "displayName", team_info.get("team_display_name", "")
+        )
+        team_score = team_info.get("score", 0)
+        home_away = team_info.get("home_away", "")
+
+        for stat_group in team_entry.get("statistics", []):
+            names = stat_group.get("names", [])
+            name_idx = {n: i for i, n in enumerate(names)}
+
+            for athlete_entry in stat_group.get("athletes", []):
+                athlete = athlete_entry.get("athlete", {})
+                dnp = athlete_entry.get("didNotPlay", False)
+                stats = athlete_entry.get("stats", [])
+
+                position = ""
+                pos_obj = athlete.get("position", {})
+                if isinstance(pos_obj, dict):
+                    position = pos_obj.get("abbreviation", "")
+
+                row = {
+                    "game_id": game_id,
+                    "game_date": game_date,
+                    "athlete_display_name": athlete.get("displayName", ""),
+                    "team_abbreviation": team_abbr,
+                    "team_display_name": team_display_name,
+                    "team_id": team_id,
+                    "team_score": team_score,
+                    "athlete_position_abbreviation": position,
+                    "home_away": home_away,
+                    "starter": athlete_entry.get("starter", False),
+                    "did_not_play": dnp,
+                }
+
+                if dnp or not stats:
+                    row.update({
+                        "minutes": float("nan"),
+                        "points": 0,
+                        "field_goals_made": 0,
+                        "field_goals_attempted": 0,
+                        "three_point_field_goals_made": 0,
+                        "three_point_field_goals_attempted": 0,
+                        "free_throws_made": 0,
+                        "free_throws_attempted": 0,
+                        "rebounds": 0,
+                        "offensive_rebounds": 0,
+                        "defensive_rebounds": 0,
+                        "assists": 0,
+                        "steals": 0,
+                        "blocks": 0,
+                        "turnovers": 0,
+                        "fouls": 0,
+                        "plus_minus": float("nan"),
+                    })
+                else:
+                    def _stat(key, default="0"):
+                        idx = name_idx.get(key)
+                        if idx is None or idx >= len(stats):
+                            return default
+                        return stats[idx]
+
+                    fg_m, fg_a = _split_ma(_stat("FG", "0-0"))
+                    tp_m, tp_a = _split_ma(_stat("3PT", "0-0"))
+                    ft_m, ft_a = _split_ma(_stat("FT", "0-0"))
+
+                    min_str = _stat("MIN", "0")
+                    try:
+                        minutes = float(min_str)
+                    except ValueError:
+                        minutes = 0.0
+
+                    row.update({
+                        "minutes": minutes,
+                        "points": int(_stat("PTS")),
+                        "field_goals_made": fg_m,
+                        "field_goals_attempted": fg_a,
+                        "three_point_field_goals_made": tp_m,
+                        "three_point_field_goals_attempted": tp_a,
+                        "free_throws_made": ft_m,
+                        "free_throws_attempted": ft_a,
+                        "rebounds": int(_stat("REB")),
+                        "offensive_rebounds": int(_stat("OREB")),
+                        "defensive_rebounds": int(_stat("DREB")),
+                        "assists": int(_stat("AST")),
+                        "steals": int(_stat("STL")),
+                        "blocks": int(_stat("BLK")),
+                        "turnovers": int(_stat("TO")),
+                        "fouls": int(_stat("PF")),
+                        "plus_minus": _parse_plus_minus(_stat("+/-", "")),
+                    })
+
+                rows.append(row)
+
+    return rows
+
+
+# ── Team box parsing ─────────────────────────────────────────────────────
+
+def parse_team_box(
+    summary: dict, game_id: int, game_date: str
+) -> list[dict]:
+    """Parse boxscore.teams[] + header into 2 team row dicts."""
+    header_teams = _extract_header_info(summary)
+    team_stats_by_abbr = {}
+    for team_entry in summary.get("boxscore", {}).get("teams", []):
+        abbr = team_entry["team"]["abbreviation"]
+        stat_dict = {}
+        for s in team_entry.get("statistics", []):
+            stat_dict[s["name"]] = s.get("displayValue", "")
+        team_stats_by_abbr[abbr] = stat_dict
+
+    rows = []
+    for side in ("home", "away"):
+        info = header_teams[side]
+        other_side = "away" if side == "home" else "home"
+        other = header_teams[other_side]
+
+        stats = team_stats_by_abbr.get(info["team_abbreviation"], {})
+
+        def _get_split(key: str) -> tuple[int, int]:
+            val = stats.get(key, "0-0")
+            parts = val.split("-")
+            return int(parts[0]), int(parts[1])
+
+        def _get_int(key: str) -> int:
+            val = stats.get(key, "0")
+            try:
+                return int(val)
+            except ValueError:
+                return int(float(val))
+
+        fg_m, fg_a = _get_split("fieldGoalsMade-fieldGoalsAttempted")
+        tp_m, tp_a = _get_split("threePointFieldGoalsMade-threePointFieldGoalsAttempted")
+        ft_m, ft_a = _get_split("freeThrowsMade-freeThrowsAttempted")
+
+        row = {
+            "game_id": game_id,
+            "game_date": game_date,
+            "team_id": info["team_id"],
+            "team_display_name": info["team_display_name"],
+            "team_abbreviation": info["team_abbreviation"],
+            "team_score": info["score"],
+            "opponent_team_id": other["team_id"],
+            "opponent_team_score": other["score"],
+            "team_winner": info["score"] > other["score"],
+            "field_goals_made": fg_m,
+            "field_goals_attempted": fg_a,
+            "three_point_field_goals_made": tp_m,
+            "three_point_field_goals_attempted": tp_a,
+            "free_throws_made": ft_m,
+            "free_throws_attempted": ft_a,
+            "offensive_rebounds": _get_int("offensiveRebounds"),
+            "defensive_rebounds": _get_int("defensiveRebounds"),
+            "total_rebounds": _get_int("totalRebounds"),
+            "assists": _get_int("assists"),
+            "steals": _get_int("steals"),
+            "blocks": _get_int("blocks"),
+            "total_turnovers": _get_int("totalTurnovers"),
+            "fouls": _get_int("fouls"),
+        }
+        rows.append(row)
+
+    return rows
+
+
+# ── Play-by-play parsing ────────────────────────────────────────────────
+
+def parse_pbp(summary: dict, game_id: int) -> list[dict]:
+    """Parse plays[] into PBP row dicts."""
+    header_teams = _extract_header_info(summary)
+    home_abbr = header_teams.get("home", {}).get("team_abbreviation", "")
+    away_abbr = header_teams.get("away", {}).get("team_abbreviation", "")
+
+    rows = []
+    for play in summary.get("plays", []):
+        period = play.get("period", {})
+        period_num = period.get("number") if isinstance(period, dict) else None
+        if period_num is None:
+            continue
+
+        row = {
+            "game_id": game_id,
+            "home_team_abbrev": home_abbr,
+            "away_team_abbrev": away_abbr,
+            "period_number": int(period_num),
+            "game_play_number": int(play.get("sequenceNumber", 0)),
+            "home_score": int(play.get("homeScore", 0)),
+            "away_score": int(play.get("awayScore", 0)),
+        }
+        rows.append(row)
+
+    return rows
+
+
+# ── CSV I/O ──────────────────────────────────────────────────────────────
+
+def load_existing() -> tuple[set[int], pd.DataFrame | None, pd.DataFrame | None, pd.DataFrame | None]:
+    """Read existing CSVs and return (known game_ids, player_df, team_df, pbp_df).
+    Returns None for any CSV that doesn't exist or can't be read."""
+    game_ids: set[int] = set()
+    player_df = team_df = pbp_df = None
+
+    for label, path in [("player", PLAYER_CSV), ("team", TEAM_CSV)]:
+        if not path.exists():
+            continue
+        try:
+            df = pd.read_csv(path)
+            game_ids.update(df["game_id"].unique())
+            if label == "player":
+                player_df = df
+            else:
+                team_df = df
+        except Exception as e:
+            print(f"WARNING: could not read {path.name} ({e})")
+
+    if PBP_CSV.exists():
+        try:
+            pbp_df = pd.read_csv(PBP_CSV)
+        except Exception as e:
+            print(f"WARNING: could not read {PBP_CSV.name} ({e})")
+
+    return game_ids, player_df, team_df, pbp_df
+
+
+def atomic_write_csv(df: pd.DataFrame, path: Path) -> None:
+    """Write CSV atomically via temp file + rename."""
+    tmp = path.with_suffix(".csv.tmp")
+    df.to_csv(tmp, index=False)
+    os.replace(tmp, path)
+
+
+# ── Checks (preserved from original) ────────────────────────────────────
 
 def freshness_check(player: pd.DataFrame) -> None:
     latest = pd.to_datetime(player["game_date"]).max()
@@ -76,10 +374,28 @@ def freshness_check(player: pd.DataFrame) -> None:
     print(f"Games: {player['game_id'].nunique()} | player rows: {len(player):,}")
     if age_days > MAX_STALENESS_DAYS:
         print(
-            f"WARNING: newest game is {age_days} days old — the upstream cache "
-            "may be lagging. Consider switching to the live ESPN endpoints."
+            f"WARNING: newest game is {age_days} days old — the ESPN data "
+            "may be lagging or there may be no recent games."
         )
 
+
+def regression_check(
+    old_df: pd.DataFrame | None, new_df: pd.DataFrame, label: str
+) -> None:
+    """Abort if the new data has fewer games than the existing CSV."""
+    if old_df is None:
+        return
+    old_games = old_df["game_id"].nunique()
+    new_games = new_df["game_id"].nunique()
+    if new_games < old_games:
+        sys.exit(
+            f"ERROR: {label} regression — new data has {new_games} games, "
+            f"existing CSV has {old_games}. Aborting without overwriting."
+        )
+    print(f"{label}: {old_games} → {new_games} games ({new_games - old_games:+d})")
+
+
+# ── Schedule (unchanged from original) ──────────────────────────────────
 
 def fetch_schedule() -> None:
     """Fetch today's WNBA schedule from ESPN's scoreboard endpoint.
@@ -113,14 +429,12 @@ def fetch_schedule() -> None:
         if len(competitors) != 2:
             continue
 
-        # competitors[0] is home, competitors[1] is away in ESPN's format
         teams = {}
         for comp in competitors:
             ha = comp.get("homeAway", "")
             abbr = comp.get("team", {}).get("abbreviation", "")
             teams[ha] = abbr
 
-        # Convert UTC tip time to ET
         utc_str = event.get("date", "")
         state = event.get("status", {}).get("type", {}).get("state", "pre")
         tip_et = ""
@@ -144,43 +458,97 @@ def fetch_schedule() -> None:
     print(f"Schedule for {today_et}: {len(games)} game(s) → {SCHEDULE_JSON.name}")
 
 
-def regression_check(player: pd.DataFrame, team: pd.DataFrame) -> None:
-    """Abort if the new pull has fewer games than the existing CSVs.
-
-    The sportsdataverse cache is periodically rebuilt; a mid-rebuild fetch can
-    return fewer games than the previous pull. This guard prevents overwriting
-    good data with a regressed cache.
-    """
-    for label, df, path in [("player", player, PLAYER_CSV), ("team", team, TEAM_CSV)]:
-        if not path.exists():
-            continue
-        try:
-            old = pd.read_csv(path)
-        except Exception:
-            continue
-        old_games = old["game_id"].nunique()
-        new_games = df["game_id"].nunique()
-        if new_games < old_games:
-            sys.exit(
-                f"ERROR: {label} regression — new pull has {new_games} games, "
-                f"existing CSV has {old_games}. Cache may be mid-rebuild; "
-                f"aborting without overwriting."
-            )
-        print(f"{label}: {old_games} → {new_games} games ({new_games - old_games:+d})")
-
+# ── Main ─────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    player, team, pbp = fetch()
-    freshness_check(player)
-    regression_check(player, team)
-    player.to_csv(PLAYER_CSV, index=False)
-    team.to_csv(TEAM_CSV, index=False)
+    existing_ids, old_player, old_team, old_pbp = load_existing()
+    print(f"Existing data: {len(existing_ids)} game(s) known")
+
+    if old_player is not None:
+        max_date = pd.to_datetime(old_player["game_date"]).max().date()
+        scan_start = max_date - timedelta(days=1)
+    else:
+        scan_start = date.fromisoformat(SEASON_START)
+
+    today = datetime.now(ET).date()
+    print(f"Scanning scoreboard from {scan_start} to {today}...")
+    completed = discover_games(scan_start, today)
+    new_games = [(gid, d) for gid, d in completed if gid not in existing_ids]
+    print(f"Found {len(completed)} completed game(s), {len(new_games)} new")
+
+    if not new_games and old_player is None:
+        sys.exit("ERROR: no games found and no existing data — nothing to write.")
+
+    new_player_rows: list[dict] = []
+    new_team_rows: list[dict] = []
+    new_pbp_rows: list[dict] = []
+    failed = 0
+
+    for i, (gid, game_date) in enumerate(new_games):
+        try:
+            summary = espn_get(ESPN_SUMMARY, {"event": str(gid)})
+            new_player_rows.extend(parse_player_box(summary, gid, game_date))
+            new_team_rows.extend(parse_team_box(summary, gid, game_date))
+            new_pbp_rows.extend(parse_pbp(summary, gid))
+        except Exception as e:
+            print(f"WARNING: game {gid} ({game_date}) failed: {e}")
+            failed += 1
+            continue
+
+        if i < len(new_games) - 1:
+            time.sleep(FETCH_DELAY)
+
+    if failed:
+        print(f"WARNING: {failed} game(s) failed — will retry on next run")
+
+    if new_player_rows:
+        new_player_df = pd.DataFrame(new_player_rows)
+        player_df = (
+            pd.concat([old_player, new_player_df], ignore_index=True)
+            if old_player is not None
+            else new_player_df
+        )
+    elif old_player is not None:
+        player_df = old_player
+    else:
+        sys.exit("ERROR: no player data available — aborting.")
+
+    if new_team_rows:
+        new_team_df = pd.DataFrame(new_team_rows)
+        team_df = (
+            pd.concat([old_team, new_team_df], ignore_index=True)
+            if old_team is not None
+            else new_team_df
+        )
+    elif old_team is not None:
+        team_df = old_team
+    else:
+        sys.exit("ERROR: no team data available — aborting.")
+
+    if new_pbp_rows:
+        new_pbp_df = pd.DataFrame(new_pbp_rows)
+        pbp_df = (
+            pd.concat([old_pbp, new_pbp_df], ignore_index=True)
+            if old_pbp is not None
+            else new_pbp_df
+        )
+    else:
+        pbp_df = old_pbp
+
+    freshness_check(player_df)
+    regression_check(old_player, player_df, "player")
+    regression_check(old_team, team_df, "team")
+
+    atomic_write_csv(player_df, PLAYER_CSV)
+    atomic_write_csv(team_df, TEAM_CSV)
     print(f"Wrote {PLAYER_CSV.name} and {TEAM_CSV.name}")
-    if pbp is not None:
-        pbp.to_csv(PBP_CSV, index=False)
-        print(f"Wrote {PBP_CSV.name} ({len(pbp):,} rows)")
+
+    if pbp_df is not None:
+        atomic_write_csv(pbp_df, PBP_CSV)
+        print(f"Wrote {PBP_CSV.name} ({len(pbp_df):,} rows)")
     else:
         print("WARNING: no PBP data written — line scores will be unavailable.")
+
     fetch_schedule()
 
 

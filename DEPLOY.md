@@ -7,7 +7,7 @@ rebuild the static page → publish to a public URL.** No server, no R, no cost.
 
 ```
 GitHub Actions (cron, 7am ET)
-    └─ python fetch_data.py        # pulls box scores (no R)
+    └─ python fetch_data.py        # pulls box scores + pbp + today's schedule (no R)
     └─ python build_stats_page.py  # bakes data into one static HTML
     └─ copies it to public/index.html and commits + pushes
     └─ npx wrangler deploy         # deploys directly to Cloudflare
@@ -249,21 +249,57 @@ the entire value in a YAML block scalar (`run: |`). This is especially
 dangerous because GitHub gives no feedback when a workflow file fails to parse —
 it silently degrades.
 
-## If the data ever lags
-`fetch_data.py` prints how old the newest game is and warns past 2 days. If you
-see lag in practice, the upgrade path is to swap the cached loaders for the live
-ESPN endpoints (`espn_wnba_schedule()` + `espn_wnba_summary()`), which are
-always current — a good task to hand to Claude Code with a sample game to test
-against.
+## Data source — ESPN direct (migrated 2026-06-23)
+
+`fetch_data.py` fetches all data directly from ESPN's public API endpoints:
+
+- **Scoreboard** (`site.api.espn.com/.../scoreboard?dates=YYYYMMDD`): discovers
+  completed games by scanning date ranges.
+- **Game Summary** (`site.api.espn.com/.../summary?event={game_id}`): provides
+  player box scores, team box scores, and play-by-play for each game.
+
+The fetch is **incremental**: on each run it loads the existing CSVs, scans the
+scoreboard from `max(game_date) - 1 day` to today, and only fetches summaries
+for games not already in the data. A full bootstrap (~102 games as of late June)
+takes ~60 seconds; a typical daily incremental run fetches 2–4 games in seconds.
+
+Safety mechanisms:
+- **Regression guard**: refuses to write CSVs with fewer games than the existing
+  files (prevents accidental data loss).
+- **Per-game isolation**: if one game's summary fails to parse, it's skipped and
+  retried on the next run.
+- **Atomic writes**: CSVs are written to a temp file then renamed, so a crash
+  mid-write can't corrupt the data.
+- **Rate limiting**: 0.5s delay between game fetches; one retry on 5xx errors.
+
+### RESOLVED INCIDENT — sportsdataverse cache regression (2026-06-23)
+
+**What happened:** The previous `fetch_data.py` pulled pre-built CSVs from the
+sportsdataverse community cache (`wehoop-wnba-data` repo). On June 23, the
+cache silently regressed — games disappeared during a cache rebuild, causing
+incorrect standings on the live site (e.g., LV showed 11-4 instead of 12-4).
+The regression was caught by comparing the live site against WNBA.com.
+
+**Immediate fix:** Added a regression guard to prevent overwriting good data
+with fewer games. Filed sportsdataverse/wehoop-wnba-data#9.
+
+**Permanent fix:** Replaced the sportsdataverse dependency entirely with direct
+ESPN API calls (this migration). The schedule fetch and Games tab already used
+ESPN directly; this extends that pattern to all data. The sportsdataverse cache
+is no longer used anywhere in the pipeline.
+
+**Lesson:** Community-maintained data caches are convenient but unreliable for a
+production site. Direct API access is more work upfront but eliminates a class
+of silent failures.
 
 ## Files in this repo
 | File | Role |
 |------|------|
-| `fetch_data.py` | Pulls 2026 box scores → two CSVs (replaces the R step) |
-| `build_stats_page.py` | Builds the self-contained HTML from the CSVs |
+| `fetch_data.py` | Fetches all data directly from ESPN's public API → **three CSVs** (`wnba_player_box_2026.csv`, `wnba_team_box_2026.csv`, `wnba_pbp_2026.csv`) **plus** today's schedule JSON. Incremental: only fetches new games on each run. PBP powers quarter line scores in box scores; without it, box scores still render but lose line scores. |
+| `build_stats_page.py` | Builds the self-contained HTML from the CSVs + schedule JSON |
 | `wrangler.toml` | Tells Cloudflare to serve `public/` as a static site |
 | `.github/workflows/build.yml` | Daily cron: fetch → build → commit → deploy |
-| `requirements.txt` | Python deps for the Action (`pandas`, `sportsdataverse`) |
+| `requirements.txt` | Python deps for the Action (`pandas`, `requests`) |
 | `public/index.html` | The built site Cloudflare serves (regenerated daily) |
 | `cron-worker/` | Cloudflare Worker: triggers daily builds + health check |
 
