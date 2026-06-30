@@ -179,8 +179,33 @@ def run_data_guards(player_raw, p_base):
     )
 
 
+def _compute_streak(team_raw, team_name):
+    """Current W/L streak for a team, e.g. 'W3' or 'L2'."""
+    games = team_raw[team_raw['team_display_name'] == team_name].sort_values('game_date')
+    if games.empty:
+        return '-'
+    results = games['team_winner'].tolist()
+    cur = results[-1]
+    count = 0
+    for r in reversed(results):
+        if r == cur:
+            count += 1
+        else:
+            break
+    return f'{"W" if cur else "L"}{count}'
+
+
+def _compute_last10(team_raw, team_name):
+    """Record over last 10 games, e.g. '7-3'."""
+    games = team_raw[team_raw['team_display_name'] == team_name].sort_values('game_date')
+    last10 = games.tail(10)
+    w = int(last10['team_winner'].sum())
+    l = len(last10) - w
+    return f'{w}-{l}'
+
+
 def compute_standings(team_raw):
-    """Win-loss standings with Pythagorean expected record."""
+    """Win-loss standings with Pythagorean expected record, streak, last 10."""
     std = team_raw.groupby('team_display_name').agg(
         GP     = ('game_id', 'count'),
         W      = ('team_winner', 'sum'),
@@ -191,6 +216,10 @@ def compute_standings(team_raw):
     std['L']    = std['GP'] - std['W']
     std['WPct'] = std['W'] / std['GP']
     std['Win%'] = std['WPct'].apply(fmt_winpct)
+
+    std['Strk'] = std['team_display_name'].apply(lambda t: _compute_streak(team_raw, t))
+    std['L10']  = std['team_display_name'].apply(lambda t: _compute_last10(team_raw, t))
+
     std['PF']   = (std['PF_tot'] / std['GP']).round(1)
     std['PA']   = (std['PA_tot'] / std['GP']).round(1)
     std['Diff'] = (std['PF'] - std['PA']).round(1)
@@ -200,8 +229,8 @@ def compute_standings(team_raw):
     std['XL']   = (std['GP'] - std['XW']).round(1)
 
     std = std.sort_values(['WPct', 'Diff'], ascending=[False, False])
-    df = std[['team_display_name','W','L','Win%','PF','PA','Diff','XW','XL']].copy()
-    df.columns = ['Team','W','L','Win%','PF','PA','+/-','XW','XL']
+    df = std[['team_display_name','W','L','Win%','Strk','L10','PF','PA','Diff','XW','XL']].copy()
+    df.columns = ['Team','W','L','Win%','Strk','L10','PF','PA','+/-','XW','XL']
     return df
 
 
@@ -442,6 +471,26 @@ def compute_leaders(p_base):
 
 # ── HTML section builders ─────────────────────────────────────────────────
 
+def _color_cell(col, val):
+    """Apply red/green styling to Streak and +/- cells."""
+    s = str(val)
+    if col == 'Strk':
+        if s.startswith('W'):
+            return f'<td style="color:#4caf50">{val}</td>'
+        elif s.startswith('L'):
+            return f'<td style="color:#e05555">{val}</td>'
+    elif col == '+/-':
+        try:
+            v = float(val)
+            if v > 0:
+                return f'<td style="color:#4caf50">+{val}</td>'
+            elif v < 0:
+                return f'<td style="color:#e05555">{val}</td>'
+        except (ValueError, TypeError):
+            pass
+    return f'<td>{val}</td>'
+
+
 def build_standings_section(standings_df):
     """Standings with an orange dashed playoff cutoff line after 8th place."""
     cols = list(standings_df.columns)
@@ -452,12 +501,13 @@ def build_standings_section(standings_df):
     rows = ''
     for i, (_, row) in enumerate(standings_df.iterrows()):
         cutoff = ' playoff-cutoff' if i == PLAYOFF_SPOTS - 1 else ''
-        cells = ''.join(f'<td>{v}</td>' for v in row)
+        cells = ''.join(_color_cell(c, v) for c, v in zip(cols, row))
         rows += f'<tr class="{cutoff}">{cells}</tr>\n'
     return (
         '<div id="standings" class="section">\n'
         '<h2>Standings</h2>\n'
-        '<p class="tab-note"><em>Dashed line = playoff cutoff (top 8)</em></p>\n'
+        '<p class="tab-note"><em>Dashed line = playoff cutoff (top 8)&ensp;|'
+        '&ensp;XW/XL = Pythagorean expected record</em></p>\n'
         '<div class="table-scroll"><div class="table-wrap">'
         f'<table id="tbl_standings"><thead><tr>{headers}</tr></thead>'
         f'<tbody>{rows}</tbody></table></div></div>\n'
@@ -805,7 +855,13 @@ def _line_score(pbp, gid, away, home):
         lh.append(eh - prev_h); la.append(ea - prev_a)
         prev_h, prev_a = eh, ea
     L = {ha['home_team_abbrev']: lh, ha['away_team_abbrev']: la}
-    qhdr = ''.join('<th>%d</th>' % int(p) for p in periods) + '<th class="gm-t">T</th>'
+    ot_periods = [p for p in periods if int(p) > 4]
+    def period_label(p):
+        ip = int(p)
+        if ip <= 4:
+            return str(ip)
+        return 'OT' if len(ot_periods) == 1 else f'OT{ip - 4}'
+    qhdr = ''.join(f'<th>{period_label(p)}</th>' for p in periods) + '<th class="gm-t">T</th>'
     def row(m):
         scores = L.get(m['abbr'], [])
         return ('<tr><td class="gm-pl">%s</td>%s<td class="gm-t"><b>%d</b></td></tr>'

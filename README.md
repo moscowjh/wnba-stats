@@ -8,10 +8,10 @@ Built for checking stats courtside on your phone. No ads, no frameworks, no app 
 
 - **Standings** with Pythagorean expected W/L and playoff cutoff
 - **Leaders** with WNBA qualifying minimums
-- **Team Efficiency** (Four Factors: offensive/defensive ratings, pace, eFG%, TOV%, ORB%, FT rate)
+- **Efficiency** (Four Factors: offensive/defensive ratings, pace, eFG%, TOV%, ORB%, FT rate)
 - **Team Totals** per game with matchup comparison
 - **Player Stats** with search, team filtering, and season totals
-- **Abbreviations** reference
+- **Key** reference
 
 ## How it works
 
