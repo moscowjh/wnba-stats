@@ -22,6 +22,22 @@ import requests
 
 SEASON = 2026
 SEASON_START = "2026-05-08"
+
+# Games that ESPN's scoreboard reports as completed but that do NOT count
+# toward official regular-season stats/standings (stats.wnba.com,
+# basketball-reference). The Commissioner's Cup Championship is the classic
+# case: it's a standalone title game whose box score is tracked separately.
+# Group-play Cup games DO count and must NOT be excluded.
+#
+# Detection is automatic via _is_noncounting_game() (season type + notes),
+# but any game id listed here is force-excluded as a belt-and-suspenders
+# override. Seed with the 2026 Commissioner's Cup Championship if/when the
+# automatic filter needs backing up.
+EXCLUDE_GAME_IDS: set[int] = {
+    401857321,  # 2026 Commissioner's Cup Championship (LV @ NY, 2026-06-30).
+                # ESPN tags it seasonType=2, so only the notes headline flags it;
+                # this override guarantees exclusion regardless of note wording.
+}
 HERE = Path(__file__).resolve().parent
 PLAYER_CSV = HERE / "wnba_player_box_2026.csv"
 TEAM_CSV = HERE / "wnba_team_box_2026.csv"
@@ -62,9 +78,45 @@ def espn_get(url: str, params: dict | None = None) -> dict:
 
 # ── Game discovery ───────────────────────────────────────────────────────
 
+def _is_noncounting_game(event: dict) -> str | None:
+    """Return a reason string if this scoreboard event is a completed game that
+    does NOT count toward official regular-season stats (so it should be
+    skipped), else None.
+
+    Signals, in order of reliability:
+      1. Explicit override list (EXCLUDE_GAME_IDS).
+      2. ESPN season type != regular season (2). Regular-season Cup group-play
+         games are still type 2, so this alone won't over-exclude them.
+      3. A notes headline flagging the Commissioner's Cup *Championship*/*Final*
+         specifically. Group-play Cup games are notes-tagged too, so we require
+         "championship"/"final" — never match plain "commissioner's cup".
+    """
+    try:
+        game_id = int(event["id"])
+    except (KeyError, ValueError, TypeError):
+        return None
+
+    if game_id in EXCLUDE_GAME_IDS:
+        return "override list"
+
+    season_type = event.get("season", {}).get("type")
+    if season_type is not None and season_type != 2:
+        return f"season type {season_type} (not regular season)"
+
+    comp = (event.get("competitions") or [{}])[0]
+    notes = list(event.get("notes", [])) + list(comp.get("notes", []))
+    for note in notes:
+        headline = str(note.get("headline", "")).lower()
+        if "commissioner" in headline and (
+            "championship" in headline or "final" in headline
+        ):
+            return f"cup championship note: {note.get('headline', '')!r}"
+    return None
+
+
 def discover_games(start: date, end: date) -> list[tuple[int, str]]:
     """Scan date range via scoreboard, return [(game_id, "YYYY-MM-DD")] for
-    completed games."""
+    completed games that count toward official regular-season stats."""
     completed = []
     d = start
     while d <= end:
@@ -79,9 +131,16 @@ def discover_games(start: date, end: date) -> list[tuple[int, str]]:
         iso_date = d.isoformat()
         for event in data.get("events", []):
             state = event.get("status", {}).get("type", {}).get("state", "")
-            if state == "post":
-                game_id = int(event["id"])
-                completed.append((game_id, iso_date))
+            if state != "post":
+                continue
+            game_id = int(event["id"])
+            skip_reason = _is_noncounting_game(event)
+            if skip_reason:
+                print(
+                    f"SKIP: game {game_id} ({iso_date}) excluded — {skip_reason}"
+                )
+                continue
+            completed.append((game_id, iso_date))
         d += timedelta(days=1)
     return completed
 

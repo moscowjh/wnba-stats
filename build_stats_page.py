@@ -179,6 +179,86 @@ def run_data_guards(player_raw, p_base):
     )
 
 
+def run_integrity_checks(team_raw, player_raw, ff_df):
+    """Layer-1 build-time invariants for the team + league numbers.
+
+    These are deterministic identities that hold for ANY correct box score, so
+    they fire only on real upstream breakage (bad parse, dropped/renamed
+    column, duplicated or double-counted game, asymmetric possession math) and
+    never in the normal case. Any failure aborts the build so a corrupt day is
+    never deployed. Complements run_data_guards() (which protects per-game
+    averages) by covering standings, totals, and efficiency.
+    """
+    tb = team_raw
+
+    # a) Every game has exactly two team rows (no dupes, no orphans).
+    counts = tb.groupby('game_id').size()
+    bad = counts[counts != 2]
+    assert bad.empty, (
+        f"{len(bad)} game(s) don't have exactly 2 team rows "
+        f"(duplicate or missing box score): {list(bad.index)[:5]}"
+    )
+
+    # b) Scoring identity: 2*(FGM-3PM) + 3*3PM + FTM == team_score.
+    calc = (2 * (tb['field_goals_made'] - tb['three_point_field_goals_made'])
+            + 3 * tb['three_point_field_goals_made'] + tb['free_throws_made'])
+    mism = tb[calc != tb['team_score']]
+    assert mism.empty, (
+        f"Team scoring identity failed for {len(mism)} team-game(s) — "
+        "FGM/3PM/FTM do not reconstruct team_score:\n"
+        + mism[['game_id', 'team_abbreviation', 'team_score']].head().to_string(index=False)
+    )
+
+    # c) Rebound identity: ORB + DRB == total_rebounds.
+    rb = tb[(tb['offensive_rebounds'] + tb['defensive_rebounds']) != tb['total_rebounds']]
+    assert rb.empty, f"ORB + DRB != total_rebounds for {len(rb)} team-game(s)."
+
+    # d) Team box reconciles with the sum of its player box. FGA/FTA/ORB/points
+    #    are pure player aggregates and must match exactly. (Turnovers are
+    #    deliberately excluded: ESPN's team total includes team turnovers and
+    #    occasionally disagrees with the player sum by a few either way — real
+    #    source noise, not corruption, so asserting on it would false-alarm.)
+    pg = player_raw.groupby(['game_id', 'team_id']).agg(
+        p_fga=('field_goals_attempted', 'sum'),
+        p_fta=('free_throws_attempted', 'sum'),
+        p_orb=('offensive_rebounds', 'sum'),
+        p_pts=('points', 'sum'),
+    ).reset_index()
+    j = tb.merge(pg, on=['game_id', 'team_id'], how='left')
+    for tcol, pcol, label in [('field_goals_attempted', 'p_fga', 'FGA'),
+                              ('free_throws_attempted', 'p_fta', 'FTA'),
+                              ('offensive_rebounds', 'p_orb', 'ORB'),
+                              ('team_score', 'p_pts', 'PTS')]:
+        d = j[j[tcol] != j[pcol]]
+        assert d.empty, (
+            f"Team {label} != sum of player {label} for {len(d)} team-game(s) "
+            "— player and team box are out of sync:\n"
+            + d[['game_id', 'team_abbreviation', tcol, pcol]].head().to_string(index=False)
+        )
+
+    # e) League ORtg must equal league DRtg: every point scored is a point
+    #    allowed, so with a shared possession denominator they are identical.
+    #    Divergence means the possession math is being applied asymmetrically
+    #    (exactly the failure mode behind the June possession-formula bug).
+    lg = ff_df[ff_df['Team'] == 'League Average']
+    if not lg.empty:
+        o, dv = float(lg['ORtg'].iloc[0]), float(lg['DRtg'].iloc[0])
+        assert abs(o - dv) <= 0.15, (
+            f"League ORtg ({o}) != DRtg ({dv}) — points scored and allowed must "
+            "net to zero league-wide; the possession denominator is asymmetric."
+        )
+
+    # f) Gross-sanity bands: catch a rating/pace formula that breaks outright
+    #    (wrong column, unit error) rather than one that drifts subtly — subtle
+    #    drift is Layer 2's job (external reconciliation vs stats.wnba.com).
+    for _, r in ff_df[ff_df['Team'] != 'League Average'].iterrows():
+        for col, lo, hi in [('ORtg', 80, 125), ('DRtg', 80, 125), ('Pace', 65, 100)]:
+            v = float(r[col])
+            assert lo <= v <= hi, (
+                f"{r['Team']} {col}={v} is outside the sane band [{lo}, {hi}]."
+            )
+
+
 def _compute_streak(team_raw, team_name):
     """Current W/L streak for a team, e.g. 'W3' or 'L2'."""
     games = team_raw[team_raw['team_display_name'] == team_name].sort_values('game_date')
@@ -375,8 +455,17 @@ def compute_four_factors(team_raw, player_raw):
         TEAM_MINUTES = ('team_minutes', 'sum'),
     ).reset_index()
 
-    ff['POSS']     = ff['FGA'] - ff['ORB'] + ff['TOV'] + 0.44 * ff['FTA']
-    ff['OPP_POSS'] = ff['OPP_FGA'] - ff['OPP_ORB'] + ff['OPP_TOV'] + 0.44 * ff['OPP_FTA']
+    # Possessions: Basketball-Reference / Dean Oliver estimate. The missed-shot
+    # term uses the offensive-rebound RATE (1.07 * ORB% * missed FG), NOT raw
+    # ORB. Subtracting raw ORB (the old formula) overcounts possessions because
+    # WNBA teams rebound a large share of their misses, which dragged every
+    # ORtg/DRtg ~2 points below the official stats.wnba.com figures.
+    _tm_orb_pct  = ff['ORB']     / (ff['ORB']     + ff['OPP_DRB'])
+    _opp_orb_pct = ff['OPP_ORB'] / (ff['OPP_ORB'] + ff['DRB'])
+    ff['POSS']     = (ff['FGA'] + 0.44 * ff['FTA']
+                      - 1.07 * _tm_orb_pct * (ff['FGA'] - ff['FGM']) + ff['TOV'])
+    ff['OPP_POSS'] = (ff['OPP_FGA'] + 0.44 * ff['OPP_FTA']
+                      - 1.07 * _opp_orb_pct * (ff['OPP_FGA'] - ff['OPP_FGM']) + ff['OPP_TOV'])
     ff['POSS_avg'] = (ff['POSS'] + ff['OPP_POSS']) / 2
 
     ff['ORtg'] = (100 * ff['PTS']     / ff['POSS_avg']).round(1)
@@ -398,8 +487,12 @@ def compute_four_factors(team_raw, player_raw):
     team_list = ff['team_display_name'].tolist()
 
     lg = ff.sum(numeric_only=True)
-    lg_poss     = lg['FGA'] - lg['ORB'] + lg['TOV'] + 0.44*lg['FTA']
-    lg_opp_poss = lg['OPP_FGA'] - lg['OPP_ORB'] + lg['OPP_TOV'] + 0.44*lg['OPP_FTA']
+    _lg_tm_orb_pct  = lg['ORB']     / (lg['ORB']     + lg['OPP_DRB'])
+    _lg_opp_orb_pct = lg['OPP_ORB'] / (lg['OPP_ORB'] + lg['DRB'])
+    lg_poss     = (lg['FGA'] + 0.44*lg['FTA']
+                   - 1.07 * _lg_tm_orb_pct * (lg['FGA'] - lg['FGM']) + lg['TOV'])
+    lg_opp_poss = (lg['OPP_FGA'] + 0.44*lg['OPP_FTA']
+                   - 1.07 * _lg_opp_orb_pct * (lg['OPP_FGA'] - lg['OPP_FGM']) + lg['OPP_TOV'])
     lg_poss_avg = (lg_poss + lg_opp_poss) / 2
     lg_avg = {
         'team_display_name': 'League Average',
@@ -1370,6 +1463,7 @@ def main():
     run_data_guards(player_raw, p_base)
     team_stats_df   = compute_team_stats(team_raw)
     ff_df, team_list = compute_four_factors(team_raw, player_raw)
+    run_integrity_checks(team_raw, player_raw, ff_df)
     leaders         = compute_leaders(p_base)
 
     # Team abbreviations for player/leader filters
