@@ -42,6 +42,7 @@ HERE = Path(__file__).resolve().parent
 PLAYER_CSV = HERE / "wnba_player_box_2026.csv"
 TEAM_CSV = HERE / "wnba_team_box_2026.csv"
 PBP_CSV = HERE / "wnba_pbp_2026.csv"
+LINESCORE_JSON = HERE / "wnba_linescores_2026.json"
 SCHEDULE_JSON = HERE / "wnba_schedule_today.json"
 ESPN_SCOREBOARD = (
     "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard"
@@ -387,6 +388,55 @@ def parse_pbp(summary: dict, game_id: int) -> list[dict]:
     return rows
 
 
+# ── Line score parsing ───────────────────────────────────────────────────
+
+def parse_linescores(summary: dict, game_id: int) -> dict | None:
+    """Extract ESPN's OFFICIAL per-quarter line scores from the game header.
+
+    Returns {"home_abbr", "away_abbr", "home": [...], "away": [...]} or None
+    if ESPN hasn't populated a complete linescores array for both teams.
+
+    We deliberately do NOT derive line scores from play-by-play: reconstructing
+    quarter splits from cumulative PBP scores is unreliable (the highest-numbered
+    play in a period frequently carries a stale, lower score than the true
+    end-of-quarter value, which scrambles the intermediate quarters while the
+    totals still reconcile). Policy is "correct or blank": if the official array
+    is missing or malformed, return None and the build omits the quarter columns.
+    """
+    try:
+        competitors = summary["header"]["competitions"][0]["competitors"]
+    except (KeyError, IndexError, TypeError):
+        return None
+
+    out: dict[str, dict] = {}
+    for comp in competitors:
+        ha = comp.get("homeAway")
+        abbr = comp.get("team", {}).get("abbreviation", "")
+        ls = comp.get("linescores")
+        if ha not in ("home", "away") or not ls:
+            return None
+        vals: list[int] = []
+        for entry in ls:
+            v = entry.get("value", entry.get("displayValue")) if isinstance(entry, dict) else entry
+            try:
+                vals.append(int(round(float(v))))
+            except (TypeError, ValueError):
+                return None
+        out[ha] = {"abbr": abbr, "vals": vals}
+
+    if "home" not in out or "away" not in out:
+        return None
+    if len(out["home"]["vals"]) != len(out["away"]["vals"]) or not out["home"]["vals"]:
+        return None
+
+    return {
+        "home_abbr": out["home"]["abbr"],
+        "away_abbr": out["away"]["abbr"],
+        "home": out["home"]["vals"],
+        "away": out["away"]["vals"],
+    }
+
+
 # ── CSV I/O ──────────────────────────────────────────────────────────────
 
 def load_existing() -> tuple[set[int], pd.DataFrame | None, pd.DataFrame | None, pd.DataFrame | None]:
@@ -541,6 +591,7 @@ def main() -> None:
     new_player_rows: list[dict] = []
     new_team_rows: list[dict] = []
     new_pbp_rows: list[dict] = []
+    new_linescores: dict[str, dict] = {}
     failed = 0
 
     for i, (gid, game_date) in enumerate(new_games):
@@ -549,6 +600,12 @@ def main() -> None:
             new_player_rows.extend(parse_player_box(summary, gid, game_date))
             new_team_rows.extend(parse_team_box(summary, gid, game_date))
             new_pbp_rows.extend(parse_pbp(summary, gid))
+            ls = parse_linescores(summary, gid)
+            if ls:
+                new_linescores[str(gid)] = ls
+            else:
+                print(f"NOTE: game {gid} has no official line scores — "
+                      "quarter columns will be blank for it")
         except Exception as e:
             print(f"WARNING: game {gid} ({game_date}) failed: {e}")
             failed += 1
@@ -606,7 +663,22 @@ def main() -> None:
         atomic_write_csv(pbp_df, PBP_CSV)
         print(f"Wrote {PBP_CSV.name} ({len(pbp_df):,} rows)")
     else:
-        print("WARNING: no PBP data written — line scores will be unavailable.")
+        print("WARNING: no PBP data written.")
+
+    # Official line scores — merge new games into the existing JSON.
+    existing_ls: dict[str, dict] = {}
+    if LINESCORE_JSON.exists():
+        try:
+            existing_ls = json.loads(LINESCORE_JSON.read_text())
+        except Exception as e:
+            print(f"WARNING: could not read {LINESCORE_JSON.name} ({e})")
+    if new_linescores:
+        existing_ls.update(new_linescores)
+        tmp = LINESCORE_JSON.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(existing_ls, indent=0))
+        os.replace(tmp, LINESCORE_JSON)
+        print(f"Wrote {LINESCORE_JSON.name} "
+              f"({len(new_linescores)} new, {len(existing_ls)} total)")
 
     fetch_schedule()
 

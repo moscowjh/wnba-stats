@@ -11,6 +11,8 @@
 # Private product/strategy docs — keep out of the public repo
 COLUMN-REDESIGN.*
 WNBA-STATS-EXPLORER.md
+CLAUDE.md
+Product Archive/
 
 # Work-in-progress prototypes — anything with "prototype" in the name
 *prototype*
@@ -22,3 +24,4 @@ __pycache__/
 
 # macOS
 .DS_Store
+wnba_linescores_2026.json

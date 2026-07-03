@@ -931,30 +931,38 @@ def _team_table(g, meta):
             % (cap, head, section('STARTERS', starters), section('BENCH', bench)))
 
 
-def _line_score(pbp, gid, away, home):
-    """Quarter-by-quarter line score from play-by-play data."""
-    if pbp is None:
+def _line_score(linescores, gid, away, home):
+    """Quarter-by-quarter line score from ESPN's OFFICIAL per-team linescores.
+
+    `linescores` is the dict loaded from wnba_linescores_2026.json, keyed by
+    str(game_id) -> {"home_abbr","away_abbr","home":[...],"away":[...]}.
+
+    Correct-or-blank policy: we never reconstruct quarters from play-by-play.
+    If the official line score is missing or fails an integrity check (quarters
+    must sum to the team's final total), return '' so the box score simply omits
+    the quarter columns rather than showing values that are likely wrong.
+    """
+    if not linescores:
         return ''
-    gpp = pbp[pbp['game_id'] == gid].copy()
-    if gpp.empty:
+    ls = linescores.get(str(gid))
+    if not ls:
         return ''
-    ha = gpp[['home_team_abbrev', 'away_team_abbrev']].dropna().iloc[0]
-    periods = sorted(gpp['period_number'].dropna().unique())
-    prev_h = prev_a = 0; lh = []; la = []
-    for p in periods:
-        seg = gpp[gpp['period_number'] == p].sort_values('game_play_number')
-        eh = int(seg['home_score'].dropna().iloc[-1])
-        ea = int(seg['away_score'].dropna().iloc[-1])
-        lh.append(eh - prev_h); la.append(ea - prev_a)
-        prev_h, prev_a = eh, ea
-    L = {ha['home_team_abbrev']: lh, ha['away_team_abbrev']: la}
-    ot_periods = [p for p in periods if int(p) > 4]
-    def period_label(p):
-        ip = int(p)
-        if ip <= 4:
-            return str(ip)
-        return 'OT' if len(ot_periods) == 1 else f'OT{ip - 4}'
-    qhdr = ''.join(f'<th>{period_label(p)}</th>' for p in periods) + '<th class="gm-t">T</th>'
+    lh = ls.get('home') or []
+    la = ls.get('away') or []
+    if not lh or not la or len(lh) != len(la):
+        return ''
+    # Integrity guard: official quarters must reconcile to the final totals.
+    if sum(lh) != home['score'] or sum(la) != away['score']:
+        return ''
+
+    nper = len(lh)
+    def period_label(i):
+        p = i + 1
+        if p <= 4:
+            return str(p)
+        return 'OT' if nper == 5 else f'OT{p - 4}'
+    qhdr = ''.join(f'<th>{period_label(i)}</th>' for i in range(nper)) + '<th class="gm-t">T</th>'
+    L = {ls.get('home_abbr'): lh, ls.get('away_abbr'): la}
     def row(m):
         scores = L.get(m['abbr'], [])
         return ('<tr><td class="gm-pl">%s</td>%s<td class="gm-t"><b>%d</b></td></tr>'
@@ -963,7 +971,7 @@ def _line_score(pbp, gid, away, home):
             % (qhdr, row(away), row(home)))
 
 
-def _box_section(player_raw, team_raw, pbp, gid, date):
+def _box_section(player_raw, team_raw, linescores, gid, date):
     """Full box score section for one game (hidden by default)."""
     g = player_raw[player_raw['game_id'] == gid].copy()
     away, home = _game_sides(player_raw, team_raw, gid, date)
@@ -978,7 +986,7 @@ def _box_section(player_raw, team_raw, pbp, gid, date):
             '<div class="gm-meta">%s</div>%s'
             '<h2 class="gm-h2">Team Stats</h2>%s'
             '<h2 class="gm-h2">Box Score</h2>%s%s</section>'
-            % (gid, hd(away), hd(home), _dow(date), _line_score(pbp, gid, away, home),
+            % (gid, hd(away), hd(home), _dow(date), _line_score(linescores, gid, away, home),
                _team_stats_block(g, away, home), _team_table(g, away), _team_table(g, home)))
 
 
@@ -1022,13 +1030,15 @@ def build_games_section(player_raw, team_raw):
     # Yesterday's completed games from box score data
     yest_ids = sorted(player_raw[player_raw['game_date'] == str(yest_et)]['game_id'].unique())
 
-    # Load pbp for line scores (only if there are results)
-    pbp = None
+    # Load OFFICIAL line scores for box-score quarter columns (only if results).
+    # Correct-or-blank: if this file is missing/unreadable, _line_score omits
+    # the quarter columns rather than guessing from play-by-play.
+    linescores = None
     if yest_ids:
-        pbp_path = HERE / 'wnba_pbp_2026.csv'
-        if pbp_path.exists():
+        ls_path = HERE / 'wnba_linescores_2026.json'
+        if ls_path.exists():
             try:
-                pbp = pd.read_csv(pbp_path)
+                linescores = json.loads(ls_path.read_text())
             except Exception:
                 pass
 
@@ -1049,7 +1059,7 @@ def build_games_section(player_raw, team_raw):
         )
         results_html += '<div class="gm-hint">Tap a final score to open its box score.</div>'
         box_html = ''.join(
-            _box_section(player_raw, team_raw, pbp, gid, str(yest_et))
+            _box_section(player_raw, team_raw, linescores, gid, str(yest_et))
             for gid in yest_ids
         )
     else:
