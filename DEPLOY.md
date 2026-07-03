@@ -7,7 +7,7 @@ rebuild the static page → publish to a public URL.** No server, no R, no cost.
 
 ```
 GitHub Actions (cron, 7am ET)
-    └─ python fetch_data.py        # pulls box scores + pbp + today's schedule (no R)
+    └─ python fetch_data.py        # pulls box scores + pbp + line scores + today's schedule (no R)
     └─ python build_stats_page.py  # bakes data into one static HTML
     └─ copies it to public/index.html and commits + pushes
     └─ npx wrangler deploy         # deploys directly to Cloudflare
@@ -256,7 +256,8 @@ it silently degrades.
 - **Scoreboard** (`site.api.espn.com/.../scoreboard?dates=YYYYMMDD`): discovers
   completed games by scanning date ranges.
 - **Game Summary** (`site.api.espn.com/.../summary?event={game_id}`): provides
-  player box scores, team box scores, and play-by-play for each game.
+  player box scores, team box scores, play-by-play, and each game's **official
+  per-quarter line scores** (`header.competitions[].competitors[].linescores`).
 
 The fetch is **incremental**: on each run it loads the existing CSVs, scans the
 scoreboard from `max(game_date) - 1 day` to today, and only fetches summaries
@@ -292,11 +293,37 @@ is no longer used anywhere in the pipeline.
 production site. Direct API access is more work upfront but eliminates a class
 of silent failures.
 
+### RESOLVED INCIDENT — wrong box-score line scores (2026-07-03)
+
+**What happened:** Box-score quarter columns were derived from play-by-play by
+differencing cumulative scores, reading each quarter's end as the score of the
+highest-numbered play in the period. That play is often a non-scoring
+end-of-period marker carrying a stale, lower score, which scrambled the
+intermediate quarters while the diffs still telescoped to the correct final
+total. A cross-check found **67 of 144 games (47%)** had ≥1 wrong quarter;
+noticed when Dallas–Connecticut (7/2) showed a 3–4-point Q3.
+
+**Why a sum check wouldn't catch it:** the quarter cells telescope, so any
+scrambled split still sums to the right total — validation needs an independent
+source, not an internal consistency check.
+
+**Fix:** Switched to ESPN's **official** per-team line scores (in the same
+summary payload) with a "correct-or-blank" policy — if official line scores are
+missing or don't reconcile to the final, the quarter columns are omitted rather
+than guessed. `validate_linescores.py` confirmed all 147 season games reconcile
+(140/147 also matched an independent PBP running-max derivation; the 7 diffs
+were the PBP method being wrong, not the official data).
+
+**Lesson:** Don't reconstruct a value from a lower-level feed when the source
+provides it directly. Re-run `validate_linescores.py` periodically (e.g., mid-
+and late-season) as ESPN backfills/corrects data.
+
 ## Files in this repo
 | File | Role |
 |------|------|
-| `fetch_data.py` | Fetches all data directly from ESPN's public API → **three CSVs** (`wnba_player_box_2026.csv`, `wnba_team_box_2026.csv`, `wnba_pbp_2026.csv`) **plus** today's schedule JSON. Incremental: only fetches new games on each run. PBP powers quarter line scores in box scores; without it, box scores still render but lose line scores. |
-| `build_stats_page.py` | Builds the self-contained HTML from the CSVs + schedule JSON |
+| `fetch_data.py` | Fetches all data directly from ESPN's public API → **three CSVs** (`wnba_player_box_2026.csv`, `wnba_team_box_2026.csv`, `wnba_pbp_2026.csv`) **plus** today's schedule JSON and `wnba_linescores_2026.json` (official per-quarter line scores). Incremental: only fetches new games on each run. Box-score quarter columns come from the official line scores JSON — **not** derived from PBP (that reconstruction was wrong in ~47% of games; see note below). If a game has no official line scores, its quarter columns are left blank ("correct-or-blank"). |
+| `validate_linescores.py` | One-off cross-check: for every completed game, compares ESPN's official line scores against an independent PBP running-max derivation and confirms each reconciles to the team-box final. Run manually in an env with live ESPN access (`python validate_linescores.py`); exits non-zero on any mismatch. |
+| `build_stats_page.py` | Builds the self-contained HTML from the CSVs + schedule JSON + line scores JSON |
 | `wrangler.toml` | Tells Cloudflare to serve `public/` as a static site |
 | `.github/workflows/build.yml` | Daily cron: fetch → build → commit → deploy |
 | `requirements.txt` | Python deps for the Action (`pandas`, `requests`) |
