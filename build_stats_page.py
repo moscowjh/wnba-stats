@@ -1441,7 +1441,7 @@ def assemble_page(display_date, data_through_iso,
         f'<style>\n{PAGE_CSS}\n</style>\n'
         '</head>\n<body>\n\n'
         '<h1>WNBA 2026 \u2014 At a Glance</h1>\n'
-        f'<div class="meta">Fast, ad-free — updated {display_date}</div>\n\n'
+        f'<div class="meta">Fast, ad-free — updated through games of {display_date}</div>\n\n'
         f'<div class="tabs">\n{tab_buttons}\n</div>\n\n'
         f'{games_html}\n'
         f'{standings_html}\n'
@@ -1465,7 +1465,7 @@ def main():
     player_raw, team_raw = load_data()
 
     through_dt   = pd.to_datetime(player_raw['game_date'].max())
-    display_date = through_dt.strftime('%B %d, %Y')
+    display_date = f"{through_dt.strftime('%B')} {through_dt.day}"
     data_through_iso = through_dt.strftime('%Y-%m-%d')
 
     standings_df    = compute_standings(team_raw)
