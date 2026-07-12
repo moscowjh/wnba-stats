@@ -408,21 +408,26 @@ not part of the daily HTML build. Trade-off: no git history/backup for the
 worker itself — **this section is the durable record of how it's wired.**
 
 ### One-time setup
-1. **Deploy the worker** (the `wnba_usage` dataset is created automatically on
-   the first write — no manual provisioning):
+1. **Enable Analytics Engine on the account (one-time).** Until this is done,
+   the first deploy fails with `[code: 10089] You need to enable Analytics
+   Engine`. Dashboard → Workers & Pages → **Analytics Engine** → enable (free;
+   no plan change). You do **not** need to manually create the `wnba_usage`
+   dataset — the worker creates it on first write; the binding in
+   `wrangler.toml` is what matters.
+2. **Deploy the worker:**
    ```bash
    cd analytics-worker && npx wrangler deploy
    ```
-2. **Route the hostname to it.** The client posts to `usage.statsataglance.com`,
+3. **Route the hostname to it.** The client posts to `usage.statsataglance.com`,
    so map that subdomain to the worker: Workers & Pages → `wnba-usage-tracker` →
-   Settings → Domains & Routes → Add → Custom Domain → `usage.statsataglance.com`.
+   Domains → Custom Domains and Routes → Add Domain → `usage.statsataglance.com`.
    Cloudflare provisions the DNS record + SSL automatically. **This step is
    required** — without it the beacons resolve to nothing and silently collect
    no data (the page itself still works fine). No `wrangler.toml` change needed;
    the domain is wired in the dashboard, same as the main site.
-3. **Verify.** Hitting `https://usage.statsataglance.com/t` in a browser should
-   return the "wnba-usage-tracker is alive" text; then load the live site and
-   confirm points land (query below).
+4. **Verify.** Hitting `https://usage.statsataglance.com/t` in a browser should
+   return a 204; the root `/` returns the "wnba-usage-tracker is alive" text.
+   Then load the live site and confirm points land (query below).
 
 ### Querying the data
 Workers Analytics Engine via the SQL API (needs an API token with
