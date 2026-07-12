@@ -362,10 +362,22 @@ def parse_team_box(
 # ── Play-by-play parsing ────────────────────────────────────────────────
 
 def parse_pbp(summary: dict, game_id: int) -> list[dict]:
-    """Parse plays[] into PBP row dicts."""
+    """Parse plays[] into PBP row dicts.
+
+    The build does not consume this file — it exists as an event-level record
+    for exploratory analysis, so we retain the descriptive fields ESPN provides
+    (clock, play type, the human-readable `text` that carries player names and
+    substitutions, and participant athlete ids) rather than just the running
+    score. `athlete_id_*` and `team_abbrev` join back to the player/team boxes.
+    """
     header_teams = _extract_header_info(summary)
     home_abbr = header_teams.get("home", {}).get("team_abbreviation", "")
     away_abbr = header_teams.get("away", {}).get("team_abbreviation", "")
+    # Map acting-team ESPN id (a string on each play) -> abbreviation.
+    id_to_abbr = {
+        str(t["team_id"]): t["team_abbreviation"]
+        for t in header_teams.values()
+    }
 
     rows = []
     for play in summary.get("plays", []):
@@ -374,14 +386,34 @@ def parse_pbp(summary: dict, game_id: int) -> list[dict]:
         if period_num is None:
             continue
 
+        clock = play.get("clock") or {}
+        ptype = play.get("type") or {}
+        team = play.get("team") or {}
+        participants = play.get("participants") or []
+
+        def _athlete_id(idx: int) -> str:
+            if idx < len(participants):
+                athlete = (participants[idx] or {}).get("athlete") or {}
+                return str(athlete.get("id", ""))
+            return ""
+
         row = {
             "game_id": game_id,
             "home_team_abbrev": home_abbr,
             "away_team_abbrev": away_abbr,
             "period_number": int(period_num),
             "game_play_number": int(play.get("sequenceNumber", 0)),
+            "clock": clock.get("displayValue", ""),
             "home_score": int(play.get("homeScore", 0)),
             "away_score": int(play.get("awayScore", 0)),
+            "team_abbrev": id_to_abbr.get(str(team.get("id", "")), ""),
+            "play_type": ptype.get("text", ""),
+            "scoring_play": bool(play.get("scoringPlay", False)),
+            "score_value": int(play.get("scoreValue", 0) or 0),
+            "shooting_play": bool(play.get("shootingPlay", False)),
+            "athlete_id_1": _athlete_id(0),
+            "athlete_id_2": _athlete_id(1),
+            "text": play.get("text", "") or "",
         }
         rows.append(row)
 

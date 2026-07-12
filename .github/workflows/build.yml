@@ -33,6 +33,28 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # Persist the accumulated box-score / pbp CSVs between runs so
+      # fetch_data.py only pulls games it hasn't seen (incremental). Without
+      # this, every fresh checkout starts empty and re-fetches the whole season
+      # (~170 ESPN summary calls). These files are gitignored build artifacts,
+      # so the cache — not git — is how they carry over.
+      #
+      # The unique run_id in the key means the exact key never hits, so a fresh
+      # cache is always saved at job end; restore-keys seeds it from the most
+      # recent prior cache. Bump the vN token if the CSV schema changes, to
+      # force one clean full rebuild instead of concatenating mismatched columns.
+      - name: Restore fetched-data cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            wnba_player_box_2026.csv
+            wnba_team_box_2026.csv
+            wnba_pbp_2026.csv
+            wnba_linescores_2026.json
+          key: wnba-data-v1-${{ github.run_id }}
+          restore-keys: |
+            wnba-data-v1-
+
       - name: Fetch latest box scores
         run: python fetch_data.py
 

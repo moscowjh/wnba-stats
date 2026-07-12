@@ -329,6 +329,7 @@ and late-season) as ESPN backfills/corrects data.
 | `requirements.txt` | Python deps for the Action (`pandas`, `requests`) |
 | `public/index.html` | The built site Cloudflare serves (regenerated daily) |
 | `cron-worker/` | Cloudflare Worker: triggers daily builds + health check |
+| `analytics-worker/` | Cloudflare Worker: receives usage beacons → Workers Analytics Engine. Deployed separately, **intentionally untracked** (like `cron-worker/`); see "Usage analytics worker" below. |
 
 ## Health check + email alerts (added 2026-06-11)
 
@@ -379,3 +380,57 @@ What it verifies, in order:
   `ALERT_TO` in `worker.js`, verify the new address, and redeploy.
 - All dates are UTC, matching the build's "Daily stats update: YYYY-MM-DD"
   commit messages.
+
+## Usage analytics worker (added 2026-07-11)
+
+The single-file site's tabs and box scores are client-side JS, so Cloudflare
+Web Analytics only ever registers the initial `/` page load. A small,
+cookie-free beacon fills the gap: `build_stats_page.py`'s `PAGE_JS` pings a
+Worker on page load, on every tab switch, and on every box-score open — so we
+can see which tabs get used and whether box scores get opened, not just that
+someone showed up.
+
+**The contract** (client in `build_stats_page.py` ↔ worker in `analytics-worker/`):
+- Client → `GET`/`POST https://usage.statsataglance.com/t?e=<event>&t=<tab>&s=<utm_source>&r=<0|1>`
+  via `navigator.sendBeacon` (fetch fallback). Wrapped in try/catch — fails
+  silently, never blocks the page.
+- Events: `pageview` (one per load), `tab` (`t` = tab id, e.g. `leaders`),
+  `box` (`t` = `game:<id>`). `s` = utm_source captured on the session's first
+  load (cached in `sessionStorage`); `r` = `1` for a returning visitor
+  (`localStorage` flag), else `0`.
+- Worker writes one aggregate, PII-free data point per event to Workers
+  Analytics Engine (dataset `wnba_usage`), CORS-restricted to
+  `https://wnba.statsataglance.com`.
+
+**Not tracked in git.** Like `cron-worker/`, the worker source lives in
+`analytics-worker/` locally and in Cloudflare; it is deployed separately and is
+not part of the daily HTML build. Trade-off: no git history/backup for the
+worker itself — **this section is the durable record of how it's wired.**
+
+### One-time setup
+1. **Deploy the worker** (the `wnba_usage` dataset is created automatically on
+   the first write — no manual provisioning):
+   ```bash
+   cd analytics-worker && npx wrangler deploy
+   ```
+2. **Route the hostname to it.** The client posts to `usage.statsataglance.com`,
+   so map that subdomain to the worker: Workers & Pages → `wnba-usage-tracker` →
+   Settings → Domains & Routes → Add → Custom Domain → `usage.statsataglance.com`.
+   Cloudflare provisions the DNS record + SSL automatically. **This step is
+   required** — without it the beacons resolve to nothing and silently collect
+   no data (the page itself still works fine). No `wrangler.toml` change needed;
+   the domain is wired in the dashboard, same as the main site.
+3. **Verify.** Hitting `https://usage.statsataglance.com/t` in a browser should
+   return the "wnba-usage-tracker is alive" text; then load the live site and
+   confirm points land (query below).
+
+### Querying the data
+Workers Analytics Engine via the SQL API (needs an API token with
+**Account Analytics: Read**):
+```bash
+curl -s "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/analytics_engine/sql" \
+  -H "Authorization: Bearer <API_TOKEN>" \
+  -d "SELECT blob1 AS event, blob2 AS tab, blob3 AS source, blob4 AS returning, count() AS n
+      FROM wnba_usage WHERE timestamp > NOW() - INTERVAL '1' DAY
+      GROUP BY event, tab, source, returning ORDER BY n DESC"
+```

@@ -1220,12 +1220,43 @@ PAGE_CSS = """\
   .gm-pos{color:var(--muted);font-size:10px;display:inline-block;min-width:18px}"""
 
 PAGE_JS = """\
+/* -- Usage tracking (Workers Analytics Engine via wnba-usage-tracker) --
+   Cloudflare Web Analytics only sees the initial page load on this
+   single-file site, since tabs and box scores are client-side JS, not
+   real navigation. This sends small, cookie-free beacon pings so we can
+   see which tabs get used and whether box scores get opened. Fails
+   silently if the endpoint is unreachable -- never blocks the page. */
+var TRACK_URL = 'https://usage.statsataglance.com/t';
+function initTracking() {
+  try {
+    var qs = new URLSearchParams(window.location.search);
+    var src = qs.get('utm_source');
+    if (src) sessionStorage.setItem('wsag_src', src);
+    window.__wsagSrc = src || sessionStorage.getItem('wsag_src') || 'none';
+    window.__wsagReturning = localStorage.getItem('wsag_seen') ? '1' : '0';
+    localStorage.setItem('wsag_seen', '1');
+    track('pageview', '');
+  } catch (e) {}
+}
+function track(event, tab) {
+  try {
+    var params = new URLSearchParams({
+      e: event, t: tab || '', s: window.__wsagSrc || 'none', r: window.__wsagReturning || '0'
+    });
+    var url = TRACK_URL + '?' + params.toString();
+    if (navigator.sendBeacon) navigator.sendBeacon(url);
+    else fetch(url, { method: 'GET', keepalive: true, mode: 'no-cors' });
+  } catch (e) {}
+}
+window.addEventListener('load', initTracking);
+
 function showTab(id, btn) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
   document.querySelectorAll('#'+id+' .table-wrap').forEach(updateScrollFades);
+  track('tab', id);
   /* The back-to-leaders link is only relevant right after a leader click;
      hide it on any manual tab switch. goToPlayer re-shows it afterward. */
   const bl = document.getElementById('backToLeaders');
@@ -1400,6 +1431,7 @@ function showGame(id) {
   var el = document.getElementById('g' + id);
   el.style.display = 'block';
   el.querySelectorAll('.gm-tw').forEach(updateScrollFades);
+  track('box', 'game:' + id);
   window.scrollTo(0, 0);
 }
 function backToGames() {
