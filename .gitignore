@@ -29,3 +29,6 @@ __pycache__/
 # macOS
 .DS_Store
 wnba_linescores_2026.json
+
+# Ephemeral payload for the Bluesky auto-post — regenerated every build
+social_payload.json

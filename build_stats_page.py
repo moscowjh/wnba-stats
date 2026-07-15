@@ -562,6 +562,74 @@ def compute_leaders(p_base):
     return leaders
 
 
+# Categories broadcast by the daily Bluesky auto-post, in rotation order
+# (one per day) — must match BROADCAST_ORDER in post_to_bluesky.py. Sequence is
+# intentional (related stats adjacent). Turnovers is excluded — "leader" there
+# means MOST turnovers, which would single players out negatively, against the
+# site's positive tone.
+BROADCAST_CATS = ['Scoring', '3PT%', 'eFG%', 'Assists', 'FT%',
+                  'TS%', 'Rebounds', 'Off Reb', 'Blocks', 'Steals']
+_PCT_CATS = {'3PT%', 'eFG%', 'FT%', 'TS%'}
+
+
+def emit_social_payload(player_raw, leaders, display_date, data_through_iso,
+                        path='social_payload.json'):
+    """Write a small JSON the Bluesky auto-post consumes: top-5 per broadcast
+    category plus a deterministic 'last night' factoid. The page is the source
+    of truth; this only mirrors the already-computed leaders so the post can
+    never drift from the site. Purely additive — never affects the HTML build."""
+    import json
+    import datetime as _dt
+
+    cats = {}
+    for cat in BROADCAST_CATS:
+        df = leaders[cat].head(5)
+        val_col = df.columns[-1]
+        rows = []
+        for rank, (_, r) in enumerate(df.iterrows(), start=1):
+            v = r[val_col]
+            vs = f"{v:.1f}%" if cat in _PCT_CATS else f"{v:.1f}"
+            rows.append({'rank': rank, 'player': r['Player'],
+                         'team': r['Team'], 'value': vs})
+        cats[cat] = rows
+
+    # Deterministic last-night factoid — only if games were actually last night
+    # (guards against repeating a stale line on off-days).
+    factoid = None
+    gd = pd.to_datetime(player_raw['game_date'])
+    last = gd.max()
+    today = pd.Timestamp(_dt.datetime.now(_dt.timezone.utc).date())
+    if pd.notna(last) and (today - last.normalize()).days <= 1:
+        ln = player_raw[gd == last].copy()
+        if len(ln):
+            td = None
+            for _, r in ln.iterrows():
+                hits = sum(1 for c in ('points', 'rebounds', 'assists', 'steals', 'blocks')
+                           if pd.notna(r.get(c)) and r[c] >= 10)
+                if hits >= 3:
+                    td = r
+                    break
+            if td is not None:
+                factoid = (f"Triple-double last night: {td['athlete_display_name']} "
+                           f"({td['team_abbreviation']}) "
+                           f"{int(td['points'])}/{int(td['rebounds'])}/{int(td['assists'])}.")
+            elif ln['points'].notna().any():
+                top = ln.loc[ln['points'].idxmax()]
+                factoid = (f"Last night's high: {top['athlete_display_name']} "
+                           f"({top['team_abbreviation']}) {int(top['points'])} pts.")
+
+    payload = {
+        'through': display_date,
+        'through_iso': data_through_iso,
+        'generated_utc': _dt.datetime.now(_dt.timezone.utc).isoformat(timespec='seconds'),
+        'categories': cats,
+        'factoid': factoid,
+    }
+    with open(path, 'w', encoding='utf-8') as fh:
+        json.dump(payload, fh, ensure_ascii=False, indent=2)
+    return payload
+
+
 # ── HTML section builders ─────────────────────────────────────────────────
 
 def _color_cell(col, val):
@@ -1470,6 +1538,22 @@ def assemble_page(display_date, data_through_iso,
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f'<meta name="data-through" content="{data_through_iso}">\n'
         '<title>WNBA 2026 \u2014 At a Glance</title>\n'
+        '<meta name="description" content="Fast, ad-free WNBA stats you can check at a glance \u2014 leaders, standings, four factors, updated every morning.">\n'
+        # Social preview (Open Graph + Twitter) \u2014 image lives at public/og.png,
+        # served as a static asset by the Worker. Absolute URLs required.
+        '<meta property="og:type" content="website">\n'
+        '<meta property="og:site_name" content="statsataglance">\n'
+        '<meta property="og:title" content="WNBA 2026 \u2014 At a Glance">\n'
+        '<meta property="og:description" content="Fast, ad-free WNBA stats you can check at a glance \u2014 leaders, standings, four factors, updated every morning.">\n'
+        '<meta property="og:url" content="https://wnba.statsataglance.com/">\n'
+        '<meta property="og:image" content="https://wnba.statsataglance.com/og.png">\n'
+        '<meta property="og:image:width" content="1200">\n'
+        '<meta property="og:image:height" content="630">\n'
+        '<meta property="og:image:alt" content="WNBA 2026 \u2014 At a Glance: fast, ad-free WNBA stats">\n'
+        '<meta name="twitter:card" content="summary_large_image">\n'
+        '<meta name="twitter:title" content="WNBA 2026 \u2014 At a Glance">\n'
+        '<meta name="twitter:description" content="Fast, ad-free WNBA stats \u2014 leaders, standings, four factors, updated every morning.">\n'
+        '<meta name="twitter:image" content="https://wnba.statsataglance.com/og.png">\n'
         f'<style>\n{PAGE_CSS}\n</style>\n'
         '</head>\n<body>\n\n'
         '<h1>WNBA 2026 \u2014 At a Glance</h1>\n'
@@ -1507,6 +1591,7 @@ def main():
     ff_df, team_list = compute_four_factors(team_raw, player_raw)
     run_integrity_checks(team_raw, player_raw, ff_df)
     leaders         = compute_leaders(p_base)
+    emit_social_payload(player_raw, leaders, display_date, data_through_iso)
 
     # Team abbreviations for player/leader filters
     team_abbrevs = sorted(p_base['team_abbreviation'].dropna().unique())

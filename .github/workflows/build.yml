@@ -5,6 +5,13 @@ name: Daily WNBA stats build
 # ONLY deploy path — Cloudflare's Connect-to-Git integration has been
 # disconnected (June 2026) to avoid version-promotion conflicts when human
 # pushes and bot pushes arrive close together.
+#
+# ⚠️ YAML gotcha — never put a bare colon-space (": ") inside an UNQUOTED
+# scalar value (a `run:` line, `name:`, a commit message, etc.). YAML reads
+# the ": " as a key/value separator and silently mis-parses the file — no
+# error, the workflow just stops registering. That is exactly what broke
+# `workflow_dispatch` on 2026-06-16. If a value must contain a colon-space,
+# quote the whole value: "like: this".
 on:
   workflow_dispatch:
 
@@ -82,3 +89,16 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # Retention loop: post one leader category per day (rotation) + last
+      # night's factoid to Bluesky. Runs LAST and never blocks the deploy —
+      # continue-on-error keeps a failed post from failing the workflow, but a
+      # failure still shows as a red step so it isn't silent. Reads only our own
+      # social_payload.json (written by build_stats_page.py), never Bluesky's
+      # feed reads. Skips cleanly if the app-password secrets aren't set.
+      - name: Post daily leaders to Bluesky
+        continue-on-error: true
+        env:
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+        run: python post_to_bluesky.py
