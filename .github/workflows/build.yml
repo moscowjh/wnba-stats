@@ -14,6 +14,11 @@ name: Daily WNBA stats build
 # quote the whole value: "like: this".
 on:
   workflow_dispatch:
+    inputs:
+      post:
+        description: "Post the daily leaders to Bluesky"
+        type: boolean
+        default: true
 
 permissions:
   contents: write          # allow the job to commit the rebuilt HTML
@@ -96,7 +101,11 @@ jobs:
       # failure still shows as a red step so it isn't silent. Reads only our own
       # social_payload.json (written by build_stats_page.py), never Bluesky's
       # feed reads. Skips cleanly if the app-password secrets aren't set.
+      # `post` defaults to true, so the daily cron dispatch (which sends no
+      # inputs) always posts. A manual run can skip it: uncheck the box in the
+      # Actions "Run workflow" UI, or hit the cron-worker URL with &post=false.
       - name: Post daily leaders to Bluesky
+        if: ${{ inputs.post }}
         continue-on-error: true
         env:
           BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}

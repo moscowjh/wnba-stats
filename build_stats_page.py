@@ -580,6 +580,7 @@ def emit_social_payload(player_raw, leaders, display_date, data_through_iso,
     never drift from the site. Purely additive — never affects the HTML build."""
     import json
     import datetime as _dt
+    from zoneinfo import ZoneInfo
 
     cats = {}
     for cat in BROADCAST_CATS:
@@ -593,13 +594,17 @@ def emit_social_payload(player_raw, leaders, display_date, data_through_iso,
                          'team': r['Team'], 'value': vs})
         cats[cat] = rows
 
-    # Deterministic last-night factoid — only if games were actually last night
-    # (guards against repeating a stale line on off-days).
+    # Deterministic "last night" factoid. "Last night" = the ET calendar day
+    # before this build, so we attach it ONLY when the newest games are exactly
+    # yesterday. A build that runs after same-day games (a manual midday rebuild,
+    # or the rare afternoon slate) then won't mislabel today's game as last
+    # night's, and multi-day breaks (All-Star, FIBA) yield no stale factoid.
     factoid = None
     gd = pd.to_datetime(player_raw['game_date'])
     last = gd.max()
-    today = pd.Timestamp(_dt.datetime.now(_dt.timezone.utc).date())
-    if pd.notna(last) and (today - last.normalize()).days <= 1:
+    et_today = _dt.datetime.now(ZoneInfo("America/New_York")).date()
+    yesterday = pd.Timestamp(et_today) - pd.Timedelta(days=1)
+    if pd.notna(last) and last.normalize() == yesterday:
         ln = player_raw[gd == last].copy()
         if len(ln):
             td = None
