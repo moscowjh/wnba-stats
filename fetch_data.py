@@ -422,6 +422,29 @@ def parse_pbp(summary: dict, game_id: int) -> list[dict]:
 
 # ── Line score parsing ───────────────────────────────────────────────────
 
+def _boxscore_ready(summary: dict) -> bool:
+    """True if ESPN has actually populated box score data for this game.
+
+    The scoreboard can mark a game "post" (final) before the summary endpoint's
+    boxscore.teams/boxscore.players arrays are backfilled — a transient ESPN
+    data-lag, not a real "no stats" game. Treating that as ready would write
+    zeroed-out team rows and zero player rows that desync from each other and
+    trip the player/team reconciliation check in build_stats_page.py. Callers
+    should raise/skip on a not-ready game so it's retried on a later run once
+    ESPN catches up, rather than being recorded as fetched with garbage data.
+    """
+    box = summary.get("boxscore", {})
+    teams = box.get("teams", [])
+    players = box.get("players", [])
+    if not teams or not players:
+        return False
+    if not any(t.get("statistics") for t in teams):
+        return False
+    if not any(p.get("statistics") for p in players):
+        return False
+    return True
+
+
 def parse_linescores(summary: dict, game_id: int) -> dict | None:
     """Extract ESPN's OFFICIAL per-quarter line scores from the game header.
 
@@ -629,6 +652,10 @@ def main() -> None:
     for i, (gid, game_date) in enumerate(new_games):
         try:
             summary = espn_get(ESPN_SUMMARY, {"event": str(gid)})
+            if not _boxscore_ready(summary):
+                raise ValueError(
+                    "scoreboard reports final but boxscore isn't populated yet"
+                )
             new_player_rows.extend(parse_player_box(summary, gid, game_date))
             new_team_rows.extend(parse_team_box(summary, gid, game_date))
             new_pbp_rows.extend(parse_pbp(summary, gid))
