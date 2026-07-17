@@ -131,10 +131,22 @@ def discover_games(start: date, end: date) -> list[tuple[int, str]]:
 
         iso_date = d.isoformat()
         for event in data.get("events", []):
-            state = event.get("status", {}).get("type", {}).get("state", "")
+            status_type = event.get("status", {}).get("type", {})
+            state = status_type.get("state", "")
             if state != "post":
                 continue
             game_id = int(event["id"])
+            # A postponed/rescheduled game still lands in state="post" (it's no
+            # longer "pre" or "in") even though it was never played. ESPN flags
+            # this with completed=false and a name like STATUS_POSTPONED — check
+            # that explicitly rather than inferring it later from a missing box
+            # score, so the schedule scan (and its logs) reflect the real reason.
+            if status_type.get("completed", True) is False:
+                print(
+                    f"SKIP: game {game_id} ({iso_date}) excluded — "
+                    f"not completed ({status_type.get('description', 'unknown status')})"
+                )
+                continue
             skip_reason = _is_noncounting_game(event)
             if skip_reason:
                 print(
