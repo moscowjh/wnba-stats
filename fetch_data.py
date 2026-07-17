@@ -131,10 +131,22 @@ def discover_games(start: date, end: date) -> list[tuple[int, str]]:
 
         iso_date = d.isoformat()
         for event in data.get("events", []):
-            state = event.get("status", {}).get("type", {}).get("state", "")
+            status_type = event.get("status", {}).get("type", {})
+            state = status_type.get("state", "")
             if state != "post":
                 continue
             game_id = int(event["id"])
+            # A postponed/rescheduled game still lands in state="post" (it's no
+            # longer "pre" or "in") even though it was never played. ESPN flags
+            # this with completed=false and a name like STATUS_POSTPONED — check
+            # that explicitly rather than inferring it later from a missing box
+            # score, so the schedule scan (and its logs) reflect the real reason.
+            if status_type.get("completed", True) is False:
+                print(
+                    f"SKIP: game {game_id} ({iso_date}) excluded — "
+                    f"not completed ({status_type.get('description', 'unknown status')})"
+                )
+                continue
             skip_reason = _is_noncounting_game(event)
             if skip_reason:
                 print(
@@ -422,6 +434,29 @@ def parse_pbp(summary: dict, game_id: int) -> list[dict]:
 
 # ── Line score parsing ───────────────────────────────────────────────────
 
+def _boxscore_ready(summary: dict) -> bool:
+    """True if ESPN has actually populated box score data for this game.
+
+    The scoreboard can mark a game "post" (final) before the summary endpoint's
+    boxscore.teams/boxscore.players arrays are backfilled — a transient ESPN
+    data-lag, not a real "no stats" game. Treating that as ready would write
+    zeroed-out team rows and zero player rows that desync from each other and
+    trip the player/team reconciliation check in build_stats_page.py. Callers
+    should raise/skip on a not-ready game so it's retried on a later run once
+    ESPN catches up, rather than being recorded as fetched with garbage data.
+    """
+    box = summary.get("boxscore", {})
+    teams = box.get("teams", [])
+    players = box.get("players", [])
+    if not teams or not players:
+        return False
+    if not any(t.get("statistics") for t in teams):
+        return False
+    if not any(p.get("statistics") for p in players):
+        return False
+    return True
+
+
 def parse_linescores(summary: dict, game_id: int) -> dict | None:
     """Extract ESPN's OFFICIAL per-quarter line scores from the game header.
 
@@ -629,6 +664,10 @@ def main() -> None:
     for i, (gid, game_date) in enumerate(new_games):
         try:
             summary = espn_get(ESPN_SUMMARY, {"event": str(gid)})
+            if not _boxscore_ready(summary):
+                raise ValueError(
+                    "scoreboard reports final but boxscore isn't populated yet"
+                )
             new_player_rows.extend(parse_player_box(summary, gid, game_date))
             new_team_rows.extend(parse_team_box(summary, gid, game_date))
             new_pbp_rows.extend(parse_pbp(summary, gid))
