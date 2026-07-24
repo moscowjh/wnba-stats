@@ -128,10 +128,22 @@ def ff_to_html(df, table_id):
 # ── Data computation ──────────────────────────────────────────────────────
 
 def load_data():
-    """Load and clean the box-score CSVs.  Returns (player_raw, team_raw)."""
+    """Load and clean the box-score CSVs.  Returns (player_raw, team_raw).
+
+    Filters to regular-season games (season_type == 2) so every downstream
+    aggregation, guard, and the Bluesky factoid operate on the same
+    regular-season-only frame. Postseason rows (season_type == 3), once the
+    playoffs begin, are carried in the CSVs but excluded here; a future playoff
+    view can select them explicitly. Guarded by a column check so a pre-migration
+    CSV (no season_type) still builds, treating all rows as regular season."""
     player_raw = pd.read_csv(HERE / 'wnba_player_box_2026.csv')
     team_raw   = pd.read_csv(HERE / 'wnba_team_box_2026.csv')
+    if 'season_type' in player_raw.columns:
+        player_raw = player_raw[player_raw['season_type'] == 2]
+    if 'season_type' in team_raw.columns:
+        team_raw = team_raw[team_raw['season_type'] == 2]
     player_raw = player_raw[player_raw['did_not_play'] != True].copy()
+    team_raw = team_raw.copy()
     return player_raw, team_raw
 
 
@@ -315,10 +327,25 @@ def compute_standings(team_raw):
 
 
 def compute_player_base(player_raw):
-    """Aggregate per-player totals and per-game averages.  Used by both
-    the player stats table and the category leaders."""
-    p = player_raw.groupby(
-        ['athlete_display_name', 'team_abbreviation', 'athlete_position_abbreviation']
+    """Aggregate per-player totals and per-game averages, keyed on the stable
+    ESPN athlete_id rather than display name. A player is one row per team they
+    appear for (so mid-season trades still show a per-team line), but a rename
+    (e.g. Megan Gustafson -> Megan DiLeo) or an ESPN spelling drift no longer
+    splits one athlete into two, and two players who ever share a name never
+    merge. Display name and position are resolved from each athlete's
+    most-recent game row, so a rename propagates across the whole season
+    automatically. Used by both the player table and the category leaders."""
+    pr = player_raw.copy()
+    pr['athlete_id'] = pr['athlete_id'].astype(str)
+
+    # Canonical display name + position = each athlete's most-recent game row.
+    # game_date is 'YYYY-MM-DD', so lexical sort == chronological order.
+    latest = pr.sort_values('game_date').groupby('athlete_id').tail(1)
+    name_map = latest.set_index('athlete_id')['athlete_display_name']
+    pos_map  = latest.set_index('athlete_id')['athlete_position_abbreviation']
+
+    p = pr.groupby(
+        ['athlete_id', 'team_abbreviation']
     ).agg(
         GP   = ('game_id', 'count'),
         MIN  = ('minutes', 'sum'),
@@ -338,6 +365,11 @@ def compute_player_base(player_raw):
         TOV  = ('turnovers', 'sum'),
         PF   = ('fouls', 'sum'),
     ).reset_index()
+
+    # Attach the canonical name/position resolved above, so downstream tables and
+    # leaders read one consistent label per athlete regardless of past renames.
+    p['athlete_display_name'] = p['athlete_id'].map(name_map)
+    p['athlete_position_abbreviation'] = p['athlete_id'].map(pos_map)
     p = p.sort_values('PTS', ascending=False)
 
     # Counting-stat averages
@@ -777,6 +809,7 @@ def build_players_section(p_base, team_abbrevs):
         '<option value="10">10+</option></select></span>\n'
         '  <input type="text" id="psearch" placeholder="search player\u2026"'
         ' oninput="filterPlayers()">\n'
+        '  <button onclick="clearPlayers()">Clear</button>\n'
         '</div>\n'
     )
 
@@ -803,6 +836,7 @@ def build_leaders_section(leaders, team_abbrevs):
         f'  <span><label>Team </label><select id="ldrTeam" onchange="filterLeaders()">{team_opts}</select></span>\n'
         '  <input type="text" id="ldrSearch" placeholder="search player\u2026"'
         ' oninput="filterLeaders()">\n'
+        '  <button onclick="clearLeaders()">Clear</button>\n'
         '</div>\n'
     )
 
@@ -1201,6 +1235,10 @@ PAGE_CSS = """\
   .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .controls label{color:var(--muted);font-size:11px;margin-right:3px}
   .controls .vs{color:var(--muted);font-size:11px}
+  .controls button{background:var(--surface);border:1px solid var(--border);
+                    color:var(--muted);font-family:inherit;font-size:11px;
+                    padding:5px 10px;cursor:pointer}
+  .controls button:hover{border-color:var(--accent);color:var(--accent)}
   select{background:var(--surface);border:1px solid var(--border);color:var(--text);
           font-family:inherit;font-size:12px;padding:5px 9px}
   input[type=text]{background:var(--surface);border:1px solid var(--border);
@@ -1411,6 +1449,13 @@ function filterPlayers() {
   });
 }
 
+/* -- Clear the Players search box only (keep the Team A/B + Min GP filters,
+      which a user sets deliberately). One tap to try another name. -- */
+function clearPlayers() {
+  document.getElementById('psearch').value = '';
+  filterPlayers();
+}
+
 /* -- Leader filter: team + search -- */
 function filterLeaders() {
   const team = document.getElementById('ldrTeam').value;
@@ -1421,6 +1466,13 @@ function filterLeaders() {
     const ok = (!team || t === team) && (!q || text.includes(q));
     row.style.display = ok ? '' : 'none';
   });
+}
+
+/* -- Clear the Leaders search box (Leaders filter is search + team; this clears
+      the search only, matching the Players Clear behavior). -- */
+function clearLeaders() {
+  document.getElementById('ldrSearch').value = '';
+  filterLeaders();
 }
 
 /* -- Click a leader name -> jump to Players tab and search -- */

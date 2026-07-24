@@ -63,9 +63,9 @@ jobs:
             wnba_team_box_2026.csv
             wnba_pbp_2026.csv
             wnba_linescores_2026.json
-          key: wnba-data-v2-${{ github.run_id }}
+          key: wnba-data-v3-${{ github.run_id }}
           restore-keys: |
-            wnba-data-v2-
+            wnba-data-v3-
 
       - name: Fetch latest box scores
         run: python fetch_data.py

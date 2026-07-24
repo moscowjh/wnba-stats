@@ -35,12 +35,22 @@ SEASON_START = "2026-05-08"
 # automatic filter needs backing up.
 EXCLUDE_GAME_IDS: set[int] = {
     401857321,  # 2026 Commissioner's Cup Championship (LV @ NY, 2026-06-30).
-                # ESPN tags it seasonType=2, so only the notes headline flags it;
-                # this override guarantees exclusion regardless of note wording.
+                # Now also caught structurally via competition.type=CC (id 39) in
+                # _is_noncounting_game(); kept here as a redundant safety net in
+                # case ESPN ever drops that field.
 }
 HERE = Path(__file__).resolve().parent
 PLAYER_CSV = HERE / "wnba_player_box_2026.csv"
 TEAM_CSV = HERE / "wnba_team_box_2026.csv"
+
+# Columns a pre-existing CSV must already carry to be reused for an incremental
+# fetch. When a schema migration adds a column (e.g. athlete_id, season_type),
+# an older CSV lacking it is discarded so main() does one clean full re-fetch
+# rather than appending new-schema rows onto old-schema ones (which would leave
+# the new columns blank for every historical game). This mirrors, and backstops,
+# bumping the actions/cache vN token in CI.
+REQUIRED_PLAYER_COLS = {"athlete_id", "season_type"}
+REQUIRED_TEAM_COLS = {"season_type"}
 PBP_CSV = HERE / "wnba_pbp_2026.csv"
 LINESCORE_JSON = HERE / "wnba_linescores_2026.json"
 SCHEDULE_JSON = HERE / "wnba_schedule_today.json"
@@ -81,16 +91,27 @@ def espn_get(url: str, params: dict | None = None) -> dict:
 
 def _is_noncounting_game(event: dict) -> str | None:
     """Return a reason string if this scoreboard event is a completed game that
-    does NOT count toward official regular-season stats (so it should be
-    skipped), else None.
+    does NOT count toward official stats (so it should be skipped entirely),
+    else None.
+
+    "Non-counting" means exhibitions that ESPN reports as completed games but
+    that never belong in the data: the All-Star Game and the Commissioner's Cup
+    Championship. Postseason games (season type 3) are NOT non-counting — they
+    are kept and tagged with season_type so regular-season aggregations can
+    filter them out while future playoff views can select them.
 
     Signals, in order of reliability:
       1. Explicit override list (EXCLUDE_GAME_IDS).
-      2. ESPN season type != regular season (2). Regular-season Cup group-play
-         games are still type 2, so this alone won't over-exclude them.
-      3. A notes headline flagging the Commissioner's Cup *Championship*/*Final*
-         specifically. Group-play Cup games are notes-tagged too, so we require
-         "championship"/"final" — never match plain "commissioner's cup".
+      2. Structural competition type. ESPN mistags the All-Star Game as
+         season.type=2 ("regular season"), but the competition carries a
+         distinct type (id 4 / abbreviation "ALLSTAR"), which is reliable.
+      3. Season type outside {regular(2), postseason(3)} — i.e. preseason(1) or
+         anything unexpected. Regular-season Cup group-play games are type 2, so
+         this won't over-exclude them, and postseason is deliberately kept.
+      4. A notes headline flagging the All-Star Game, or the Commissioner's Cup
+         *Championship*/*Final* specifically. Group-play Cup games are
+         notes-tagged too, so we require "championship"/"final" — never match
+         plain "commissioner's cup".
     """
     try:
         game_id = int(event["id"])
@@ -100,14 +121,35 @@ def _is_noncounting_game(event: dict) -> str | None:
     if game_id in EXCLUDE_GAME_IDS:
         return "override list"
 
-    season_type = event.get("season", {}).get("type")
-    if season_type is not None and season_type != 2:
-        return f"season type {season_type} (not regular season)"
-
     comp = (event.get("competitions") or [{}])[0]
+
+    # Structural competition-type check — the most reliable signal for the
+    # exhibitions ESPN mislabels as regular season (season.type=2). Verified
+    # against ESPN's full 2026 scoreboard: only these two carry a non-standard
+    # competition.type, while Cup GROUP-PLAY games (which DO count) are plain
+    # "STD" — so this never over-excludes them.
+    #   ALLSTAR (id 4)  — the All-Star Game
+    #   CC      (id 39) — the Commissioner's Cup Championship
+    comp_type = comp.get("type") or {}
+    ct_id = str(comp_type.get("id", "")).strip()
+    ct_abbr = str(comp_type.get("abbreviation", "")).strip().upper()
+    _NONCOUNTING_COMP = {
+        "4": "all-star exhibition", "ALLSTAR": "all-star exhibition",
+        "39": "Commissioner's Cup Championship", "CC": "Commissioner's Cup Championship",
+    }
+    reason = _NONCOUNTING_COMP.get(ct_id) or _NONCOUNTING_COMP.get(ct_abbr)
+    if reason:
+        return f"competition type {ct_abbr or ct_id!r} ({reason})"
+
+    season_type = event.get("season", {}).get("type")
+    if season_type is not None and season_type not in (2, 3):
+        return f"season type {season_type} (not regular season or postseason)"
+
     notes = list(event.get("notes", [])) + list(comp.get("notes", []))
     for note in notes:
         headline = str(note.get("headline", "")).lower()
+        if "all-star" in headline or "all star" in headline:
+            return f"all-star note: {note.get('headline', '')!r}"
         if "commissioner" in headline and (
             "championship" in headline or "final" in headline
         ):
@@ -115,9 +157,14 @@ def _is_noncounting_game(event: dict) -> str | None:
     return None
 
 
-def discover_games(start: date, end: date) -> list[tuple[int, str]]:
-    """Scan date range via scoreboard, return [(game_id, "YYYY-MM-DD")] for
-    completed games that count toward official regular-season stats."""
+def discover_games(start: date, end: date) -> list[tuple[int, str, int]]:
+    """Scan date range via scoreboard, return [(game_id, "YYYY-MM-DD",
+    season_type)] for completed games worth keeping (regular season + playoffs;
+    exhibitions like the All-Star Game and Cup Championship are skipped).
+
+    season_type is ESPN's integer (2 = regular season, 3 = postseason); it is
+    stored on each row so regular-season aggregations can filter to == 2 while
+    future playoff views select == 3. Defaults to 2 when ESPN omits it."""
     completed = []
     d = start
     while d <= end:
@@ -153,7 +200,9 @@ def discover_games(start: date, end: date) -> list[tuple[int, str]]:
                     f"SKIP: game {game_id} ({iso_date}) excluded — {skip_reason}"
                 )
                 continue
-            completed.append((game_id, iso_date))
+            st = event.get("season", {}).get("type")
+            season_type = int(st) if st is not None else 2
+            completed.append((game_id, iso_date, season_type))
         d += timedelta(days=1)
     return completed
 
@@ -193,7 +242,7 @@ def _extract_header_info(summary: dict) -> dict:
 # ── Player box parsing ───────────────────────────────────────────────────
 
 def parse_player_box(
-    summary: dict, game_id: int, game_date: str
+    summary: dict, game_id: int, game_date: str, season_type: int
 ) -> list[dict]:
     """Parse boxscore.players[] into player row dicts."""
     header_teams = _extract_header_info(summary)
@@ -229,6 +278,8 @@ def parse_player_box(
                 row = {
                     "game_id": game_id,
                     "game_date": game_date,
+                    "season_type": season_type,
+                    "athlete_id": athlete.get("id", ""),
                     "athlete_display_name": athlete.get("displayName", ""),
                     "team_abbreviation": team_abbr,
                     "team_display_name": team_display_name,
@@ -305,7 +356,7 @@ def parse_player_box(
 # ── Team box parsing ─────────────────────────────────────────────────────
 
 def parse_team_box(
-    summary: dict, game_id: int, game_date: str
+    summary: dict, game_id: int, game_date: str, season_type: int
 ) -> list[dict]:
     """Parse boxscore.teams[] + header into 2 team row dicts."""
     header_teams = _extract_header_info(summary)
@@ -344,6 +395,7 @@ def parse_team_box(
         row = {
             "game_id": game_id,
             "game_date": game_date,
+            "season_type": season_type,
             "team_id": info["team_id"],
             "team_display_name": info["team_display_name"],
             "team_abbreviation": info["team_abbreviation"],
@@ -512,18 +564,43 @@ def load_existing() -> tuple[set[int], pd.DataFrame | None, pd.DataFrame | None,
     game_ids: set[int] = set()
     player_df = team_df = pbp_df = None
 
-    for label, path in [("player", PLAYER_CSV), ("team", TEAM_CSV)]:
+    # Read + schema-validate the box-score CSVs. If either is missing a required
+    # column it predates a schema migration; discard ALL existing data (and the
+    # PBP) so main() does one clean full re-fetch instead of concatenating
+    # mismatched schemas. During the current season this only fires the first
+    # run after the athlete_id/season_type migration.
+    loaded: dict[str, pd.DataFrame] = {}
+    stale = False
+    for label, path, required in [
+        ("player", PLAYER_CSV, REQUIRED_PLAYER_COLS),
+        ("team", TEAM_CSV, REQUIRED_TEAM_COLS),
+    ]:
         if not path.exists():
             continue
         try:
             df = pd.read_csv(path)
-            game_ids.update(df["game_id"].unique())
-            if label == "player":
-                player_df = df
-            else:
-                team_df = df
         except Exception as e:
             print(f"WARNING: could not read {path.name} ({e})")
+            continue
+        missing = required - set(df.columns)
+        if missing:
+            print(f"SCHEMA: {path.name} is missing {sorted(missing)} — forcing "
+                  "a full re-fetch to migrate the schema.")
+            stale = True
+        loaded[label] = df
+
+    if stale:
+        return set(), None, None, None
+
+    for label in ("player", "team"):
+        df = loaded.get(label)
+        if df is None:
+            continue
+        game_ids.update(df["game_id"].unique())
+        if label == "player":
+            player_df = df
+        else:
+            team_df = df
 
     if PBP_CSV.exists():
         try:
@@ -649,7 +726,7 @@ def main() -> None:
     today = datetime.now(ET).date()
     print(f"Scanning scoreboard from {scan_start} to {today}...")
     completed = discover_games(scan_start, today)
-    new_games = [(gid, d) for gid, d in completed if gid not in existing_ids]
+    new_games = [(gid, d, st) for gid, d, st in completed if gid not in existing_ids]
     print(f"Found {len(completed)} completed game(s), {len(new_games)} new")
 
     if not new_games and old_player is None:
@@ -661,15 +738,15 @@ def main() -> None:
     new_linescores: dict[str, dict] = {}
     failed = 0
 
-    for i, (gid, game_date) in enumerate(new_games):
+    for i, (gid, game_date, season_type) in enumerate(new_games):
         try:
             summary = espn_get(ESPN_SUMMARY, {"event": str(gid)})
             if not _boxscore_ready(summary):
                 raise ValueError(
                     "scoreboard reports final but boxscore isn't populated yet"
                 )
-            new_player_rows.extend(parse_player_box(summary, gid, game_date))
-            new_team_rows.extend(parse_team_box(summary, gid, game_date))
+            new_player_rows.extend(parse_player_box(summary, gid, game_date, season_type))
+            new_team_rows.extend(parse_team_box(summary, gid, game_date, season_type))
             new_pbp_rows.extend(parse_pbp(summary, gid))
             ls = parse_linescores(summary, gid)
             if ls:
