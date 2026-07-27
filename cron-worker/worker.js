@@ -228,16 +228,37 @@ async function healthCheck(env) {
   }
 
   // 2. Did it publish, and is the live site fresh?
+  //
+  // Freshness is driven by WHETHER GAMES WERE PLAYED, not by whether a commit
+  // exists. A commit is a poor proxy: since 2026-07-27 the build also commits
+  // validation_report.json, whose run_at_utc timestamp changes every run, so
+  // the staged diff is never empty and a "Daily stats update" commit now lands
+  // on every run — including off-days. Keying the freshness expectation on that
+  // commit made the off-day branch unreachable and would have emailed a false
+  // alarm every off-day. Ground truth is the schedule, so ask ESPN first.
   if (run && run.conclusion === "success") {
     let committedToday = false;
+    let commitsQueryOk = true;
     try {
       committedToday = await publishedToday(env, today);
     } catch (e) {
+      commitsQueryOk = false;
       problems.push(`Could not query GitHub commits API: ${e.message}`);
     }
 
-    if (committedToday) {
-      // New data published — the live site should show games through yesterday.
+    const played = await gamesPlayedOn(yesterday); // true | false | null
+
+    if (played === false) {
+      // Off-day. No freshness expectation — but still confirm the site serves.
+      notes.push(`off-day: no games on ${yesterday}; freshness check skipped`);
+      try {
+        const through = await siteDataThrough();
+        notes.push(`site reachable, showing data through ${through ?? "unknown"}`);
+      } catch (e) {
+        problems.push(`Could not fetch the live site on an off-day: ${e.message}`);
+      }
+    } else if (played === true) {
+      // Games were played yesterday: the site must show them.
       try {
         let through = await siteDataThrough();
         if (through !== yesterday) {
@@ -248,30 +269,31 @@ async function healthCheck(env) {
         }
         if (through !== yesterday) {
           problems.push(
-            `Build committed today's update but the live site still shows data ` +
-            `through ${through ?? "unknown"} (expected ${yesterday}). The Cloudflare ` +
-            `redeploy may have failed — check the Workers & Pages deploy log.`
+            `WNBA games were played on ${yesterday}, but the live site still shows ` +
+            `data through ${through ?? "unknown"}. Either the fetch returned nothing ` +
+            `or the Cloudflare redeploy failed — check the run log (${run.html_url}) ` +
+            `and the Workers & Pages deploy log.`
           );
         }
       } catch (e) {
         problems.push(`Could not fetch the live site: ${e.message}`);
       }
-    } else {
-      // No commit: legitimate on off-days. Verify yesterday really had no games.
-      const played = await gamesPlayedOn(yesterday);
-      if (played === true) {
+
+      if (commitsQueryOk && !committedToday) {
         problems.push(
           `Build succeeded but committed nothing, yet ESPN shows WNBA games were ` +
           `played on ${yesterday}. The data fetch may have silently returned ` +
           `nothing — check the run log: ${run.html_url}`
         );
-      } else {
-        notes.push(
-          played === false
-            ? `off-day: no games on ${yesterday}, no commit expected`
-            : `no commit today; ESPN unreachable so off-day not confirmed`
-        );
       }
+    } else {
+      // ESPN unreachable — can't tell an off-day from a missed update. Fall back
+      // to the commit heuristic, but only NOTE, never alarm, to avoid crying
+      // wolf on what is really an ESPN outage.
+      notes.push(
+        `ESPN scoreboard unreachable, so ${yesterday} could not be confirmed as a ` +
+        `game day; freshness not asserted (commit seen today: ${committedToday})`
+      );
     }
   }
 
