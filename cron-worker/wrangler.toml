@@ -1,0 +1,15 @@
+name = "wnba-stats-cron"
+main = "worker.js"
+compatibility_date = "2025-06-01"
+
+# 11:17 UTC = 7:17am ET (summer/EDT) — dispatches the daily build.
+# 11:45 UTC — health check; emails an alert only if something is wrong.
+[triggers]
+crons = ["17 11 * * *", "45 11 * * *"]
+
+# Failure alerts via Cloudflare Email Routing on statsataglance.com.
+# Requires: Email Routing enabled on the zone, and the destination address
+# verified there (it gets a one-time confirmation email).
+[[send_email]]
+name = "ALERT_EMAIL"
+destination_address = "horowitz.jason@gmail.com"

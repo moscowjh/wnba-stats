@@ -372,16 +372,23 @@ def compute_player_base(player_raw):
     p['athlete_position_abbreviation'] = p['athlete_id'].map(pos_map)
     p = p.sort_values('PTS', ascending=False)
 
-    # Counting-stat averages
+    # Counting-stat averages. Each stat keeps two columns: the display value
+    # rounded to a tenth, and an unrounded '<stat>_raw' twin that leader boards
+    # rank on. Ranking on the rounded value ordered same-tenth players
+    # arbitrarily (Leite 6.04 vs Miles 5.96 both display 6.0 — WNBA.com ranks
+    # on the unrounded rate), which could scramble the published top 5.
     for col, src in [('PPG','PTS'), ('RPG','TRB'), ('ORPG','ORB'), ('APG','AST'),
                      ('SPG','STL'), ('BPG','BLK'), ('TPG','TOV')]:
-        p[col] = (p[src] / p['GP']).round(1)
+        p[col + '_raw'] = p[src] / p['GP']
+        p[col] = p[col + '_raw'].round(1)
 
     # Shooting percentages — use .where() to avoid divide-by-zero NaN warnings
-    p['eFG%'] = ((p['FGM'] + 0.5*p['TPM']) / p['FGA'] * 100).where(p['FGA'] > 0).round(1)
-    p['TS%']  = (p['PTS'] / (2 * (p['FGA'] + 0.44*p['FTA'])) * 100).where(p['FGA'] > 0).round(1)
-    p['FT%']  = (p['FTM'] / p['FTA'] * 100).where(p['FTA'] > 0).round(1)
-    p['3PT%'] = (p['TPM'] / p['TPA'] * 100).where(p['TPA'] > 0).round(1)
+    p['eFG%_raw'] = ((p['FGM'] + 0.5*p['TPM']) / p['FGA'] * 100).where(p['FGA'] > 0)
+    p['TS%_raw']  = (p['PTS'] / (2 * (p['FGA'] + 0.44*p['FTA'])) * 100).where(p['FGA'] > 0)
+    p['FT%_raw']  = (p['FTM'] / p['FTA'] * 100).where(p['FTA'] > 0)
+    p['3PT%_raw'] = (p['TPM'] / p['TPA'] * 100).where(p['TPA'] > 0)
+    for col in ('eFG%', 'TS%', 'FT%', '3PT%'):
+        p[col] = p[col + '_raw'].round(1)
 
     return p
 
@@ -555,29 +562,59 @@ def compute_four_factors(team_raw, player_raw):
     return ff_df, team_list
 
 
-def compute_leaders(p_base):
-    """Top-10 category leaders with prorated WNBA qualifying minimums."""
+def compute_leaders(p_base, full=False):
+    """Top-10 category leaders using the WNBA's official League Leaders
+    qualification (deliberately not ESPN's 70%-of-games-only rule). Counting
+    boards apply the league's "70% of games OR volume" disjunction; percentage
+    boards apply made-shot minimums only. Full rules, sources and the rationale:
+    ../../WNBA-leader-qualification-rules.md
+
+    full=False (the site build) returns display-shaped boards only — renderers
+    and emit_social_payload assume the value column is last, so never widen
+    them. full=True (validate_stats.py) appends 'athlete_id' and an unrounded
+    '_raw' value column for exact external comparison."""
     max_gp = p_base['GP'].max()
     scale  = max_gp / 44.0
     min_gp = max(1, round(0.70 * max_gp))
 
     def top10(df, stat, disp):
-        sub = df.dropna(subset=[stat])
-        top = sub.nlargest(10, stat)[
-            ['athlete_display_name', 'team_abbreviation', 'GP', stat]
-        ].copy()
-        top.columns = ['Player', 'Team', 'GP', disp]
+        # Rank on the unrounded '<stat>_raw' column (matching how WNBA.com
+        # orders players who display the same tenth), show the rounded one.
+        raw = stat + '_raw'
+        sub = df.dropna(subset=[raw])
+        cols = ['athlete_display_name', 'team_abbreviation', 'GP', stat]
+        names = ['Player', 'Team', 'GP', disp]
+        if full:
+            cols += ['athlete_id', raw]
+            names += ['athlete_id', '_raw']
+        top = sub.nlargest(10, raw)[cols].copy()
+        top.columns = names
         return top
 
-    q_pts  = p_base['PTS'] >= 525  * scale
-    q_reb  = p_base['TRB'] >= 250  * scale
-    q_ast  = p_base['AST'] >= 150  * scale
-    q_stl  = p_base['STL'] >= 55   * scale
-    q_blk  = p_base['BLK'] >= 40   * scale
+    # Games-played branch: 70% of team games, the league's alternative route to
+    # qualifying. Also the sole qualifier for the Off Reb and Turnovers boards.
+    q_gp   = p_base['GP']  >= min_gp
+
+    # Counting-stat boards use the league's DISJUNCTION: "70% of team games
+    # played OR <volume>" (stats.wnba.com/help/statminimums). Volume minimums
+    # are the official full-season numbers prorated by season progress; the
+    # games-played branch is taken as-is. Implementing only the volume half
+    # (as we did through 2026-07-27) is stricter than the league and can
+    # silently drop a qualified player — see WNBA-leader-qualification-rules.md
+    # §4a. Harmless on most boards, because a player entering via the GP branch
+    # has a rate ceiling of volume/(44*0.70) that sits below the cut line, but
+    # STEALS is genuinely exposed (ceiling 1.79 vs a ~1.62 tenth-best).
+    q_pts  = (p_base['PTS'] >= 525 * scale) | q_gp
+    q_reb  = (p_base['TRB'] >= 250 * scale) | q_gp
+    q_ast  = (p_base['AST'] >= 150 * scale) | q_gp
+    q_stl  = (p_base['STL'] >= 55  * scale) | q_gp
+    q_blk  = (p_base['BLK'] >= 40  * scale) | q_gp
+
+    # Percentage boards have NO games-played alternative in the official rule —
+    # made-shot minimums only. Do not add q_gp to these.
     q_ftm  = p_base['FTM'] >= 50   * scale
     q_3pm  = p_base['TPM'] >= 25   * scale
     q_fgm  = p_base['FGM'] >= 100  * scale
-    q_gp   = p_base['GP']  >= min_gp
 
     leaders = {}
     leaders['Scoring']   = top10(p_base[q_pts],  'PPG',  'PPG')
@@ -875,6 +912,19 @@ def build_leaders_section(leaders, team_abbrevs):
 def build_abbreviations_section():
     """Static reference tab explaining all abbreviations used on the site."""
     groups = [
+        # Official WNBA team codes (the league's own TLAs, used site-wide since
+        # 2026-07: PDX/GSV/LVA/NYL/LAS/WAS are less guessable than the ESPN
+        # codes they replaced, so document all fifteen).
+        ('Teams', [
+            ('ATL', 'Atlanta Dream'), ('CHI', 'Chicago Sky'),
+            ('CON', 'Connecticut Sun'), ('DAL', 'Dallas Wings'),
+            ('GSV', 'Golden State Valkyries'), ('IND', 'Indiana Fever'),
+            ('LAS', 'Los Angeles Sparks'), ('LVA', 'Las Vegas Aces'),
+            ('MIN', 'Minnesota Lynx'), ('NYL', 'New York Liberty'),
+            ('PDX', 'Portland Fire'), ('PHX', 'Phoenix Mercury'),
+            ('SEA', 'Seattle Storm'), ('TOR', 'Toronto Tempo'),
+            ('WAS', 'Washington Mystics'),
+        ]),
         ('Standings', [
             ('W', 'Wins'), ('L', 'Losses'),
             ('Win%', 'Winning percentage'),
@@ -936,11 +986,14 @@ def _fmt_min(m):
     except Exception: return '0'
 
 
+# Keyed on the official WNBA TLAs (mapped from ESPN codes at fetch time —
+# see WNBA_TLA in fetch_data.py). A missing key degrades to showing the raw
+# code on the Games tab, so keep this in sync with any TLA change.
 _CITY = {
     'ATL': 'Atlanta', 'CHI': 'Chicago', 'CON': 'Connecticut', 'DAL': 'Dallas',
-    'GS': 'Golden State', 'IND': 'Indiana', 'LA': 'Los Angeles', 'LV': 'Las Vegas',
-    'MIN': 'Minnesota', 'NY': 'New York', 'PHX': 'Phoenix', 'POR': 'Portland',
-    'SEA': 'Seattle', 'TOR': 'Toronto', 'WSH': 'Washington',
+    'GSV': 'Golden State', 'IND': 'Indiana', 'LAS': 'Los Angeles', 'LVA': 'Las Vegas',
+    'MIN': 'Minnesota', 'NYL': 'New York', 'PHX': 'Phoenix', 'PDX': 'Portland',
+    'SEA': 'Seattle', 'TOR': 'Toronto', 'WAS': 'Washington',
 }
 
 

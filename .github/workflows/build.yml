@@ -63,9 +63,9 @@ jobs:
             wnba_team_box_2026.csv
             wnba_pbp_2026.csv
             wnba_linescores_2026.json
-          key: wnba-data-v3-${{ github.run_id }}
+          key: wnba-data-v4-${{ github.run_id }}
           restore-keys: |
-            wnba-data-v3-
+            wnba-data-v4-
 
       - name: Fetch latest box scores
         run: python fetch_data.py
@@ -76,11 +76,24 @@ jobs:
           mkdir -p public
           cp WNBA-2026-stats-explorer.html public/index.html
 
+      # Layer-2 external verification (validate_stats.py) — diffs our leader
+      # boards against stats.wnba.com's API. Never blocks the site deploy
+      # (continue-on-error), but its leaders_ok output gates the Bluesky post
+      # below: a wrong page can be silently rebuilt tomorrow, a wrong post
+      # can't be unpublished. Writes validation_report.json (read by the
+      # cron-worker health check) and player_id_crosswalk.json (persisted
+      # ESPN-athlete-id → WNBA-player-id matches), both committed below.
+      - name: Validate against stats.wnba.com
+        id: validate
+        continue-on-error: true
+        run: python validate_stats.py --gate
+
       - name: Commit updated site
         run: |
           git config user.name  "wnba-stats-bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/index.html
+          git add validation_report.json player_id_crosswalk.json
           # Only commit if something actually changed (e.g. skip on an off-day).
           if git diff --staged --quiet; then
             echo "No changes to publish today."
@@ -104,8 +117,12 @@ jobs:
       # `post` defaults to true, so the daily cron dispatch (which sends no
       # inputs) always posts. A manual run can skip it: uncheck the box in the
       # Actions "Run workflow" UI, or hit the cron-worker URL with &post=false.
+      # Gated on the Layer-2 leaders check: if validation failed (or the
+      # validator crashed — leaders_ok is then unset/false), the post is
+      # skipped while the site still deploys. SKIPPED (source lagging) counts
+      # as ok — our own data already passed the Layer-1 guards.
       - name: Post daily leaders to Bluesky
-        if: ${{ inputs.post }}
+        if: ${{ inputs.post && steps.validate.outputs.leaders_ok == 'true' }}
         continue-on-error: true
         env:
           BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}

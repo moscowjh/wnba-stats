@@ -328,8 +328,11 @@ and late-season) as ESPN backfills/corrects data.
 | `.github/workflows/build.yml` | Daily cron: fetch → build → commit → deploy |
 | `requirements.txt` | Python deps for the Action (`pandas`, `requests`) |
 | `public/index.html` | The built site Cloudflare serves (regenerated daily) |
-| `cron-worker/` | Cloudflare Worker: triggers daily builds + health check |
-| `analytics-worker/` | Cloudflare Worker: receives usage beacons → Workers Analytics Engine. Deployed separately, **intentionally untracked** (like `cron-worker/`); see "Usage analytics worker" below. |
+| `validate_stats.py` | Layer-2 external verification: diffs our leader boards against stats.wnba.com's API. Runs in CI before the Bluesky post and gates it; also runnable by hand. See "Layer-2 stats validation" below. |
+| `validation_report.json` | Latest validator run (per-check PASS/FAIL/SKIPPED). Committed by each build; read by the cron Worker's health check. |
+| `player_id_crosswalk.json` | Persisted ESPN `athlete_id` → WNBA `PLAYER_ID` matches, grown by each validator run so later joins are exact even if a name spelling drifts. |
+| `cron-worker/` | Cloudflare Worker: triggers daily builds + health check. **Tracked in git as of 2026-07** (reversing the 2026-07-12 stance — it now gates data-quality alerting, so losing its history would hurt). Being tracked does NOT put it in the Actions deploy path: deploys remain manual (`cd cron-worker && npx wrangler deploy`). Secrets (`GH_TOKEN`, `CRON_KEY`) live only in `wrangler secret put`; `.wrangler/` and `.dev.vars` are gitignored. |
+| `analytics-worker/` | Cloudflare Worker: receives usage beacons → Workers Analytics Engine. Deployed separately, **intentionally untracked**; see "Usage analytics worker" below. |
 
 ## Health check + email alerts (added 2026-06-11)
 
@@ -349,6 +352,43 @@ What it verifies, in order:
 3. If the run committed nothing, it checks ESPN's public scoreboard for
    yesterday: no games → legitimate off-day, silence; games played → alert
    (the fetch silently returned nothing).
+4. **Layer-2 validation drift (added 2026-07-27):** reads the
+   `validation_report.json` that today's build committed (raw.githubusercontent
+   with a cache-buster). Any category FAIL, or a validator crash, is folded
+   into the same alert email. `SKIPPED (source not caught up)` and a stale or
+   missing report are notes only — they never trigger an email on their own,
+   preserving the silence-means-fine contract.
+
+## Layer-2 stats validation (added 2026-07-27)
+
+`validate_stats.py` diffs our computed leader boards against stats.wnba.com's
+own `leagueleaders` API (never a scraped page — WNBA.com's rendered page has
+been observed days stale while the API was current). Design, endpoints,
+qualification-rule sources, and check thresholds are documented in the script's
+docstring; the planning record is `LAYER2-VALIDATION-HANDOFF.md` and
+`../WNBA-leader-qualification-rules.md` at the projects root.
+
+The contract:
+
+- **In CI** (`build.yml`, step "Validate against stats.wnba.com", after the
+  page build): runs `validate_stats.py --gate` — checks today's broadcast
+  category only, writes `validation_report.json` + `player_id_crosswalk.json`
+  (committed with the site), and emits `leaders_ok=true|false` to
+  `$GITHUB_OUTPUT`. The Bluesky post step only runs when `leaders_ok == 'true'`.
+  The step itself is `continue-on-error` — a validator failure can never block
+  the site deploy, only the broadcast.
+- **Fail-closed for the post, fail-open for lag:** a check FAIL or a validator
+  crash blocks the post; the source being unreachable or behind us
+  (`SKIPPED — source not caught up`) does NOT, since our own data already
+  passed the Layer-1 guards.
+- **By hand:** `python validate_stats.py` checks all 11 boards and prints a
+  readable report; `--date YYYY-MM-DD` cuts our side off at a date (only
+  meaningful while the source is frozen there too, e.g. over a break).
+- The stats API needs browser-ish headers **plus gzip Accept-Encoding**
+  (it hangs, rather than erroring, without them) — both baked into the script.
+  `leaguedashteamstats` (team ratings, the future P2 check) hung from every
+  network we tried on 2026-07-27; revisit from the Actions runner before
+  building P2 on it.
 
 ### One-time setup
 1. **Email Routing** (free): Cloudflare dashboard → statsataglance.com zone →
@@ -402,10 +442,12 @@ someone showed up.
   Analytics Engine (dataset `wnba_usage`), CORS-restricted to
   `https://wnba.statsataglance.com`.
 
-**Not tracked in git.** Like `cron-worker/`, the worker source lives in
-`analytics-worker/` locally and in Cloudflare; it is deployed separately and is
-not part of the daily HTML build. Trade-off: no git history/backup for the
-worker itself — **this section is the durable record of how it's wired.**
+**Not tracked in git.** The worker source lives in `analytics-worker/` locally
+and in Cloudflare; it is deployed separately and is not part of the daily HTML
+build. (`cron-worker/` used to share this stance but has been tracked since
+2026-07 — it gates data-quality alerting now. This worker stays untracked until
+it crosses a similar line.) Trade-off: no git history/backup for the worker
+itself — **this section is the durable record of how it's wired.**
 
 ### One-time setup
 1. **Enable Analytics Engine on the account (one-time).** Until this is done,

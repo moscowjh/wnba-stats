@@ -64,6 +64,21 @@ ET = ZoneInfo("America/New_York")
 MAX_STALENESS_DAYS = 2
 FETCH_DELAY = 0.5
 
+# ESPN team abbreviations → official WNBA TLAs (as used by stats.wnba.com).
+# Applied at fetch time — never at load — so the CSVs, JSON artifacts, and the
+# site all speak the official language (decided 2026-07-26; lets the Layer-2
+# validator join on team codes without a crosswalk). Teams not listed here are
+# spelled identically in both systems.
+WNBA_TLA = {
+    "POR": "PDX", "GS": "GSV", "LV": "LVA",
+    "LA": "LAS", "NY": "NYL", "WSH": "WAS",
+}
+
+
+def _tla(abbr: str) -> str:
+    """Official WNBA TLA for an ESPN team abbreviation."""
+    return WNBA_TLA.get(abbr, abbr)
+
 
 # ── HTTP helper ──────────────────────────────────────────────────────────
 
@@ -231,7 +246,7 @@ def _extract_header_info(summary: dict) -> dict:
         ha = comp["homeAway"]
         teams[ha] = {
             "team_id": team_id,
-            "team_abbreviation": comp["team"]["abbreviation"],
+            "team_abbreviation": _tla(comp["team"]["abbreviation"]),
             "team_display_name": comp["team"].get("displayName", ""),
             "score": int(comp["score"]),
             "home_away": ha,
@@ -252,7 +267,7 @@ def parse_player_box(
 
     rows = []
     for team_entry in summary.get("boxscore", {}).get("players", []):
-        team_abbr = team_entry["team"]["abbreviation"]
+        team_abbr = _tla(team_entry["team"]["abbreviation"])
         team_info = abbr_to_info.get(team_abbr, {})
         team_id = team_info.get("team_id", 0)
         team_display_name = team_entry["team"].get(
@@ -362,7 +377,7 @@ def parse_team_box(
     header_teams = _extract_header_info(summary)
     team_stats_by_abbr = {}
     for team_entry in summary.get("boxscore", {}).get("teams", []):
-        abbr = team_entry["team"]["abbreviation"]
+        abbr = _tla(team_entry["team"]["abbreviation"])
         stat_dict = {}
         for s in team_entry.get("statistics", []):
             stat_dict[s["name"]] = s.get("displayValue", "")
@@ -530,7 +545,7 @@ def parse_linescores(summary: dict, game_id: int) -> dict | None:
     out: dict[str, dict] = {}
     for comp in competitors:
         ha = comp.get("homeAway")
-        abbr = comp.get("team", {}).get("abbreviation", "")
+        abbr = _tla(comp.get("team", {}).get("abbreviation", ""))
         ls = comp.get("linescores")
         if ha not in ("home", "away") or not ls:
             return None
@@ -685,7 +700,7 @@ def fetch_schedule() -> None:
         teams = {}
         for comp in competitors:
             ha = comp.get("homeAway", "")
-            abbr = comp.get("team", {}).get("abbreviation", "")
+            abbr = _tla(comp.get("team", {}).get("abbreviation", ""))
             teams[ha] = abbr
 
         utc_str = event.get("date", "")

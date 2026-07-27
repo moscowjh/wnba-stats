@@ -21,6 +21,12 @@ bluesky-briefs/
 # Work-in-progress prototypes — anything with "prototype" in the name
 *prototype*
 
+# Cloudflare Workers — local build cache and local secrets, never committed.
+# Worker SOURCE (cron-worker/worker.js + wrangler.toml) IS tracked as of
+# 2026-07; secrets live only in `wrangler secret put` (GH_TOKEN, CRON_KEY).
+.wrangler/
+.dev.vars
+
 # Python
 __pycache__/
 *.pyc
