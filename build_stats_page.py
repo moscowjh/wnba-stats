@@ -1253,6 +1253,10 @@ PAGE_CSS = """\
         font-size:13px;padding:16px}
   h1{color:var(--accent);font-size:17px;margin-bottom:3px}
   .meta{color:var(--muted);font-size:11px;margin-bottom:24px}
+  .site-footer{margin-top:34px;padding-top:12px;border-top:1px solid var(--border);
+      color:var(--muted);font-size:11px;line-height:1.8}
+  .site-footer a{color:var(--muted);text-decoration:underline}
+  .site-footer a:hover{color:var(--accent)}
   h2{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;
       margin:24px 0 10px;border-bottom:1px solid var(--border);padding-bottom:5px}
   h2 .sub{color:var(--muted);text-transform:none;letter-spacing:0;font-size:11px}
@@ -1676,6 +1680,10 @@ def assemble_page(display_date, data_through_iso,
         f'{team_totals_html}\n'
         f'{players_html}\n'
         f'{abbreviations_html}\n'
+        '<div class="site-footer">\n'
+        '  feedback → <a href="mailto:hello@statsataglance.com">hello@statsataglance.com</a><br>\n'
+        '  an independent, non-commercial fan project\n'
+        '</div>\n'
         f'<script>\n{PAGE_JS}\n</script>\n'
         '<!-- Cloudflare Web Analytics -->'
         '<script defer src="https://static.cloudflareinsights.com/beacon.min.js" '
