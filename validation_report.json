@@ -1,18 +1,18 @@
 {
-  "run_at_utc": "2026-07-27T21:28:19+00:00",
+  "run_at_utc": "2026-07-28T11:18:26+00:00",
   "data_through": "2026-07-22",
   "cutoff": null,
-  "broadcast_category": "FT%",
+  "broadcast_category": "TS%",
   "gate_mode": true,
   "categories": [
     {
-      "category": "FT%",
+      "category": "TS%",
       "status": "PASS",
       "checks": [
         {
           "check": "top5_order",
           "status": "PASS",
-          "detail": "Ariel Atkins / Chelsea Gray / Jackie Young / Kayla McBride / Kayla Thornton"
+          "detail": "Sophie Cunningham / NaLyssa Smith / Kelsey Plum / Madina Okot / Megan DiLeo"
         },
         {
           "check": "top5_values",
