@@ -1,18 +1,18 @@
 {
-  "run_at_utc": "2026-07-30T11:18:24+00:00",
-  "data_through": "2026-07-29",
+  "run_at_utc": "2026-07-31T11:18:31+00:00",
+  "data_through": "2026-07-30",
   "cutoff": null,
-  "broadcast_category": "Off Reb",
+  "broadcast_category": "Blocks",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Off Reb",
-      "status": "WARN",
+      "category": "Blocks",
+      "status": "PASS",
       "checks": [
         {
           "check": "top5_order",
           "status": "PASS",
-          "detail": "Angel Reese / Jessica Shepard / Natasha Howard / Kiki Iriafen / Natasha Mack"
+          "detail": "A'ja Wilson / Kiah Stokes / Brittney Griner / Emily Engstler / Kamilla Cardoso"
         },
         {
           "check": "top5_values",
@@ -26,15 +26,15 @@
         },
         {
           "check": "top10_set",
-          "status": "WARN",
-          "detail": "only-ours=['dominique malonga'] only-theirs=['a ja wilson']"
+          "status": "PASS",
+          "detail": ""
         }
       ]
     }
   ],
   "alignment": {
-    "ours_total": 418,
-    "theirs_total": 418,
+    "ours_total": 424,
+    "theirs_total": 424,
     "source_behind": [],
     "we_are_behind": []
   },
