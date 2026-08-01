@@ -1,18 +1,18 @@
 {
-  "run_at_utc": "2026-07-31T11:18:31+00:00",
-  "data_through": "2026-07-30",
+  "run_at_utc": "2026-08-01T11:18:24+00:00",
+  "data_through": "2026-07-31",
   "cutoff": null,
-  "broadcast_category": "Blocks",
+  "broadcast_category": "Steals",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Blocks",
+      "category": "Steals",
       "status": "PASS",
       "checks": [
         {
           "check": "top5_order",
           "status": "PASS",
-          "detail": "A'ja Wilson / Kiah Stokes / Brittney Griner / Emily Engstler / Kamilla Cardoso"
+          "detail": "Rhyne Howard / Jordin Canada / Leila Lacan / Angel Reese / Natasha Howard"
         },
         {
           "check": "top5_values",
@@ -33,8 +33,8 @@
     }
   ],
   "alignment": {
-    "ours_total": 424,
-    "theirs_total": 424,
+    "ours_total": 430,
+    "theirs_total": 430,
     "source_behind": [],
     "we_are_behind": []
   },
