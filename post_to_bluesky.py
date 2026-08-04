@@ -32,7 +32,10 @@ import urllib.error
 import urllib.request
 
 PDS         = "https://bsky.social"
-SITE_URL    = "https://wnba.statsataglance.com/"
+# Tagged so the usage beacon can separate "clicked the daily card" from direct
+# traffic. Matches the /bsky bio redirect's `bluesky-bio`; keep these two values
+# stable — they are the historical series in the wnba_usage dataset.
+SITE_URL    = "https://wnba.statsataglance.com/?utm_source=bluesky-post"
 CARD_TITLE  = "WNBA 2026 — At a Glance"
 CARD_DESC   = ("Fast, ad-free WNBA stats — leaders, standings, four factors, "
                "updated every morning.")
