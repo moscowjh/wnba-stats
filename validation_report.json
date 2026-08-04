@@ -1,5 +1,5 @@
 {
-  "run_at_utc": "2026-08-04T11:18:27+00:00",
+  "run_at_utc": "2026-08-04T14:49:31+00:00",
   "data_through": "2026-08-03",
   "cutoff": null,
   "broadcast_category": "eFG%",
@@ -7,22 +7,22 @@
   "categories": [
     {
       "category": "eFG%",
-      "status": "FAIL",
+      "status": "PASS",
       "checks": [
         {
           "check": "top5_order",
-          "status": "FAIL",
-          "detail": "ours=['NaLyssa Smith', 'Sophie Cunningham', 'Natasha Mack', 'Megan DiLeo', 'Kelsey Plum'] theirs=['NaLyssa Smith', 'Sophie Cunningham', 'Natasha Mack', 'Kelsey Plum', 'Megan DiLeo'] (if a name appears on both with different teams, suspect a traded player: our boards split per team, the API combines)"
+          "status": "PASS",
+          "detail": "NaLyssa Smith / Sophie Cunningham / Natasha Mack / Kelsey Plum / Megan DiLeo"
         },
         {
           "check": "top5_values",
-          "status": "FAIL",
-          "detail": "Kelsey Plum ours=60.904 theirs=61.616"
+          "status": "PASS",
+          "detail": ""
         },
         {
           "check": "top5_gp",
-          "status": "FAIL",
-          "detail": "Kelsey Plum ours=12 theirs=13"
+          "status": "PASS",
+          "detail": ""
         },
         {
           "check": "top10_set",
@@ -38,5 +38,5 @@
     "source_behind": [],
     "we_are_behind": []
   },
-  "leaders_ok": false
+  "leaders_ok": true
 }
