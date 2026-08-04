@@ -472,12 +472,38 @@ itself — **this section is the durable record of how it's wired.**
    Then load the live site and confirm points land (query below).
 
 ### Querying the data
-Workers Analytics Engine via the SQL API (needs an API token with
-**Account Analytics: Read**):
+**Use `usage_report.py`** — `python usage_report.py [--days N | --since DATE]
+[--json]`. It prints daily pageviews, source breakdown, tab engagement, box
+opens, depth-by-source, and new-vs-returning. Credentials come from
+`CF_ACCOUNT_ID` / `CF_ANALYTICS_TOKEN` in the environment or a **gitignored
+`.env`**; the token must be scoped to **Account Analytics: Read** only — never
+reuse `CLOUDFLARE_API_TOKEN`, which can deploy.
+
+Raw SQL API, if you need something the script doesn't cover:
 ```bash
 curl -s "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/analytics_engine/sql" \
   -H "Authorization: Bearer <API_TOKEN>" \
-  -d "SELECT blob1 AS event, blob2 AS tab, blob3 AS source, blob4 AS returning, count() AS n
+  -d "SELECT blob1 AS event, blob2 AS tab, blob3 AS source, blob4 AS returning,
+             SUM(_sample_interval) AS n
       FROM wnba_usage WHERE timestamp > NOW() - INTERVAL '1' DAY
       GROUP BY event, tab, source, returning ORDER BY n DESC"
 ```
+
+> ⚠️ **Always `SUM(_sample_interval)`, never `count()`.** Analytics Engine
+> samples at volume and stores the inverse sample rate per row, so `count()`
+> returns the number of *stored* rows, not events. This example said `count()`
+> until 2026-08-04, and by then it was already wrong: all-time totals read 841
+> with `SUM(_sample_interval)` vs 816 with `count()` — a 3% undercount, growing
+> with traffic. Sampling is not a future problem; it is already on.
+
+### utm_source taxonomy
+Three stable values — they are the historical series, so don't rename them:
+
+| Value | Surface |
+|---|---|
+| `bluesky-post` | the daily automated leaders post's OG card (`post_to_bluesky.py`'s `SITE_URL`) |
+| `bluesky-bio` | the profile bio link — `wnba.statsataglance.com/bsky`, a **Cloudflare Redirect Rule** (dashboard → Rules → Redirect Rules) that 301s to `/?utm_source=bluesky-bio`. Configured only in the dashboard; this line is its only record. |
+| `none` | direct, bookmark, organic, or any untagged referrer |
+
+The post card was untagged until 2026-08-04, so every click on it before that
+date is indistinguishable from direct traffic. Not recoverable retroactively.

@@ -27,6 +27,11 @@ bluesky-briefs/
 .wrangler/
 .dev.vars
 
+# Local secrets for usage_report.py (CF_ACCOUNT_ID / CF_ANALYTICS_TOKEN).
+# THIS REPO IS PUBLIC — never commit a token. In CI these come from repo
+# secrets instead, so .env is a local-only convenience.
+.env
+
 # Python
 __pycache__/
 *.pyc
