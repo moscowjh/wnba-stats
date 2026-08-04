@@ -1,28 +1,28 @@
 {
-  "run_at_utc": "2026-08-03T11:18:36+00:00",
-  "data_through": "2026-08-02",
+  "run_at_utc": "2026-08-04T11:18:27+00:00",
+  "data_through": "2026-08-03",
   "cutoff": null,
-  "broadcast_category": "3PT%",
+  "broadcast_category": "eFG%",
   "gate_mode": true,
   "categories": [
     {
-      "category": "3PT%",
-      "status": "PASS",
+      "category": "eFG%",
+      "status": "FAIL",
       "checks": [
         {
           "check": "top5_order",
-          "status": "PASS",
-          "detail": "Antonia Delaere / Sophie Cunningham / Aliyah Boston / Kelsey Mitchell / A'ja Wilson"
+          "status": "FAIL",
+          "detail": "ours=['NaLyssa Smith', 'Sophie Cunningham', 'Natasha Mack', 'Megan DiLeo', 'Kelsey Plum'] theirs=['NaLyssa Smith', 'Sophie Cunningham', 'Natasha Mack', 'Kelsey Plum', 'Megan DiLeo'] (if a name appears on both with different teams, suspect a traded player: our boards split per team, the API combines)"
         },
         {
           "check": "top5_values",
-          "status": "PASS",
-          "detail": ""
+          "status": "FAIL",
+          "detail": "Kelsey Plum ours=60.904 theirs=61.616"
         },
         {
           "check": "top5_gp",
-          "status": "PASS",
-          "detail": ""
+          "status": "FAIL",
+          "detail": "Kelsey Plum ours=12 theirs=13"
         },
         {
           "check": "top10_set",
@@ -33,10 +33,10 @@
     }
   ],
   "alignment": {
-    "ours_total": 442,
-    "theirs_total": 442,
+    "ours_total": 448,
+    "theirs_total": 448,
     "source_behind": [],
     "we_are_behind": []
   },
-  "leaders_ok": true
+  "leaders_ok": false
 }
