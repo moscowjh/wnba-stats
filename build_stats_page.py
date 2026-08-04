@@ -178,7 +178,7 @@ def run_data_guards(player_raw, p_base):
 
     # 2. Games-played sanity. A (player, team) row can't show more games than
     #    that team has played. Counting games per team_abbreviation keeps this
-    #    correct for players traded mid-season: each appears as a separate
+    #    correct for players who change teams mid-season: each appears as a separate
     #    per-team row, and each row is bounded by its own team's game count.
     team_games = player_raw.groupby('team_abbreviation')['game_id'].nunique()
     chk = p_base.assign(team_gp=p_base['team_abbreviation'].map(team_games))
@@ -326,26 +326,31 @@ def compute_standings(team_raw):
     return df
 
 
-def compute_player_base(player_raw):
-    """Aggregate per-player totals and per-game averages, keyed on the stable
-    ESPN athlete_id rather than display name. A player is one row per team they
-    appear for (so mid-season trades still show a per-team line), but a rename
-    (e.g. Megan Gustafson -> Megan DiLeo) or an ESPN spelling drift no longer
-    splits one athlete into two, and two players who ever share a name never
-    merge. Display name and position are resolved from each athlete's
-    most-recent game row, so a rename propagates across the whole season
-    automatically. Used by both the player table and the category leaders."""
+def _aggregate_players(player_raw, keys):
+    """Shared aggregation for the two player frames (see compute_player_base
+    and compute_player_season). Sums box-score rows grouped by `keys` and
+    derives the per-game and percentage columns, including the unrounded
+    '<stat>_raw' twins the leader boards rank on.
+
+    Identity is always the stable ESPN athlete_id, never the display name, so
+    a rename (e.g. Megan Gustafson -> Megan DiLeo) or an ESPN spelling drift
+    cannot split one athlete into two, and two players who ever share a name
+    never merge. Display name, position and current team are resolved from
+    each athlete's most-recent game row, so a rename or a team change propagates
+    across the whole season automatically."""
     pr = player_raw.copy()
     pr['athlete_id'] = pr['athlete_id'].astype(str)
 
-    # Canonical display name + position = each athlete's most-recent game row.
-    # game_date is 'YYYY-MM-DD', so lexical sort == chronological order.
+    # Canonical display name + position + current team = each athlete's
+    # most-recent game row. game_date is 'YYYY-MM-DD', so lexical sort ==
+    # chronological order.
     latest = pr.sort_values('game_date').groupby('athlete_id').tail(1)
     name_map = latest.set_index('athlete_id')['athlete_display_name']
     pos_map  = latest.set_index('athlete_id')['athlete_position_abbreviation']
+    team_map = latest.set_index('athlete_id')['team_abbreviation']
 
     p = pr.groupby(
-        ['athlete_id', 'team_abbreviation']
+        list(keys)
     ).agg(
         GP   = ('game_id', 'count'),
         MIN  = ('minutes', 'sum'),
@@ -364,12 +369,27 @@ def compute_player_base(player_raw):
         BLK  = ('blocks', 'sum'),
         TOV  = ('turnovers', 'sum'),
         PF   = ('fouls', 'sum'),
+        FIRST = ('game_date', 'min'),
     ).reset_index()
 
     # Attach the canonical name/position resolved above, so downstream tables and
     # leaders read one consistent label per athlete regardless of past renames.
     p['athlete_display_name'] = p['athlete_id'].map(name_map)
     p['athlete_position_abbreviation'] = p['athlete_id'].map(pos_map)
+    # Season-combined rows carry no team of their own — label them with the
+    # athlete's current team, matching how stats.wnba.com presents the season
+    # line of a player who has appeared for more than one team.
+    if 'team_abbreviation' not in p.columns:
+        p['team_abbreviation'] = p['athlete_id'].map(team_map)
+
+    # Games her team has played — the basis for every leader-board minimum,
+    # which the league prorates per team, not league-wide (see compute_leaders).
+    # On the season frame this is the CURRENT team's count, the same team the
+    # combined line is labeled with. Teams are up to four games apart in early
+    # August, so this is not a rounding detail.
+    team_games = pr.groupby('team_abbreviation')['game_id'].nunique()
+    p['TEAM_GP'] = p['team_abbreviation'].map(team_games).fillna(team_games.max())
+
     p = p.sort_values('PTS', ascending=False)
 
     # Counting-stat averages. Each stat keeps two columns: the display value
@@ -391,6 +411,35 @@ def compute_player_base(player_raw):
         p[col] = p[col + '_raw'].round(1)
 
     return p
+
+
+def compute_player_base(player_raw):
+    """Per-(athlete, team) lines: a player who changes teams mid-season gets one
+    row per team she appeared for. Feeds the Players table's split rows and the
+    games-played guard, which bounds each row by its own team's game count.
+
+    NOT for leader boards — see compute_player_season for why."""
+    return _aggregate_players(player_raw, ['athlete_id', 'team_abbreviation'])
+
+
+def compute_player_season(player_raw):
+    """One combined season line per athlete, regardless of how many teams she
+    played for, labeled with her current team. This is what the leader boards
+    and the external Layer-2 validator must use.
+
+    The per-team split (compute_player_base) is right for the Players table but
+    wrong for leaders, in three ways — all live failure modes, not theory:
+      1. Her board line shows only her stint with one team, as
+         though it were her whole season (Kelsey Plum, 2026-08-04: we published
+         her 12-game LAS eFG% of 60.904 against the league's combined 13-game
+         61.616).
+      2. Qualification minimums apply to each partial line, so a player who
+         clears a percentage board's made-shot minimum on the season can miss
+         it on both halves and vanish from a board she leads.
+      3. A high-volume player who moves early enough qualifies twice and
+         occupies two slots on the same top 10.
+    The league computes leaders on the combined line; so do we."""
+    return _aggregate_players(player_raw, ['athlete_id'])
 
 
 def compute_team_stats(team_raw):
@@ -572,10 +621,33 @@ def compute_leaders(p_base, full=False):
     full=False (the site build) returns display-shaped boards only — renderers
     and emit_social_payload assume the value column is last, so never widen
     them. full=True (validate_stats.py) appends 'athlete_id' and an unrounded
-    '_raw' value column for exact external comparison."""
-    max_gp = p_base['GP'].max()
-    scale  = max_gp / 44.0
-    min_gp = max(1, round(0.70 * max_gp))
+    '_raw' value column for exact external comparison.
+
+    Takes the season-combined frame (compute_player_season), never the
+    per-team one."""
+    # Tripwire for the 2026-08-04 regression: fed the per-team frame, a player
+    # who changed teams is ranked on a partial season, can miss a qualification minimum on
+    # both halves, or can occupy two slots on one board. Cheap to assert, and
+    # it fires at build time rather than in the next morning's alert email.
+    dupes = p_base['athlete_id'][p_base['athlete_id'].duplicated()].tolist()
+    assert not dupes, (
+        f"compute_leaders got more than one row for athlete(s) {dupes[:5]} — "
+        "this is the per-team frame (compute_player_base). Leader boards must "
+        "be computed from compute_player_season, which combines a player's "
+        "stints into the single season line the league ranks on."
+    )
+
+    # Every minimum is prorated by the games HER OWN TEAM has played, not by
+    # the league-wide leader in games played. The league's published rule says
+    # "70% of team games played", and the volume half prorates on the same
+    # basis: on 2026-08-03, Seattle had played 32 games and Connecticut 30, so
+    # scaling every Sun player against 32 set their cutoffs ~7% too high and
+    # silently dropped Brittney Griner (28 BLK vs a 29.1 cutoff that should
+    # have been 27.3) and Aneesah Morrow (178 TRB vs 181.8, should be 170.5)
+    # off boards the league had them on. For a multi-team player, TEAM_GP is her
+    # current team's count — the same team her combined line is labeled with.
+    scale  = p_base['TEAM_GP'] / 44.0
+    min_gp = (0.70 * p_base['TEAM_GP']).round().clip(lower=1)
 
     def top10(df, stat, disp):
         # Rank on the unrounded '<stat>_raw' column (matching how WNBA.com
@@ -790,9 +862,16 @@ def build_team_totals_section(team_stats_df, team_options):
     )
 
 
-def build_players_section(p_base, team_abbrevs):
+def build_players_section(p_team, p_season, team_abbrevs):
     """Player stats table: abbreviated names with team chip, season totals
-    for shooting splits and counting stats, MPG and PPG per-game."""
+    for shooting splits and counting stats, MPG and PPG per-game.
+
+    A player who has appeared for two teams gets a Basketball-Reference-style
+    stack: her
+    combined season line (chip '2TM') followed by one indented row per team.
+    The combined row's data-team is '2TM', which matches no team option, so
+    picking a team in the filter narrows to that team's line — filtering to
+    LAS should show what a player did *as a Spark*, not her season total."""
     # Column order: Player (chip), MPG, PPG, GP, FG, FG%, 3PT, 3PT%, FT, FT%,
     #               OR, DR, TR, A, ST, B, TO, PF
     col_labels = ['Player','MPG','PPG','GP','FG','FG%','3PT','3PT%',
@@ -801,13 +880,12 @@ def build_players_section(p_base, team_abbrevs):
         f'<th onclick="sortTable(\'tbl_players\',{i})">{h}</th>'
         for i, h in enumerate(col_labels)
     )
-    body = ''
-    for _, r in p_base.iterrows():
+
+    def player_row(r, team_label, row_cls=''):
         gp = r['GP']
         name = r['athlete_display_name']
-        team = r['team_abbreviation']
         sn = short_name(name)
-        name_cell = f'{esc(sn)} <span class="tm">{esc(team)}</span>'
+        name_cell = f'{esc(sn)} <span class="tm">{esc(team_label)}</span>'
 
         cells = (
             f'<td>{name_cell}</td>'
@@ -829,8 +907,26 @@ def build_players_section(p_base, team_abbrevs):
             f'<td>{int(r["TOV"])}</td>'
             f'<td>{int(r["PF"])}</td>'
         )
-        body += (f'<tr data-team="{esc(team)}" data-player="{esc(name)}" '
-                 f'data-gp="{int(gp)}">{cells}</tr>\n')
+        cls = f' class="{row_cls}"' if row_cls else ''
+        return (f'<tr{cls} data-team="{esc(team_label)}" '
+                f'data-player="{esc(name)}" '
+                f'data-gp="{int(gp)}">{cells}</tr>\n')
+
+    # Per-team lines for each athlete, in the order she played for them.
+    legs = {aid: g.sort_values('FIRST')
+            for aid, g in p_team.groupby('athlete_id')}
+
+    # p_season is sorted by season points, so athletes appear in the same order
+    # as before; a multi-team player's stints stay stacked under her season line.
+    body = ''
+    for _, s in p_season.iterrows():
+        rows = legs[s['athlete_id']]
+        if len(rows) == 1:
+            body += player_row(rows.iloc[0], rows.iloc[0]['team_abbreviation'])
+            continue
+        body += player_row(s, f'{len(rows)}TM')
+        for _, leg in rows.iterrows():
+            body += player_row(leg, leg['team_abbreviation'], row_cls='tm-split')
 
     # Controls: two team dropdowns, min GP, search
     team_opts = ('<option value="">All teams</option>' +
@@ -924,6 +1020,9 @@ def build_abbreviations_section():
             ('PDX', 'Portland Fire'), ('PHX', 'Phoenix Mercury'),
             ('SEA', 'Seattle Storm'), ('TOR', 'Toronto Tempo'),
             ('WAS', 'Washington Mystics'),
+            ('2TM', 'Combined season total for a player who has appeared for '
+                    'two teams — traded, waived and signed, or called up. The '
+                    'indented rows beneath it are her stints with each team.'),
         ]),
         ('Standings', [
             ('W', 'Wins'), ('L', 'Losses'),
@@ -1288,6 +1387,10 @@ PAGE_CSS = """\
   tr.playoff-cutoff td{border-bottom:2px dashed rgba(218,165,32,0.4)}
   /* Team chip */
   .tm{color:#888;margin-left:5px;font-size:11px}
+  /* One stint of a multi-team player's season: subordinate to the combined line
+     above it, and still legible as a partial line if the user re-sorts. */
+  tr.tm-split td{color:var(--muted)}
+  tr.tm-split td:first-child{padding-left:22px}
   /* Controls bar */
   .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .controls label{color:var(--muted);font-size:11px;margin-right:3px}
@@ -1703,12 +1806,15 @@ def main():
     data_through_iso = through_dt.strftime('%Y-%m-%d')
 
     standings_df    = compute_standings(team_raw)
+    # Two player frames: per-(athlete, team) for the Players table's split
+    # rows and the games-played guard, season-combined for the leader boards.
     p_base          = compute_player_base(player_raw)
+    p_season        = compute_player_season(player_raw)
     run_data_guards(player_raw, p_base)
     team_stats_df   = compute_team_stats(team_raw)
     ff_df, team_list = compute_four_factors(team_raw, player_raw)
     run_integrity_checks(team_raw, player_raw, ff_df)
-    leaders         = compute_leaders(p_base)
+    leaders         = compute_leaders(p_season)
     emit_social_payload(player_raw, leaders, display_date, data_through_iso)
 
     # Team abbreviations for player/leader filters
@@ -1725,7 +1831,7 @@ def main():
     leaders_html       = build_leaders_section(leaders, team_abbrevs)
     team_eff_html      = build_team_efficiency_section(ff_df, team_options)
     team_totals_html   = build_team_totals_section(team_stats_df, team_options)
-    players_html       = build_players_section(p_base, team_abbrevs)
+    players_html       = build_players_section(p_base, p_season, team_abbrevs)
     abbreviations_html = build_abbreviations_section()
 
     html = assemble_page(display_date, data_through_iso,
@@ -1735,8 +1841,9 @@ def main():
 
     OUTPUT.write_text(html)
     print(f"Written -> {OUTPUT}")
-    print(f"Players: {len(p_base)}  |  Teams: {len(team_stats_df)-1}"
-          f"  |  FF rows: {len(ff_df)}")
+    multi = len(p_base) - len(p_season)
+    print(f"Players: {len(p_season)} ({multi} multi-team)  "
+          f"|  Teams: {len(team_stats_df)-1}  |  FF rows: {len(ff_df)}")
 
 
 if __name__ == '__main__':

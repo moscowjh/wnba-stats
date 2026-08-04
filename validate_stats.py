@@ -25,10 +25,11 @@ Design (see LAYER2-VALIDATION-HANDOFF.md):
   TLA adoption); every successful match is persisted to
   ``player_id_crosswalk.json`` so later runs join exactly by id even if a
   name spelling drifts. An unmatched top-10 player is a WARN, never silent.
-- Traded players: our boards carry one row per (athlete, team); the WNBA API
-  shows one combined row. No traded player is currently on any board; if one
-  appears, the mismatch surfaces as a FAIL whose message notes the likely
-  split-vs-combined cause.
+- Traded players: both sides now rank the combined season line, labeled with
+  the player's current team (``compute_player_season``). Until 2026-08-04 our
+  boards split a multi-team player per team and published a partial season — the
+  bug this validator caught on Kelsey Plum (ours 60.904 / 12 GP with LAS vs
+  the league's 61.616 / 13 GP across LAS+PHX).
 
 Checks per category (thresholds from the handoff):
   top-5 set and order exact ................. FAIL on mismatch
@@ -171,8 +172,10 @@ def save_crosswalk(xw: dict) -> None:
 
 def match_players(p_base: pd.DataFrame, totals: pd.DataFrame) -> dict:
     """Return {athlete_id: wnba PLAYER_ID}, persisting successes for later
-    exact joins. Match by normalized name + team, then unique name alone
-    (covers traded players, whose API row carries the current team)."""
+    exact joins. Match by normalized name + team, then unique name alone.
+    Both sides label a multi-team player with her current team, so name + team is
+    an exact match for her too; the name-only fallback remains as insurance
+    against a team code drifting on one side."""
     xw = load_crosswalk()
     by_name_team = {}
     by_name = {}
@@ -218,7 +221,8 @@ def their_rates(totals: pd.DataFrame) -> pd.DataFrame:
 
 
 # Our qualification rules, applied to THEIR totals for the recomputed boards.
-# Keep in lockstep with compute_leaders() in build_stats_page.py.
+# Keep in lockstep with compute_leaders() in build_stats_page.py — including
+# the per-team proration of `sc` and `mg` (see their_board_recomputed).
 _RECOMPUTE_SPEC = {
     'FT%':       ('FT%',  lambda t, sc, mg: t["FTM"] >= 50 * sc),
     '3PT%':      ('3PT%', lambda t, sc, mg: t["FG3M"] >= 25 * sc),
@@ -243,12 +247,19 @@ def their_board_ranked(ranked: pd.DataFrame, rates: pd.DataFrame,
     return merged.rename(columns={value_col: "value"})
 
 
-def their_board_recomputed(rates: pd.DataFrame, cat: str) -> pd.DataFrame:
-    """Board built from official Totals under OUR qualification rules."""
+def their_board_recomputed(rates: pd.DataFrame, cat: str,
+                           team_games: pd.Series) -> pd.DataFrame:
+    """Board built from official Totals under OUR qualification rules.
+
+    Minimums are prorated per team, exactly as compute_leaders does it — a
+    league-wide scale would hold Connecticut's players to Seattle's game count.
+    `team_games` is our own team-box count, keyed on the official TLAs both
+    sides use; a team code we don't recognize falls back to the league max,
+    which is the stricter (never over-inclusive) direction."""
     value_col, qualifier = _RECOMPUTE_SPEC[cat]
-    max_gp = int(rates["GP"].max())
-    scale = max_gp / 44.0
-    min_gp = max(1, round(0.70 * max_gp))
+    tg = rates["TEAM"].map(team_games).fillna(team_games.max())
+    scale = tg / 44.0
+    min_gp = (0.70 * tg).round().clip(lower=1)
     pool = rates[qualifier(rates, scale, min_gp)].dropna(subset=[value_col])
     top = pool.nlargest(10, value_col)[["PLAYER_ID", "PLAYER", "TEAM", "GP",
                                         value_col]]
@@ -302,9 +313,7 @@ def compare_category(cat: str, ours: pd.DataFrame, theirs: pd.DataFrame,
         add("top5_order", "PASS", " / ".join(our5["Player"]))
     else:
         add("top5_order", "FAIL",
-            f"ours={list(our5['Player'])} theirs={list(their5['PLAYER'])}"
-            " (if a name appears on both with different teams, suspect a"
-            " traded player: our boards split per team, the API combines)")
+            f"ours={list(our5['Player'])} theirs={list(their5['PLAYER'])}")
 
     # Values within tolerance + GP exact, per our top 5.
     their_by_id = theirs.set_index("PLAYER_ID")
@@ -351,8 +360,12 @@ def run(gate: bool, cutoff: str | None) -> dict:
     if cutoff:
         player_raw = player_raw[player_raw["game_date"] <= cutoff]
         team_raw = team_raw[team_raw["game_date"] <= cutoff]
-    p_base = bsp.compute_player_base(player_raw)
+    # Season-combined lines, same basis the WNBA's own leader feed uses.
+    p_base = bsp.compute_player_season(player_raw)
     our_boards = bsp.compute_leaders(p_base, full=True)
+    # Games each team has played — the per-team basis for qualification
+    # minimums on both sides of the diff.
+    team_games = team_raw.groupby("team_abbreviation")["game_id"].nunique()
 
     cats = ([broadcast_category_today()] if gate
             else list(RANKED_CATS) + RECOMPUTE_CATS)
@@ -412,7 +425,7 @@ def run(gate: bool, cutoff: str | None) -> dict:
                 if not gate:
                     time.sleep(FETCH_DELAY)
             else:
-                theirs = their_board_recomputed(rates, cat)
+                theirs = their_board_recomputed(rates, cat, team_games)
             report["categories"].append(
                 compare_category(cat, our_boards[cat], theirs, xw))
         except SourceUnavailable as e:
