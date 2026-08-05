@@ -22,8 +22,21 @@ bluesky-briefs/
 *prototype*
 
 # Cloudflare Workers — local build cache and local secrets, never committed.
-# Worker SOURCE (cron-worker/worker.js + wrangler.toml) IS tracked as of
-# 2026-07; secrets live only in `wrangler secret put` (GH_TOKEN, CRON_KEY).
+#
+# THE RULE: every Worker's SOURCE (worker.js + wrangler.toml) is tracked.
+# Only the build cache and local secret files below are ignored. Secrets live
+# solely in `wrangler secret put` — never in wrangler.toml, since this repo is
+# public.
+#
+# Workers in this repo:
+#   cron-worker/       tracked since 2026-07  (deployed — build dispatch + health checks)
+#   analytics-worker/  tracked since 2026-08-05 (deployed — usage beacon)
+#   espn-proxy/        tracked since 2026-08-05 (NOT deployed — contingency only)
+#
+# analytics-worker/ sat untracked from 2026-07-12 to 2026-08-05: nothing was
+# ignoring it (`git check-ignore` exits 1), it was just never `git add`ed,
+# because this note used to name cron-worker alone and read as if the policy
+# were specific to it. Hence the explicit list — add to it when you add a Worker.
 .wrangler/
 .dev.vars
 
