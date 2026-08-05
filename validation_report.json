@@ -1,30 +1,42 @@
 {
-  "run_at_utc": "2026-08-05T12:28:45+00:00",
-  "data_through": "2026-08-03",
+  "run_at_utc": "2026-08-05T14:44:44+00:00",
+  "data_through": "2026-08-04",
   "cutoff": null,
   "broadcast_category": "Assists",
   "gate_mode": true,
   "categories": [
     {
-      "category": "(all)",
-      "status": "FAIL",
+      "category": "Assists",
+      "status": "PASS",
       "checks": [
         {
-          "check": "data_completeness",
-          "status": "FAIL",
-          "detail": "our data is behind the source: GSV 29<30, TOR 29<30"
+          "check": "top5_order",
+          "status": "PASS",
+          "detail": "Alyssa Thomas / Caitlin Clark / Jordin Canada / Chelsea Gray / Jackie Young"
+        },
+        {
+          "check": "top5_values",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "check": "top5_gp",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "check": "top10_set",
+          "status": "PASS",
+          "detail": ""
         }
       ]
     }
   ],
   "alignment": {
-    "ours_total": 448,
+    "ours_total": 450,
     "theirs_total": 450,
     "source_behind": [],
-    "we_are_behind": [
-      "GSV 29<30",
-      "TOR 29<30"
-    ]
+    "we_are_behind": []
   },
-  "leaders_ok": false
+  "leaders_ok": true
 }
