@@ -253,9 +253,9 @@ it silently degrades.
 
 `fetch_data.py` fetches all data directly from ESPN's public API endpoints:
 
-- **Scoreboard** (`site.api.espn.com/.../scoreboard?dates=YYYYMMDD`): discovers
+- **Scoreboard** (`site.web.api.espn.com/.../scoreboard?dates=YYYYMMDD`): discovers
   completed games by scanning date ranges.
-- **Game Summary** (`site.api.espn.com/.../summary?event={game_id}`): provides
+- **Game Summary** (`site.web.api.espn.com/.../summary?event={game_id}`): provides
   player box scores, team box scores, play-by-play, and each game's **official
   per-quarter line scores** (`header.competitions[].competitors[].linescores`).
 
@@ -358,6 +358,115 @@ What it verifies, in order:
    into the same alert email. `SKIPPED (source not caught up)` and a stale or
    missing report are notes only — they never trigger an email on their own,
    preserving the silence-means-fine contract.
+
+### The 2026-08-05 outage: ESPN retired `site.api.espn.com`
+
+**Root cause.** `site.api.espn.com` — the host used since the 2026-06-23 ESPN
+migration — began returning an Akamai `Access Denied` 403 to every request.
+Verified by testing the variables one at a time:
+
+| Test | Result |
+|---|---|
+| `site.api` + browser User-Agent | 403 |
+| `site.api` + script User-Agent, or none | 403 |
+| `site.api` from home broadband (not the runner) | 403 |
+| `site.api` **NBA** path, not WNBA | 403 |
+| **`site.web.api` + any/no User-Agent** | **200** |
+
+So it was neither rate limiting, nor bot filtering, nor an IP-range block on
+the Actions runner. The host is retired for public use. **The fix is a
+one-line host swap** to `site.web.api.espn.com`, which serves the identical
+path scheme and response shape.
+
+`fetch_data.py` reads `ESPN_ORIGIN` (default `https://site.web.api.espn.com`),
+so the next host death is an env var, not a deploy.
+
+**Debugging lesson for next time:** when ESPN 403s, don't start with header
+tricks. Curl the same path on a *different ESPN host*, and curl a *different
+league* on the same host. Two commands separate "they're blocking us" from
+"this host is gone" — and it has been the latter both times.
+
+### ESPN proxy fallback (prototype, 2026-08-05 — NOT needed, NOT deployed)
+
+`espn-proxy/` is a narrow, key-authenticated Cloudflare Worker that passes
+through to ESPN's WNBA API. It was drafted for the IP-range-block theory that
+the table above disproved, so it solves a problem this project does not have.
+
+It's kept only for the case where a future replacement host is genuinely geo-
+or IP-fenced, which is the one situation where Cloudflare's egress helps. Try
+a plain host swap first. `fetch_data.py` sends `ESPN_PROXY_KEY` as
+`X-Proxy-Key` when set, so switching over is two repo secrets and three lines
+of workflow YAML — and deleting the secrets is the rollback. Setup and limits
+in `espn-proxy/README.md`.
+
+### Fail-loud on an incomplete fetch (added 2026-08-05)
+
+`fetch_data.py` **exits non-zero** when it couldn't read everything it needed:
+an unreadable scoreboard date, a discovered game that wouldn't download, or a
+missing schedule. That deliberately fails the job before the build step, so
+nothing is rebuilt, committed, or deployed. Whatever it *did* fetch is written
+first and lands in the Actions cache, so the next run resumes from there.
+
+The rule this encodes: **a silently-wrong green build costs more than a loudly
+red one.** A blocked deploy leaves yesterday's correct page up, turns the run
+red, notifies you, and makes the cron-worker health check auto-rebuild.
+
+Escape hatch: tick **allow_partial** in the Run workflow UI (or set
+`ALLOW_PARTIAL=1`) to publish a partial update anyway.
+
+Related: `wnba_schedule_today.json` now carries a `status` field. `"ok"` with an
+empty `games` list means ESPN confirmed there are no games today; `"unavailable"`
+means the fetch failed. The Games tab renders "No games today." only for the
+first, and "Today's schedule is unavailable." otherwise — on 2026-08-05 a failed
+fetch wrote an empty list that the page published as a confident, false "No
+games today" while four were scheduled. A missing or unreadable file is treated
+as unavailable; files predating the field are treated as `"ok"`.
+
+### Self-healing retries (added 2026-08-05)
+
+The health check now **repairs as well as reports**. It runs three passes —
+**11:45**, **13:15**, and **14:45 UTC** — and every problem it finds is tagged:
+
+| Tagged | Meaning | Behaviour |
+|---|---|---|
+| **retryable** | another build would plausibly fix it — failed/absent run, live site stale despite games played, build committed nothing, `data_completeness` FAIL (our data behind stats.wnba.com), validator crash | re-dispatch `build.yml`, stay silent; the next pass re-checks |
+| not retryable | needs a human — GitHub API unreachable, site unreachable on an off-day, a *value* mismatch on a stat we do have (a logic bug: rebuilding reproduces it), run still in progress (dispatching would just queue a duplicate) | email immediately |
+
+The **final** pass (14:45) stops retrying and emails whatever is still broken,
+noting that two auto-rebuilds already failed to fix it. So the silence-means-
+fine contract now reads: *silence means fine, or fixed itself.*
+
+**The Bluesky post is suppressed on auto-retries** unless the Worker can prove
+the earlier run didn't post — i.e. no successful run at all, or
+`leaders_ok === false` (the post step was gated off). Unknown counts as
+"probably posted". `post_to_bluesky.py` has no dedupe guard, and a duplicate
+post can't be un-posted while a missed post is merely missed.
+
+`gamesPlayedOn()` also retries ESPN (4 attempts over ~17s). An "unknown" there
+silently disables the entire freshness assertion, so one bad second of ESPN
+uptime must not be allowed to blind the check.
+
+Manual runs **report, they don't repair**: `?action=check` behaves as a final
+pass so you see every problem. Add `&repair=1` to let it dispatch a rebuild.
+
+Origin: on **2026-08-05** every ESPN call 403'd (host retirement — see above),
+`discover_games()` swallowed the failures per-date, and three builds in a row
+went **green** while republishing day-old data and telling visitors "No games
+today" with four scheduled. The only signal was a Layer-2 `data_completeness`
+FAIL, which read like a stats bug rather than an outage, and it took a
+hand-dispatched build to fix.
+
+Note what this section can and cannot do: retries handle **transient** upstream
+failure. They would not have fixed 2026-08-05, because no number of rebuilds
+reaches a dead host — the *fail-loud* change is what would have caught it, by
+turning those three false-green builds red on the first one. Retries and
+fail-loud are complements: fail-loud makes breakage visible, retries keep the
+visible-breakage rate low enough that an email still means something.
+
+`gamesPlayedOn()` in the cron Worker was hit by the same outage and had to be
+pointed at the new host too — it had been returning `null`, which silently
+disables the freshness assertion. A health check that reads its own data source
+through the broken path cannot see the breakage.
 
 ## Layer-2 stats validation (added 2026-07-27)
 

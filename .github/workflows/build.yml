@@ -19,6 +19,10 @@ on:
         description: "Post the daily leaders to Bluesky"
         type: boolean
         default: true
+      allow_partial:
+        description: "Publish even if the ESPN fetch came back incomplete"
+        type: boolean
+        default: false
 
 permissions:
   contents: write          # allow the job to commit the rebuilt HTML
@@ -67,8 +71,18 @@ jobs:
           restore-keys: |
             wnba-data-v4-
 
+      # fetch_data.py exits non-zero when the fetch came back incomplete — an
+      # unreadable scoreboard date, a game that wouldn't download, or a missing
+      # schedule. That FAILS THE JOB ON PURPOSE, so no stale page is rebuilt or
+      # deployed (2026-08-05: ESPN 403'd every call and three builds went green
+      # while republishing day-old data). Whatever it did fetch is still written
+      # and cached, so the next run resumes from there.
+      #
+      # Tick "allow_partial" in the Run workflow UI to publish anyway.
       - name: Fetch latest box scores
         run: python fetch_data.py
+        env:
+          ALLOW_PARTIAL: ${{ inputs.allow_partial && '1' || '0' }}
 
       - name: Build static page
         run: |

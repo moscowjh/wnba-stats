@@ -1,0 +1,13 @@
+name = "wnba-espn-proxy"
+main = "worker.js"
+compatibility_date = "2025-06-01"
+
+# No cron triggers — this Worker is request-driven only, called by
+# fetch_data.py during the daily build.
+#
+# No routes/custom domain either: the default workers.dev URL is enough, and
+# keeping it off statsataglance.com means proxy traffic can never interfere
+# with the site's own zone.
+#
+# Secret (NOT stored here — repo is public):
+#   npx wrangler secret put PROXY_KEY

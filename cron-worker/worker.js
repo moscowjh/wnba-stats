@@ -5,6 +5,25 @@
 //   2. 11:45 UTC  Health check: verify the build ran, succeeded, and the
 //                 live site is fresh. Emails an alert ONLY on failure —
 //                 silence means everything is fine.
+//      13:15 UTC  Same health check, second pass.
+//      14:45 UTC  Same health check, FINAL pass.
+//
+// ── Self-healing retries (added 2026-08-05) ────────────────────────────────
+// Most build failures are transient upstream blips, not bugs: ESPN's API goes
+// away for a few minutes and the build quietly publishes a stale page. On
+// 2026-08-05 that cost a full day of data until it was fixed by hand.
+//
+// So the health check now REPAIRS as well as reports. Problems are tagged
+// retryable (a fresh build would plausibly fix it — failed run, stale site,
+// data behind the source) or not (GitHub API unreachable — rebuilding is
+// pointless). On a retryable problem the check re-dispatches the build and
+// stays quiet; the next pass re-checks. Only the FINAL pass emails about a
+// retryable problem, by which point ~3 hours and 2 extra builds have failed
+// to fix it and it wants a human. Non-retryable problems email immediately.
+//
+// The Bluesky post is suppressed on auto-retries UNLESS we can prove the
+// earlier run didn't post (post_to_bluesky.py has no dedupe guard, so a
+// double post is unrecoverable while a missed post is merely a missed post).
 //
 // Secrets required (wrangler secret put ...):
 //   GH_TOKEN  — fine-grained PAT for moscowjh/wnba-stats, Actions read/write
@@ -20,11 +39,22 @@ const REPO = "moscowjh/wnba-stats";
 const WORKFLOW = "build.yml";
 const SITE_URL = "https://wnba.statsataglance.com";
 const DISPATCH_CRON = "17 11 * * *";
+// Health-check passes, in order. The last one is FINAL: it stops retrying and
+// emails whatever is still broken. Keep these in sync with wrangler.toml.
 const CHECK_CRON = "45 11 * * *";
+const RETRY_CRON = "15 13 * * *";
+const FINAL_CRON = "45 14 * * *";
+const CHECK_CRONS = [CHECK_CRON, RETRY_CRON, FINAL_CRON];
 const ALERT_FROM = "alerts@statsataglance.com";
 const ALERT_TO = "horowitz.jason@gmail.com";
+// Must match ESPN_ORIGIN in fetch_data.py. `site.api.espn.com` went
+// permanently 403 on 2026-08-05 (see the note there), which had been quietly
+// breaking THIS check too: gamesPlayedOn() caught the failure, returned null,
+// and null disables the entire freshness assertion — so the health check could
+// not have caught a stale site on a game day. Fixing the fetcher without
+// fixing this line would have left the safety net still torn.
 const ESPN_SCOREBOARD =
-  "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard";
+  "https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard";
 
 // ── GitHub helpers ─────────────────────────────────────────────────────────
 
@@ -121,6 +151,15 @@ async function siteDataThrough() {
 // Returns { problem } for real drift / validator crashes, { note } otherwise —
 // notes only ever ride along on an email another problem triggered, which
 // preserves the "silence means everything is fine" contract.
+//
+// Also returns:
+//   retry     — true when a rebuild could plausibly fix it. A
+//               `data_completeness` FAIL ("our data is behind the source")
+//               means the fetch missed a game, which is exactly what another
+//               build repairs. A *value* mismatch on a stat we do have is a
+//               logic bug — rebuilding just reproduces it, so no retry.
+//   leadersOk — the run's Bluesky gate, or null if unknown/stale. Used to
+//               decide whether an auto-retry may post.
 async function validationDrift(today) {
   let res;
   try {
@@ -146,13 +185,23 @@ async function validationDrift(today) {
   if (runDate !== today) {
     return { note: `validation report is from ${runDate || "unknown"}, not today` };
   }
+  const leadersOk = rep.leaders_ok === true;
   if (rep.error) {
-    return { problem: `Stats validator crashed (Bluesky post was blocked): ${rep.error}` };
+    // A validator crash is usually stats.wnba.com being unreachable — retryable.
+    return {
+      problem: `Stats validator crashed (Bluesky post was blocked): ${rep.error}`,
+      retry: true,
+      leadersOk,
+    };
   }
 
   const cats = rep.categories || [];
   const fails = cats.filter((c) => c.status === "FAIL");
   if (fails.length) {
+    const failedChecks = fails.flatMap((c) =>
+      (c.checks || []).filter((k) => k.status === "FAIL").map((k) => k.check)
+    );
+    const incomplete = failedChecks.includes("data_completeness");
     const detail = fails
       .map((c) =>
         `${c.category}: ` +
@@ -164,41 +213,68 @@ async function validationDrift(today) {
       .join("\n  ");
     return {
       problem:
-        `Layer-2 stats validation FAILED against stats.wnba.com` +
+        (incomplete
+          ? `Our data is BEHIND stats.wnba.com — the fetch missed at least one ` +
+            `game (most likely a transient ESPN outage during the build)`
+          : `Layer-2 stats validation FAILED against stats.wnba.com`) +
         (rep.leaders_ok === false ? " — the Bluesky post was blocked" : "") +
         `:\n  ${detail}`,
+      retry: incomplete,
+      leadersOk,
     };
   }
 
   const skips = cats.filter((c) => c.status === "SKIPPED");
   if (skips.length) {
-    return { note: `validation skipped (${skips[0].checks?.[0]?.detail || "source not caught up"})` };
+    return {
+      note: `validation skipped (${skips[0].checks?.[0]?.detail || "source not caught up"})`,
+      leadersOk,
+    };
   }
-  return { note: `validation: ${cats.length} categor${cats.length === 1 ? "y" : "ies"} pass` };
+  return {
+    note: `validation: ${cats.length} categor${cats.length === 1 ? "y" : "ies"} pass`,
+    leadersOk,
+  };
 }
 
 // Were any WNBA games played on the given date? (ESPN public scoreboard.)
 // Returns true/false, or null if ESPN is unreachable (treated as "unknown").
+//
+// Retries with backoff for the same reason fetch_data.py does: an "unknown"
+// here silently disables the whole freshness assertion, so one bad second of
+// ESPN uptime must not be allowed to blind the health check (2026-08-05).
 async function gamesPlayedOn(iso) {
-  try {
-    const res = await fetch(`${ESPN_SCOREBOARD}?dates=${iso.replaceAll("-", "")}`, {
-      headers: { "User-Agent": "wnba-stats-cron" },
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return (data.events?.length ?? 0) > 0;
-  } catch {
-    return null;
+  const delays = [2000, 5000, 10000];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await fetch(`${ESPN_SCOREBOARD}?dates=${iso.replaceAll("-", "")}`, {
+        headers: { "User-Agent": "wnba-stats-cron" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return (data.events?.length ?? 0) > 0;
+      }
+      console.log(`ESPN scoreboard ${res.status} (attempt ${attempt + 1})`);
+    } catch (e) {
+      console.log(`ESPN scoreboard error (attempt ${attempt + 1}): ${e.message}`);
+    }
+    if (attempt >= delays.length) return null;
+    await sleep(delays[attempt]);
   }
 }
 
 // ── Health check ───────────────────────────────────────────────────────────
 
-async function healthCheck(env) {
+// `final` marks the last pass of the day: stop repairing, start escalating.
+async function healthCheck(env, { final = false, label = "check" } = {}) {
   const today = isoDate(Date.now());
   const yesterday = yesterdayIso();
-  const problems = [];
+  const problems = [];   // { msg, retry }
   const notes = [];
+
+  // retry:true  — another build would plausibly fix this (transient upstream)
+  // retry:false — a human is needed; email now, don't burn builds on it
+  const fail = (msg, retry = false) => problems.push({ msg, retry });
 
   // 1. Did today's build run, and did it succeed?
   let run = null;
@@ -210,21 +286,26 @@ async function healthCheck(env) {
       run = await todaysRun(env);
     }
   } catch (e) {
-    problems.push(`Could not query GitHub Actions API: ${e.message}`);
+    // We can't see the build at all, so we can't reason about it — and a fresh
+    // dispatch would go through the same API. Not retryable.
+    fail(`Could not query GitHub Actions API: ${e.message}`);
   }
 
   if (run === null && problems.length === 0) {
-    problems.push(
+    fail(
       `No "Daily WNBA stats build" run today (${today}). The 11:17 UTC dispatch ` +
       `likely didn't fire. Fix: trigger manually via the Actions "Run workflow" ` +
-      `button, or this Worker's ?key= test URL; then check Cloudflare cron logs.`
+      `button, or this Worker's ?key= test URL; then check Cloudflare cron logs.`,
+      true
     );
   } else if (run && run.status !== "completed") {
-    problems.push(
+    // Still running after the 3-min wait. Don't dispatch — the `daily-build`
+    // concurrency group would just queue a duplicate behind it.
+    fail(
       `Build run is still "${run.status}" 30+ minutes after dispatch: ${run.html_url}`
     );
   } else if (run && run.conclusion !== "success") {
-    problems.push(`Build run finished with conclusion "${run.conclusion}": ${run.html_url}`);
+    fail(`Build run finished with conclusion "${run.conclusion}": ${run.html_url}`, true);
   }
 
   // 2. Did it publish, and is the live site fresh?
@@ -243,7 +324,7 @@ async function healthCheck(env) {
       committedToday = await publishedToday(env, today);
     } catch (e) {
       commitsQueryOk = false;
-      problems.push(`Could not query GitHub commits API: ${e.message}`);
+      fail(`Could not query GitHub commits API: ${e.message}`);
     }
 
     const played = await gamesPlayedOn(yesterday); // true | false | null
@@ -255,7 +336,9 @@ async function healthCheck(env) {
         const through = await siteDataThrough();
         notes.push(`site reachable, showing data through ${through ?? "unknown"}`);
       } catch (e) {
-        problems.push(`Could not fetch the live site on an off-day: ${e.message}`);
+        // Site down on an off-day is a Cloudflare/serving problem, not a data
+        // problem — rebuilding the same page won't help.
+        fail(`Could not fetch the live site on an off-day: ${e.message}`);
       }
     } else if (played === true) {
       // Games were played yesterday: the site must show them.
@@ -268,22 +351,24 @@ async function healthCheck(env) {
           through = await siteDataThrough();
         }
         if (through !== yesterday) {
-          problems.push(
+          fail(
             `WNBA games were played on ${yesterday}, but the live site still shows ` +
             `data through ${through ?? "unknown"}. Either the fetch returned nothing ` +
             `or the Cloudflare redeploy failed — check the run log (${run.html_url}) ` +
-            `and the Workers & Pages deploy log.`
+            `and the Workers & Pages deploy log.`,
+            true
           );
         }
       } catch (e) {
-        problems.push(`Could not fetch the live site: ${e.message}`);
+        fail(`Could not fetch the live site: ${e.message}`);
       }
 
       if (commitsQueryOk && !committedToday) {
-        problems.push(
+        fail(
           `Build succeeded but committed nothing, yet ESPN shows WNBA games were ` +
           `played on ${yesterday}. The data fetch may have silently returned ` +
-          `nothing — check the run log: ${run.html_url}`
+          `nothing — check the run log: ${run.html_url}`,
+          true
         );
       }
     } else {
@@ -298,21 +383,66 @@ async function healthCheck(env) {
   }
 
   // 3. Layer-2 stats validation: did today's build's validate step find drift?
+  //
+  // leadersOk stays null unless a *today* report says otherwise. Null means
+  // "we don't know whether the earlier run posted", and the retry then errs
+  // toward not posting.
+  let leadersOk = null;
   if (run && run.conclusion === "success") {
     const v = await validationDrift(today);
-    if (v.problem) problems.push(v.problem);
+    if (v.leadersOk !== undefined) leadersOk = v.leadersOk;
+    if (v.problem) fail(v.problem, v.retry === true);
     else if (v.note) notes.push(v.note);
   }
 
+  // ── Repair or escalate ───────────────────────────────────────────────────
   const ok = problems.length === 0;
-  const summary = { ok, today, problems, notes, run: run?.html_url ?? null };
+  const canRetry = problems.some((p) => p.retry);
+  const needsHuman = problems.some((p) => !p.retry);
+  const willRetry = canRetry && !final;
+
+  // Only post from a retry build when we can PROVE the earlier run didn't
+  // post. The post step runs `if inputs.post && leaders_ok == 'true'`, so:
+  // no successful run at all → nothing posted; leaders_ok false → step was
+  // skipped. Anything else (including leaders_ok unknown) → assume it posted.
+  const earlierRunPosted = run?.conclusion === "success" && leadersOk === true;
+  const postOnRetry = !earlierRunPosted;
+
+  let retryDetail = null;
+  if (willRetry) {
+    const r = await dispatch(env, postOnRetry);
+    retryDetail = r.ok
+      ? `auto-rebuild dispatched${postOnRetry ? "" : " (post suppressed — already posted today)"}`
+      : `auto-rebuild dispatch FAILED: ${r.detail}`;
+    notes.push(retryDetail);
+    // If we couldn't even dispatch the repair, nothing is coming to fix this —
+    // escalate now rather than waiting out the remaining passes.
+    if (!r.ok) fail(`Could not dispatch the auto-rebuild: ${r.detail}`);
+  }
+
+  // Email when a human is actually needed: something no rebuild can fix, or
+  // the final pass still finding problems. A retryable problem on a non-final
+  // pass stays silent — the repair is in flight.
+  const shouldEmail = !ok && (final || needsHuman || !canRetry);
+
+  const summary = {
+    ok, today, pass: label, final,
+    problems: problems.map((p) => (p.retry ? `[retryable] ${p.msg}` : p.msg)),
+    notes, retried: retryDetail, emailed: shouldEmail,
+    run: run?.html_url ?? null,
+  };
   console.log(JSON.stringify(summary));
 
-  if (!ok) {
+  if (shouldEmail) {
+    const escalation = final && canRetry
+      ? `\n\nThis is the FINAL pass. Auto-rebuilds were dispatched at 11:45 and ` +
+        `13:15 UTC and did not resolve it — this one needs you.\n`
+      : "";
     await sendAlert(
       env,
       `⚠️ WNBA stats site check failed — ${today}`,
-      problems.map((p) => `• ${p}`).join("\n\n") +
+      problems.map((p) => `• ${p.msg}`).join("\n\n") +
+        escalation +
         (notes.length ? `\n\nNotes:\n${notes.map((n) => `• ${n}`).join("\n")}` : "") +
         `\n\nSite: ${SITE_URL}\nActions: https://github.com/${REPO}/actions\n`
     );
@@ -349,8 +479,12 @@ async function sendAlert(env, subject, body) {
 
 export default {
   async scheduled(event, env, ctx) {
-    if (event.cron === CHECK_CRON) {
-      ctx.waitUntil(healthCheck(env));
+    if (CHECK_CRONS.includes(event.cron)) {
+      const pass = CHECK_CRONS.indexOf(event.cron) + 1;
+      ctx.waitUntil(healthCheck(env, {
+        final: event.cron === FINAL_CRON,
+        label: `pass ${pass}/${CHECK_CRONS.length}`,
+      }));
     } else {
       ctx.waitUntil(dispatch(env));
     }
@@ -360,6 +494,7 @@ export default {
   //   (no action)          — fire a manual build dispatch (posts to Bluesky)
   //   &post=false          — manual build that does NOT post to Bluesky
   //   &action=check        — run the health check now (emails if problems found)
+  //   &action=check&repair=1 — ...and auto-dispatch a rebuild if it's fixable
   //   &action=testemail    — send a test alert email
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
@@ -372,7 +507,13 @@ export default {
       );
       let r;
       if (action === "check") {
-        r = await healthCheck(env);
+        // Manual checks REPORT, they don't repair: run as a final pass so you
+        // see every problem instead of having it silently re-dispatched.
+        // Add &repair=1 to let it dispatch an auto-rebuild too.
+        const repair = ["1", "true", "yes"].includes(
+          (url.searchParams.get("repair") || "").toLowerCase()
+        );
+        r = await healthCheck(env, { final: !repair, label: "manual" });
       } else if (action === "testemail") {
         await sendAlert(env, "Test — WNBA stats alerts are working",
           "This is a test alert from wnba-stats-cron. If you can read this, " +
@@ -389,8 +530,10 @@ export default {
     return new Response(
       "wnba-stats-cron is alive.\n" +
       "11:17 UTC — dispatches the daily build (7:17am ET).\n" +
-      "11:45 UTC — health check; emails only on failure.\n" +
-      "Manual: ?key=YOUR_CRON_KEY [&post=false] [&action=check|testemail]\n",
+      "11:45 UTC — health check; auto-rebuilds on a fixable problem, else emails.\n" +
+      "13:15 UTC — health check, pass 2 (same behaviour).\n" +
+      "14:45 UTC — health check, FINAL pass; emails anything still broken.\n" +
+      "Manual: ?key=YOUR_CRON_KEY [&post=false] [&action=check[&repair=1]|testemail]\n",
       { headers: { "content-type": "text/plain; charset=utf-8" } }
     );
   },

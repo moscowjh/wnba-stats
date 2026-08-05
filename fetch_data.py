@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import sys
 import time
 from datetime import date, datetime, timedelta, timezone
@@ -54,12 +55,26 @@ REQUIRED_TEAM_COLS = {"season_type"}
 PBP_CSV = HERE / "wnba_pbp_2026.csv"
 LINESCORE_JSON = HERE / "wnba_linescores_2026.json"
 SCHEDULE_JSON = HERE / "wnba_schedule_today.json"
-ESPN_SCOREBOARD = (
-    "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard"
-)
-ESPN_SUMMARY = (
-    "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/summary"
-)
+# Where to reach ESPN's API.
+#
+# 2026-08-05: `site.api.espn.com` — the host this project had used since the
+# ESPN migration — started returning an Akamai "Access Denied" 403 to every
+# request. Not rate limiting and not bot filtering: the block is host-wide and
+# unconditional. It 403s for *any* User-Agent (browser string, script string,
+# none at all), from the Actions runner, from a laptop on home broadband, and
+# for other leagues' paths (`.../nba/scoreboard` too). The host is simply gone
+# for public use.
+#
+# `site.web.api.espn.com` serves the identical path scheme and response shape
+# and answers 200 to a bare curl. That host swap is the entire fix; everything
+# else in the 2026-08-05 change set is hardening, not remedy.
+#
+# ESPN_ORIGIN stays overridable so the next time a host dies it's an env var
+# rather than a deploy — point it at another ESPN host or at the espn-proxy
+# Worker (see espn-proxy/README.md), both of which mirror the same paths.
+ESPN_ORIGIN = os.environ.get("ESPN_ORIGIN", "https://site.web.api.espn.com").rstrip("/")
+ESPN_SCOREBOARD = f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba/scoreboard"
+ESPN_SUMMARY = f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba/summary"
 ET = ZoneInfo("America/New_York")
 MAX_STALENESS_DAYS = 2
 FETCH_DELAY = 0.5
@@ -82,24 +97,90 @@ def _tla(abbr: str) -> str:
 
 # ── HTTP helper ──────────────────────────────────────────────────────────
 
+# Conventional request headers.
+#
+# These did NOT fix the 2026-08-05 outage — the host swap above did. They were
+# added while the working theory was bot filtering, and that theory was tested
+# and disproved: `site.web.api.espn.com` answers 200 with no User-Agent at all,
+# and `site.api.espn.com` answers 403 with a full browser header set. Headers
+# were never the variable.
+#
+# They're kept because asking for JSON and identifying a real client is just
+# correct HTTP manners, not because they're load-bearing. Don't reach for
+# header tricks the next time ESPN breaks — check whether the *host* still
+# answers first (see the ESPN_ORIGIN note), since that's the failure mode this
+# project has actually hit.
+ESPN_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.espn.com/",
+    "Origin": "https://www.espn.com",
+    "Cache-Control": "no-cache",
+}
+
+# Transient-failure policy. ESPN's public API blips for anywhere from a few
+# seconds to a few minutes (2026-08-05: the whole 11:17 UTC build missed a game
+# because a single scoreboard call failed and the old policy gave up after one
+# 2-second retry). These attempts span ~60s of wall clock, which covers the
+# short blips without stalling a ~170-call full rebuild for long.
+#
+#   attempt:  0 ---2s--- 1 ---4s--- 2 ---8s--- 3 ---16s--- 4 ---30s--- 5
+#
+# Delays are jittered to 50–100% of nominal so parallel or repeated runs don't
+# retry in lockstep. Only *transient* failures are retried: connection errors,
+# timeouts, 5xx, and 429. A 404 (game id that doesn't exist) still fails fast.
+MAX_ATTEMPTS = 6
+BASE_BACKOFF = 2.0
+MAX_BACKOFF = 30.0
+RETRY_STATUS = {429, 500, 502, 503, 504, 520, 521, 522, 523, 524}
+
+
+def _backoff(attempt: int) -> float:
+    """Jittered exponential delay, in seconds, before retry number `attempt`."""
+    nominal = min(BASE_BACKOFF * (2 ** attempt), MAX_BACKOFF)
+    return nominal * (0.5 + random.random() / 2)
+
+
 def espn_get(url: str, params: dict | None = None) -> dict:
-    """GET JSON from ESPN with one retry on transient errors."""
-    headers = {"User-Agent": "wnba-stats-fetch"}
-    for attempt in range(2):
+    """GET JSON from ESPN, retrying transient errors with exponential backoff.
+
+    Raises the last exception if every attempt fails, so callers still see a
+    real error rather than a silent empty result."""
+    headers = dict(ESPN_HEADERS)
+    # Shared secret for the espn-proxy Worker, so it isn't an open proxy.
+    # Harmless (and ignored) when calling ESPN directly.
+    proxy_key = os.environ.get("ESPN_PROXY_KEY")
+    if proxy_key:
+        headers["X-Proxy-Key"] = proxy_key
+    label = url.rsplit("/", 1)[-1]
+    last_err: Exception | None = None
+    for attempt in range(MAX_ATTEMPTS):
         try:
             resp = requests.get(url, params=params, headers=headers, timeout=15)
             resp.raise_for_status()
             return resp.json()
-        except (requests.ConnectionError, requests.Timeout) as e:
-            if attempt == 0:
-                time.sleep(2)
-                continue
-            raise
         except requests.HTTPError as e:
-            if attempt == 0 and resp.status_code >= 500:
-                time.sleep(2)
-                continue
-            raise
+            status = getattr(e.response, "status_code", None)
+            if status not in RETRY_STATUS:
+                raise           # 404 and friends: a real error, fail fast
+            last_err, reason = e, f"HTTP {status}"
+        except (requests.ConnectionError, requests.Timeout,
+                requests.exceptions.ChunkedEncodingError, ValueError) as e:
+            # ValueError covers a truncated/HTML body that .json() can't parse —
+            # a common shape for an upstream hiccup, and worth another attempt.
+            last_err, reason = e, type(e).__name__
+
+        if attempt == MAX_ATTEMPTS - 1:
+            print(f"ERROR: {label} failed after {MAX_ATTEMPTS} attempts ({reason})")
+            raise last_err
+        delay = _backoff(attempt)
+        print(f"RETRY: {label} {reason} — attempt {attempt + 1}/{MAX_ATTEMPTS}, "
+              f"sleeping {delay:.1f}s", flush=True)
+        time.sleep(delay)
 
 
 # ── Game discovery ───────────────────────────────────────────────────────
@@ -172,15 +253,20 @@ def _is_noncounting_game(event: dict) -> str | None:
     return None
 
 
-def discover_games(start: date, end: date) -> list[tuple[int, str, int]]:
+def discover_games(start: date, end: date) -> tuple[list[tuple[int, str, int]], list[str]]:
     """Scan date range via scoreboard, return [(game_id, "YYYY-MM-DD",
     season_type)] for completed games worth keeping (regular season + playoffs;
     exhibitions like the All-Star Game and Cup Championship are skipped).
 
     season_type is ESPN's integer (2 = regular season, 3 = postseason); it is
     stored on each row so regular-season aggregations can filter to == 2 while
-    future playoff views select == 3. Defaults to 2 when ESPN omits it."""
+    future playoff views select == 3. Defaults to 2 when ESPN omits it.
+
+    Returns (completed, failed_dates). A date whose scoreboard call failed is
+    NOT the same as a date with no games, and the caller must not conflate
+    them — see the 2026-08-05 note in main()."""
     completed = []
+    failed_dates: list[str] = []
     d = start
     while d <= end:
         date_str = d.strftime("%Y%m%d")
@@ -188,6 +274,7 @@ def discover_games(start: date, end: date) -> list[tuple[int, str, int]]:
             data = espn_get(ESPN_SCOREBOARD, {"dates": date_str})
         except Exception as e:
             print(f"WARNING: scoreboard fetch failed for {d} ({e})")
+            failed_dates.append(d.isoformat())
             d += timedelta(days=1)
             continue
 
@@ -219,7 +306,7 @@ def discover_games(start: date, end: date) -> list[tuple[int, str, int]]:
             season_type = int(st) if st is not None else 2
             completed.append((game_id, iso_date, season_type))
         d += timedelta(days=1)
-    return completed
+    return completed, failed_dates
 
 
 # ── Parsing helpers ──────────────────────────────────────────────────────
@@ -665,30 +752,33 @@ def regression_check(
 
 # ── Schedule (unchanged from original) ──────────────────────────────────
 
-def fetch_schedule() -> None:
+def fetch_schedule() -> bool:
     """Fetch today's WNBA schedule from ESPN's scoreboard endpoint.
 
-    Writes wnba_schedule_today.json with the ET date used and a list of games:
-    {away, home, tip_et, state} where state is pre/in/post.
-    Fails soft — writes an empty-games file on error so the build still runs.
+    Writes wnba_schedule_today.json with the ET date used, a `status`, and a
+    list of games: {away, home, tip_et, state} where state is pre/in/post.
+    Returns True if the schedule was actually retrieved.
+
+    `status` is load-bearing and must not be dropped: "ok" with an empty games
+    list means ESPN told us there are genuinely no games today, while
+    "unavailable" means we never got an answer. The page renders those
+    differently — on 2026-08-05 a failed fetch produced an empty list that the
+    Games tab published as the confident, false claim "No games today." An
+    empty list is a fact only when we know it's a fact.
     """
     today_et = datetime.now(ET).date()
     date_str = today_et.strftime("%Y%m%d")
-    empty = {"date": str(today_et), "games": []}
 
     try:
-        resp = requests.get(
-            ESPN_SCOREBOARD,
-            params={"dates": date_str},
-            headers={"User-Agent": "wnba-stats-fetch"},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        data = resp.json()
+        # Routed through espn_get so the schedule shares the browser-like
+        # headers and the retry/backoff policy. Still fails soft below.
+        data = espn_get(ESPN_SCOREBOARD, {"dates": date_str})
     except Exception as e:
-        print(f"WARNING: schedule fetch failed ({e}) — writing empty schedule.")
-        SCHEDULE_JSON.write_text(json.dumps(empty, indent=2))
-        return
+        print(f"WARNING: schedule fetch failed ({e}) — marking it unavailable.")
+        SCHEDULE_JSON.write_text(json.dumps(
+            {"date": str(today_et), "status": "unavailable",
+             "error": str(e)[:200], "games": []}, indent=2))
+        return False
 
     games = []
     for event in data.get("events", []):
@@ -721,9 +811,10 @@ def fetch_schedule() -> None:
             "state": state,
         })
 
-    result = {"date": str(today_et), "games": games}
+    result = {"date": str(today_et), "status": "ok", "games": games}
     SCHEDULE_JSON.write_text(json.dumps(result, indent=2))
     print(f"Schedule for {today_et}: {len(games)} game(s) → {SCHEDULE_JSON.name}")
+    return True
 
 
 # ── Main ─────────────────────────────────────────────────────────────────
@@ -740,7 +831,7 @@ def main() -> None:
 
     today = datetime.now(ET).date()
     print(f"Scanning scoreboard from {scan_start} to {today}...")
-    completed = discover_games(scan_start, today)
+    completed, failed_dates = discover_games(scan_start, today)
     new_games = [(gid, d, st) for gid, d, st in completed if gid not in existing_ids]
     print(f"Found {len(completed)} completed game(s), {len(new_games)} new")
 
@@ -843,7 +934,50 @@ def main() -> None:
         print(f"Wrote {LINESCORE_JSON.name} "
               f"({len(new_linescores)} new, {len(existing_ls)} total)")
 
-    fetch_schedule()
+    schedule_ok = fetch_schedule()
+
+    # ── Fail loud on an incomplete fetch ──────────────────────────────────
+    #
+    # Everything above has been written, so whatever we DID get is preserved in
+    # the Actions cache for the next run. But we exit non-zero so the job stops
+    # here: no build, no deploy, no commit.
+    #
+    # Why blocking is right (2026-08-05): ESPN began 403-ing every call from
+    # the runner. Each failure was swallowed per-date, `discover_games` returned
+    # nothing, and the build cheerfully republished stale data and went GREEN.
+    # Three builds in a row "succeeded" while the site sat a full day behind and
+    # told visitors "No games yesterday" — which was false. A silently-wrong
+    # green build is far more expensive than a loudly-failed red one: the site
+    # keeps yesterday's correct page, the run goes red, GitHub notifies, and the
+    # cron-worker health check sees conclusion != success and auto-rebuilds.
+    #
+    # Set ALLOW_PARTIAL=1 to publish anyway (escape hatch for a day when ESPN is
+    # half-broken and a partial update genuinely beats no update).
+    problems = []
+    if failed_dates:
+        problems.append(
+            f"{len(failed_dates)} scoreboard date(s) unreadable: "
+            f"{', '.join(failed_dates)} — games on those dates cannot be "
+            f"distinguished from no games at all"
+        )
+    if failed:
+        problems.append(f"{failed} discovered game(s) failed to fetch")
+    if not schedule_ok:
+        problems.append("today's schedule is unavailable")
+
+    if problems:
+        if os.environ.get("ALLOW_PARTIAL") == "1":
+            print("\nINCOMPLETE FETCH (publishing anyway, ALLOW_PARTIAL=1):")
+            for p in problems:
+                print(f"  - {p}")
+            return
+        print("\nERROR: incomplete fetch — refusing to rebuild the site.")
+        for p in problems:
+            print(f"  - {p}")
+        print("\nExisting data was written and cached; the site keeps its "
+              "current page. Re-run once the source recovers, or set "
+              "ALLOW_PARTIAL=1 to publish a partial update.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

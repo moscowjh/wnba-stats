@@ -1276,13 +1276,21 @@ def build_games_section(player_raw, team_raw):
     today_et = datetime.now(ET).date()
     yest_et = today_et - timedelta(days=1)
 
-    # Load today's schedule from JSON (written by fetch_data.py)
+    # Load today's schedule from JSON (written by fetch_data.py).
+    #
+    # An empty games list is only meaningful alongside status == "ok". If the
+    # fetch failed (status "unavailable") — or the file is missing/unreadable,
+    # which is the same epistemic situation — we do NOT know today's slate and
+    # must not claim there are no games. Older files predate the status field;
+    # treat those as "ok" for backward compatibility.
     sched_path = HERE / 'wnba_schedule_today.json'
     sched_games = []
+    sched_known = False
     if sched_path.exists():
         try:
             sched_data = json.loads(sched_path.read_text())
             sched_games = sched_data.get('games', [])
+            sched_known = sched_data.get('status', 'ok') == 'ok'
         except Exception:
             pass
 
@@ -1307,8 +1315,11 @@ def build_games_section(player_raw, team_raw):
             _sched_row(g['away'], g['home'], g['tip_et'])
             for g in sched_games
         )
-    else:
+    elif sched_known:
         sched_html = '<div class="gm-empty">No games today.</div>'
+    else:
+        sched_html = ("<div class=\"gm-empty\">Today's schedule is "
+                      "unavailable.</div>")
 
     # Build result rows + box sections
     if yest_ids:
