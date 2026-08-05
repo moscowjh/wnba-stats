@@ -57,20 +57,25 @@ LINESCORE_JSON = HERE / "wnba_linescores_2026.json"
 SCHEDULE_JSON = HERE / "wnba_schedule_today.json"
 # Where to reach ESPN's API.
 #
-# 2026-08-05: `site.api.espn.com` — the host this project had used since the
-# ESPN migration — started returning an Akamai "Access Denied" 403 to every
-# request. Not rate limiting and not bot filtering: the block is host-wide and
-# unconditional. It 403s for *any* User-Agent (browser string, script string,
-# none at all), from the Actions runner, from a laptop on home broadband, and
-# for other leagues' paths (`.../nba/scoreboard` too). The host is simply gone
-# for public use.
+# 2026-08-05: `site.api.espn.com` — the host used since the ESPN migration —
+# returned an Akamai "Access Denied" 403 to every request for about four hours
+# (~11:17 to ~14:45 UTC), then recovered on its own.
 #
-# `site.web.api.espn.com` serves the identical path scheme and response shape
-# and answers 200 to a bare curl. That host swap is the entire fix; everything
-# else in the 2026-08-05 change set is hardening, not remedy.
+# During the window the failure was host-wide and indiscriminate: 403 for *any*
+# User-Agent (browser string, script string, none at all), from the Actions
+# runner, from home broadband, and from a third network — and for other leagues'
+# paths (`.../nba/scoreboard`) too. The only variable that changed the outcome
+# was the hostname: `site.web.api.espn.com` served 200s throughout.
 #
-# ESPN_ORIGIN stays overridable so the next time a host dies it's an env var
-# rather than a deploy — point it at another ESPN host or at the espn-proxy
+# So it was NOT a block on us, and NOT keyed on User-Agent or source IP. What it
+# *was* remains unknown from outside ESPN — a rolled-back Akamai bot rule
+# (possibly TLS-fingerprint-based, which no header change would defeat) fits as
+# well as an infrastructure fault. Both hosts work today; we stay on the one
+# that stayed up.
+#
+# Don't reinstate the old host on the theory that it's "fixed now" — the point
+# is that either host can fail. ESPN_ORIGIN is the real mitigation: switching is
+# an env var, not a deploy. Point it at another ESPN host or at the espn-proxy
 # Worker (see espn-proxy/README.md), both of which mirror the same paths.
 ESPN_ORIGIN = os.environ.get("ESPN_ORIGIN", "https://site.web.api.espn.com").rstrip("/")
 ESPN_SCOREBOARD = f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba/scoreboard"
@@ -100,16 +105,20 @@ def _tla(abbr: str) -> str:
 # Conventional request headers.
 #
 # These did NOT fix the 2026-08-05 outage — the host swap above did. They were
-# added while the working theory was bot filtering, and that theory was tested
-# and disproved: `site.web.api.espn.com` answers 200 with no User-Agent at all,
-# and `site.api.espn.com` answers 403 with a full browser header set. Headers
-# were never the variable.
+# added while the working theory was User-Agent-based bot filtering, and that
+# specific theory was tested and disproved: during the outage
+# `site.api.espn.com` 403'd with a full browser header set, and
+# `site.web.api.espn.com` answered 200 with no User-Agent at all. The UA was
+# never the variable.
 #
-# They're kept because asking for JSON and identifying a real client is just
-# correct HTTP manners, not because they're load-bearing. Don't reach for
-# header tricks the next time ESPN breaks — check whether the *host* still
-# answers first (see the ESPN_ORIGIN note), since that's the failure mode this
-# project has actually hit.
+# (A bot rule keying on TLS fingerprint rather than headers is still consistent
+# with what was observed — every client tested was curl or requests, none a real
+# browser. If so, these headers still wouldn't help: spoofing a UA string does
+# not change a TLS fingerprint.)
+#
+# They're kept because asking for JSON and identifying a real client is correct
+# HTTP manners, not because they're load-bearing. When ESPN next breaks, check
+# whether a *different host* answers before reaching for header tricks.
 ESPN_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "

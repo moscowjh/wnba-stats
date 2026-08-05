@@ -1,0 +1,10 @@
+name = "wnba-usage-tracker"
+main = "worker.js"
+compatibility_date = "2025-06-01"
+
+# Workers Analytics Engine — free, cookie-free, aggregate-only event log.
+# The dataset is created automatically on first writeDataPoint(); no manual
+# provisioning needed. Binding name below must match worker.js (env.USAGE).
+[[analytics_engine_datasets]]
+binding = "USAGE"
+dataset = "wnba_usage"

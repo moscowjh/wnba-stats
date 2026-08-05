@@ -3,35 +3,43 @@
 A narrow, authenticated pass-through to ESPN's public WNBA API, running on
 Cloudflare Workers.
 
-**Status: prototype, not deployed, and not currently needed.** It was drafted
-for a diagnosis that turned out to be wrong. Keep it only as a contingency.
+**Status: prototype, not deployed, and not needed.** It was drafted for a
+diagnosis that turned out to be wrong. Keep it only as a contingency.
 
 ## Why (and why it wasn't the answer)
 
-On **2026-08-05** every `site.api.espn.com` request started returning an Akamai
-`Access Denied` 403. Because `discover_games()` swallowed each failure, three
-builds in a row went **green** while republishing day-old data and telling
-visitors "No games today" with four scheduled.
+On **2026-08-05** every `site.api.espn.com` request returned an Akamai
+`Access Denied` 403 for about four hours. Because `discover_games()` swallowed
+each failure, three builds in a row went **green** while republishing day-old
+data and telling visitors "No games today" with four scheduled.
 
 The first theory was bot filtering on the old `User-Agent: wnba-stats-fetch`,
 and the second was an IP-range block on the Actions runner — this proxy was
-drafted for the second. Testing one variable at a time killed both:
+drafted for the second. Testing one variable at a time, **inside the outage
+window**, killed both:
 
 | Test | Result |
 |---|---|
 | `site.api` + browser User-Agent | 403 |
 | `site.api` + script User-Agent, or none | 403 |
 | `site.api` from home broadband, not the runner | 403 |
+| `site.api` from a third, unrelated network | 403 |
 | `site.api` **NBA** path | 403 |
 | **`site.web.api` + any/no User-Agent** | **200** |
 
-The host was retired, full stop. **The fix was a one-line swap** of
+Only the hostname mattered. **The mitigation was a one-line swap** of
 `ESPN_ORIGIN` to `https://site.web.api.espn.com`.
 
-This proxy is therefore retained only for a narrower future case: a replacement
-host that is genuinely geo- or IP-fenced, where Cloudflare's egress reputation
-differs from Azure's. **Try a plain host swap first** — that has been the
-answer both times ESPN has broken this pipeline.
+**Correction (same day):** `site.api` recovered on its own around 15:02 UTC and
+serves 200s again. It was a transient host-wide failure, not a retirement — an
+earlier version of this file said otherwise. The swap still stands, because one
+host stayed up and the other didn't, but the durable lesson is that *either*
+host can fail and `ESPN_ORIGIN` makes switching cheap.
+
+This proxy is retained only for a narrower future case: a replacement host that
+is genuinely geo- or IP-fenced, where Cloudflare's egress reputation differs
+from Azure's. It would **not** have helped here — a third unrelated network was
+blocked identically. **Try a host swap first.**
 
 ## Design stance
 

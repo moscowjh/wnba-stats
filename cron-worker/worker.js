@@ -47,12 +47,16 @@ const FINAL_CRON = "45 14 * * *";
 const CHECK_CRONS = [CHECK_CRON, RETRY_CRON, FINAL_CRON];
 const ALERT_FROM = "alerts@statsataglance.com";
 const ALERT_TO = "horowitz.jason@gmail.com";
-// Must match ESPN_ORIGIN in fetch_data.py. `site.api.espn.com` went
-// permanently 403 on 2026-08-05 (see the note there), which had been quietly
-// breaking THIS check too: gamesPlayedOn() caught the failure, returned null,
-// and null disables the entire freshness assertion — so the health check could
-// not have caught a stale site on a game day. Fixing the fetcher without
-// fixing this line would have left the safety net still torn.
+// Must match ESPN_ORIGIN in fetch_data.py. `site.api.espn.com` 403'd for ~4
+// hours on 2026-08-05 (see the note there), which had been quietly breaking
+// THIS check too: gamesPlayedOn() caught the failure, returned null, and null
+// disables the entire freshness assertion — so the health check could not have
+// caught a stale site on a game day. Fixing the fetcher without fixing this
+// line would have left the safety net still torn.
+//
+// Worth keeping in mind beyond this incident: a health check that reads its
+// data source through the same path it is checking goes blind exactly when it
+// is needed, and reports nothing.
 const ESPN_SCOREBOARD =
   "https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard";
 

@@ -1,17 +1,19 @@
 // espn-proxy — a narrow, authenticated pass-through to ESPN's public WNBA API.
 //
-// WHY THIS EXISTS
-// On 2026-08-05 site.api.espn.com went permanently 403 (Akamai "Access
-// Denied") for everyone — any User-Agent, any IP, any league path. It was NOT
-// an IP-range block on the Actions runner, which is what this Worker was
-// originally drafted to route around. The actual fix was a host swap to
-// site.web.api.espn.com; see ESPN_ORIGIN in fetch_data.py.
+// WHY THIS EXISTS — AND WHY IT IS NOT THE ANSWER
+// On 2026-08-05 site.api.espn.com returned Akamai "Access Denied" 403s for
+// ~4 hours to any User-Agent, from any of three separate networks, on any
+// league path. This Worker was drafted for the theory that the Actions
+// runner's IP range was blocked — but a third, unrelated network was blocked
+// identically, so routing through Cloudflare's egress would have changed
+// nothing. The mitigation was a host swap to site.web.api.espn.com, which
+// served 200s throughout; see ESPN_ORIGIN in fetch_data.py.
 //
-// So this Worker is NOT currently needed and is NOT deployed. It's kept as a
-// ready-made escape hatch for the day site.web.api dies too and the
-// replacement host turns out to be geo- or IP-fenced — the case where routing
-// through Cloudflare's egress genuinely helps. Try a plain host swap FIRST;
-// that has been the answer every time so far.
+// So this Worker is NOT needed and is NOT deployed. It is kept only for a
+// narrower future case: a replacement host that really is geo- or IP-fenced,
+// where a different egress genuinely helps. Try a host swap FIRST — and note
+// that if ESPN is ever fingerprinting TLS rather than IP, a Worker is blocked
+// just the same.
 //
 // DESIGN STANCE
 // This is deliberately NOT a general proxy. It is a keyhole: one upstream host,

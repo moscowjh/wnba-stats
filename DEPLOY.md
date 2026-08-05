@@ -359,32 +359,48 @@ What it verifies, in order:
    missing report are notes only — they never trigger an email on their own,
    preserving the silence-means-fine contract.
 
-### The 2026-08-05 outage: ESPN retired `site.api.espn.com`
+### The 2026-08-05 outage: a ~4-hour failure of `site.api.espn.com`
 
-**Root cause.** `site.api.espn.com` — the host used since the 2026-06-23 ESPN
-migration — began returning an Akamai `Access Denied` 403 to every request.
-Verified by testing the variables one at a time:
+**What happened.** `site.api.espn.com` — the host used since the 2026-06-23
+ESPN migration — returned an Akamai `Access Denied` 403 to every request from
+roughly **11:17 to ~14:45 UTC**, then **recovered on its own** (verified 200s
+at 15:02 UTC on every path that had failed). Measured inside the window:
 
 | Test | Result |
 |---|---|
 | `site.api` + browser User-Agent | 403 |
 | `site.api` + script User-Agent, or none | 403 |
 | `site.api` from home broadband (not the runner) | 403 |
+| `site.api` from a third, unrelated network | 403 |
 | `site.api` **NBA** path, not WNBA | 403 |
 | **`site.web.api` + any/no User-Agent** | **200** |
 
-So it was neither rate limiting, nor bot filtering, nor an IP-range block on
-the Actions runner. The host is retired for public use. **The fix is a
-one-line host swap** to `site.web.api.espn.com`, which serves the identical
-path scheme and response shape.
+The only variable that changed the outcome was the **hostname**. So it was not
+rate limiting, not keyed on User-Agent, and not an IP-range block on the
+Actions runner. **The mitigation is a one-line host swap** to
+`site.web.api.espn.com`, which serves the identical path scheme and response
+shape and stayed up throughout.
 
-`fetch_data.py` reads `ESPN_ORIGIN` (default `https://site.web.api.espn.com`),
-so the next host death is an env var, not a deploy.
+**What it actually was is unknown** from outside ESPN. A rolled-out-then-
+rolled-back Akamai bot rule fits as well as an infrastructure fault — and if
+that rule keyed on **TLS fingerprint** rather than headers, no User-Agent change
+would ever have defeated it. What is ruled out is UA-based and IP-based
+targeting of *us*.
+
+> **Correction.** This section originally said the host had been *retired*.
+> That was wrong — it recovered the same day. A total, sustained failure is
+> evidence of a host-wide problem, but says nothing about permanence, and
+> permanence was assumed rather than tested. Both hosts work today.
+
+**Why we stay on `site.web.api` anyway:** one host stayed up and the other
+didn't. But the durable mitigation is `ESPN_ORIGIN` — *either* host can fail,
+and switching is now an env var rather than a deploy.
 
 **Debugging lesson for next time:** when ESPN 403s, don't start with header
-tricks. Curl the same path on a *different ESPN host*, and curl a *different
-league* on the same host. Two commands separate "they're blocking us" from
-"this host is gone" — and it has been the latter both times.
+tricks. Curl the same path on a *different ESPN host*, and a *different league*
+on the same host. Two commands separate "they're blocking us" from "this host
+is having a bad day." Then **recheck the original host later the same day**
+before writing a workaround down as permanent.
 
 ### ESPN proxy fallback (prototype, 2026-08-05 — NOT needed, NOT deployed)
 
@@ -449,19 +465,24 @@ uptime must not be allowed to blind the check.
 Manual runs **report, they don't repair**: `?action=check` behaves as a final
 pass so you see every problem. Add `&repair=1` to let it dispatch a rebuild.
 
-Origin: on **2026-08-05** every ESPN call 403'd (host retirement — see above),
+Origin: on **2026-08-05** every ESPN call 403'd for ~4 hours (see above),
 `discover_games()` swallowed the failures per-date, and three builds in a row
 went **green** while republishing day-old data and telling visitors "No games
 today" with four scheduled. The only signal was a Layer-2 `data_completeness`
 FAIL, which read like a stats bug rather than an outage, and it took a
 hand-dispatched build to fix.
 
-Note what this section can and cannot do: retries handle **transient** upstream
-failure. They would not have fixed 2026-08-05, because no number of rebuilds
-reaches a dead host — the *fail-loud* change is what would have caught it, by
-turning those three false-green builds red on the first one. Retries and
-fail-loud are complements: fail-loud makes breakage visible, retries keep the
-visible-breakage rate low enough that an email still means something.
+These passes are **well matched to that failure**: they span 11:45 → 14:45 UTC,
+and the outage cleared between 14:44 and 15:02, so the final auto-rebuild lands
+at the recovery boundary and would plausibly have repaired the day unattended.
+
+> **Retraction.** This section previously claimed retries "would not have fixed
+> 2026-08-05, because no number of rebuilds reaches a dead host." The host was
+> not dead — that claim rested on the retirement error corrected above.
+
+Fail-loud and retries remain complements, and fail-loud is still the change that
+makes the failure *visible* on the first build rather than the third. But an
+outage lasting hours is exactly what multi-hour retry passes exist for.
 
 `gamesPlayedOn()` in the cron Worker was hit by the same outage and had to be
 pointed at the new host too — it had been returning `null`, which silently
