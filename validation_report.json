@@ -1,42 +1,30 @@
 {
-  "run_at_utc": "2026-08-04T14:49:31+00:00",
+  "run_at_utc": "2026-08-05T11:18:26+00:00",
   "data_through": "2026-08-03",
   "cutoff": null,
-  "broadcast_category": "eFG%",
+  "broadcast_category": "Assists",
   "gate_mode": true,
   "categories": [
     {
-      "category": "eFG%",
-      "status": "PASS",
+      "category": "(all)",
+      "status": "FAIL",
       "checks": [
         {
-          "check": "top5_order",
-          "status": "PASS",
-          "detail": "NaLyssa Smith / Sophie Cunningham / Natasha Mack / Kelsey Plum / Megan DiLeo"
-        },
-        {
-          "check": "top5_values",
-          "status": "PASS",
-          "detail": ""
-        },
-        {
-          "check": "top5_gp",
-          "status": "PASS",
-          "detail": ""
-        },
-        {
-          "check": "top10_set",
-          "status": "PASS",
-          "detail": ""
+          "check": "data_completeness",
+          "status": "FAIL",
+          "detail": "our data is behind the source: GSV 29<30, TOR 29<30"
         }
       ]
     }
   ],
   "alignment": {
     "ours_total": 448,
-    "theirs_total": 448,
+    "theirs_total": 450,
     "source_behind": [],
-    "we_are_behind": []
+    "we_are_behind": [
+      "GSV 29<30",
+      "TOR 29<30"
+    ]
   },
-  "leaders_ok": true
+  "leaders_ok": false
 }
