@@ -637,3 +637,70 @@ Three stable values — they are the historical series, so don't rename them:
 
 The post card was untagged until 2026-08-04, so every click on it before that
 date is indistinguishable from direct traffic. Not recoverable retroactively.
+
+## Dependencies + repository security posture (documented 2026-08-05)
+
+### Python dependencies
+
+`requirements.txt` is the only manifest, consumed at one place —
+`pip install -r requirements.txt` in `build.yml`. The three Cloudflare Workers
+are plain JS with **no** `package.json`; `wrangler` is invoked via `npx` at
+deploy time and is not a tracked dependency.
+
+```
+pandas>=3,<4
+requests>=2,<3
+```
+
+**Upper-bounded, not exact-pinned, on purpose.** Patch and minor releases still
+flow automatically, so these do not go stale and security fixes arrive with no
+intervention. What's gated is the **major** bump — where APIs get removed and
+builds break — which deserves a human choosing the moment. Exact pins were
+rejected because they stop receiving fixes and eventually hit a compatibility
+wall when the runner's Python moves, deferring maintenance into a lump rather
+than removing it.
+
+Until 2026-08-05 both were fully unpinned: CI installed whatever had shipped
+most recently, unreviewed, on a repo whose workflow holds a write token and
+commits to `main`. It also meant no reproducibility — the dev laptop resolved
+pandas 3.0.3 while CI resolved 3.0.5.
+
+**To take a new major version:** raise the ceiling here deliberately, run the
+build, and confirm the page before merging.
+
+The real install surface is 9 packages — the 2 direct plus `numpy`, `urllib3`,
+`certifi`, `idna`, `charset_normalizer`, `python-dateutil`, `six`.
+
+### GitHub security settings
+
+Not derivable from the repo; recorded here so it isn't re-litigated. **This
+repo is public**, which is what makes the free tier apply.
+
+| Setting | State | Why |
+|---|---|---|
+| Secret scanning | **on** | Free for public repos. Scans full history. 0 alerts ever. |
+| Secret scanning push protection | **on** | Free. *Blocks the push* before a detected secret lands — the control that matters most. |
+| Dependabot alerts | **on** (2026-08-05) | Free, passive, no PRs. 0 alerts. |
+| Dependabot malware alerts | on (2026-08-05) | Free, passive. Different threat class from CVEs: actively malicious packages — typosquats, hijacked maintainers. Matters because CI runs `pip install` with a write token, and supply-chain attacks favour small transitive packages. |
+| Dependabot security updates | **off, deliberately** | Its job is bumping a *pinned* version. With upper bounds, `pip` already installs the newest in-range build every run, so a patched release arrives automatically without a PR. Near-inert here. |
+| Grouped security updates | off | Moot while security updates is off. |
+| Dependabot version updates | **off, deliberately** | Needs a `.github/dependabot.yml` (absent), and with upper bounds there is no pinned version to bump. No-op plus PR noise. |
+| Secret scanning non-provider patterns | **unavailable** | Requires paid GitHub Advanced Security / Secret Protection — not a choice we made. The API accepts a PATCH enabling it, returns `200 OK`, and silently ignores it; the toggle is absent from the settings UI. Don't retry it. |
+| Secret scanning validity checks | **unavailable** | Same paid gate, same silent-no-op behaviour. |
+
+**Dependabot rules** (Settings → Code security → Dependabot rules) — GitHub
+presets, not readable via the API, so recorded here:
+
+| Rule | State | Why |
+|---|---|---|
+| Dismiss low-impact alerts for development-scoped dependencies | enabled (GitHub default) | Effectively inert: a plain `requirements.txt` carries no dev/prod scope metadata, so nothing should be classified development-scoped. Left on. Worth remembering it exists if an alert ever seems to vanish — and note that in this repo the "dev" environment *is* the production build, so a dev-scoped dismissal would be misleading if it ever fired. |
+| Dismiss package malware alerts | **disabled — keep it that way** | This rule auto-dismisses malware alerts. Enabling it would silently undercut the malware alerts above, which are one of the few controls covering the `pip install`-with-a-write-token path. |
+
+**Known residual gap.** `CRON_KEY` and `PROXY_KEY` are self-generated random
+strings matching no provider pattern, so free secret scanning would not catch
+them. Non-provider patterns is the feature that would, and it's paywalled. What
+protects them instead is design, not scanning: secrets live only in
+`wrangler secret put` and GitHub repo secrets, never in tracked files, with
+`.dev.vars` and `.env` gitignored. If a belt-and-braces check is ever wanted,
+a pre-commit hook grepping staged diffs for high-entropy strings is the free
+local equivalent — considered 2026-08-05, not built.
