@@ -102,12 +102,30 @@ jobs:
         continue-on-error: true
         run: python validate_stats.py --gate
 
+      # Append yesterday's usage totals to usage_history.jsonl. Workers
+      # Analytics Engine only retains 90 days, and collection started
+      # 2026-07-12, so July data starts falling off the back around mid-October
+      # — during the playoffs, exactly when a season-long comparison gets
+      # interesting. This committed rollup is what outlives that window.
+      #
+      # continue-on-error on purpose. This is a reporting nicety; it must never
+      # be able to stop the site from deploying. A missing day is recoverable
+      # (python usage_report.py --snapshot --date YYYY-MM-DD), a missed deploy
+      # is not. The step is also idempotent — rerunning a day is a no-op.
+      - name: Snapshot usage stats
+        continue-on-error: true
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_ANALYTICS_TOKEN: ${{ secrets.CF_ANALYTICS_TOKEN }}
+        run: python usage_report.py --snapshot
+
       - name: Commit updated site
         run: |
           git config user.name  "wnba-stats-bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/index.html
           git add validation_report.json player_id_crosswalk.json
+          git add usage_history.jsonl
           # Only commit if something actually changed (e.g. skip on an off-day).
           if git diff --staged --quiet; then
             echo "No changes to publish today."

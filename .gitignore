@@ -56,3 +56,11 @@ wnba_linescores_2026.json
 
 # Ephemeral payload for the Bluesky auto-post — regenerated every build
 social_payload.json
+
+# Build/fetch artifacts — regenerated every run, never source
+WNBA-2026-stats-explorer.html
+wnba_schedule_today.json
+
+# Local scratch
+temp downloads/
+.claude/

@@ -61,7 +61,11 @@ RETRY_SLEEP = 2
 #   blob1 = event (pageview | tab | box)   blob2 = tab id / game:<id>
 #   blob3 = source (utm_source, session-cached, else 'none')
 #   blob4 = returning ('1' | '0')          double1 = 1
+#   blob5-9 reserved (P3 recency, P4 country/device/referrer/session)
+#   blob10 = site ('wnba' | 'wwc' | 'ncaaw'), added 2026-08-05
 COUNT = "SUM(_sample_interval)"
+
+DEFAULT_SITE = "wnba"
 
 # Tagged sources we deliberately emit. Anything else still gets reported —
 # this list only controls presentation order.
@@ -169,9 +173,27 @@ def _window_clause(start: dt.date, end: dt.date | None = None) -> str:
     return clause
 
 
-def collect(sql, start: dt.date, end: dt.date | None) -> dict:
+def _site_clause(site: str | None) -> str:
+    """Restrict to one statsataglance property.
+
+    site=None means every site (the cross-site funnel view). Otherwise filter
+    blob10 — and for 'wnba' ALSO accept an empty blob10, because every row
+    written before 2026-08-05 predates the site dimension and is WNBA by
+    definition. Without that OR, adding this column would silently zero out a
+    month of history, which is the exact class of silent breakage this tracker
+    keeps getting bitten by."""
+    if site is None:
+        return "1 = 1"
+    if site == DEFAULT_SITE:
+        return f"(blob10 = '{site}' OR blob10 = '')"
+    return f"blob10 = '{site}'"
+
+
+def collect(sql, start: dt.date, end: dt.date | None,
+            site: str | None = DEFAULT_SITE) -> dict:
     """Run the five queries backing the report. Returns raw aggregates."""
-    w = _window_clause(start, end)
+    w = f"{_window_clause(start, end)} AND {_site_clause(site)}"
+    s = _site_clause(site)
 
     daily = sql(f"SELECT toDate(timestamp) AS d, {COUNT} AS n FROM {DATASET} "
                 f"WHERE blob1 = 'pageview' AND {w} GROUP BY d ORDER BY d")
@@ -182,7 +204,7 @@ def collect(sql, start: dt.date, end: dt.date | None) -> dict:
     returning = sql(f"SELECT blob4 AS r, {COUNT} AS n FROM {DATASET} "
                     f"WHERE blob1 = 'pageview' AND {w} GROUP BY r")
     alltime_src = sql(f"SELECT blob3 AS source, {COUNT} AS n FROM {DATASET} "
-                      f"WHERE blob1 = 'pageview' GROUP BY source")
+                      f"WHERE blob1 = 'pageview' AND {s} GROUP BY source")
 
     return {
         "daily": [(r["d"], _n(r)) for r in daily],
@@ -342,7 +364,11 @@ def main() -> int:
                     help="append one closed UTC day to usage_history.jsonl")
     ap.add_argument("--date", type=_parse_date, default=None,
                     help="with --snapshot: the day to record (default yesterday UTC)")
+    ap.add_argument("--site", default=DEFAULT_SITE,
+                    help="statsataglance property to report on "
+                         f"(default {DEFAULT_SITE}); 'all' for every site combined")
     args = ap.parse_args()
+    site = None if args.site == "all" else args.site
 
     try:
         acct, token = get_credentials()
@@ -362,8 +388,9 @@ def main() -> int:
             if day.isoformat() in existing_snapshot_dates(HISTORY_PATH):
                 print(f"{day} already recorded in {HISTORY_PATH.name} — nothing to do.")
                 return 0
-            raw = collect(sql, day, day + dt.timedelta(days=1))
+            raw = collect(sql, day, day + dt.timedelta(days=1), site)
             row = snapshot_row(build_report(raw, day, day + dt.timedelta(days=1)), day)
+            row["site"] = args.site
             with HISTORY_PATH.open("a") as fh:
                 fh.write(json.dumps(row, separators=(",", ":")) + "\n")
             print(f"recorded {day} → {HISTORY_PATH.name}: "
@@ -371,7 +398,7 @@ def main() -> int:
             return 0
 
         start = args.since or (today - dt.timedelta(days=args.days))
-        rep = build_report(collect(sql, start, None), start, None)
+        rep = build_report(collect(sql, start, None, site), start, None)
         if args.as_json:
             print(json.dumps(rep, indent=2))
         else:

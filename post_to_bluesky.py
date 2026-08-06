@@ -14,8 +14,9 @@ Design notes:
   - Fail-safe: any failure prints to stderr and exits non-zero so the Actions
     step is visibly marked failed, but the step is set `continue-on-error` so a
     failed post never blocks the site build/deploy. It never raises into CI.
-  - No UTM tags: the link is the clean apex URL, rendered as a native link card
-    (built from our own og image + copy) rather than an ugly tracked string.
+  - UTM-tagged (utm_source=bluesky-post) so the usage beacon can attribute
+    clicks, but rendered as a clean native link card (built from our own og
+    image + copy) rather than an ugly tracked string in the visible post text.
   - Stdlib only (urllib) — no new dependency, in keeping with the site ethos.
 
 Env:

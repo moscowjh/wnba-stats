@@ -1509,6 +1509,11 @@ PAGE_JS = """\
    see which tabs get used and whether box scores get opened. Fails
    silently if the endpoint is unreachable -- never blocks the page. */
 var TRACK_URL = 'https://usage.statsataglance.com/t';
+/* Which statsataglance property this page is. Sent on every beacon so one
+   dataset can answer cross-site questions (does the Cup site hand users back
+   to WNBA?). Added 2026-08-05 before a second site existed — rows without it
+   predate the change and are WNBA by definition. */
+var SITE_ID = 'wnba';
 function initTracking() {
   try {
     var qs = new URLSearchParams(window.location.search);
@@ -1523,7 +1528,8 @@ function initTracking() {
 function track(event, tab) {
   try {
     var params = new URLSearchParams({
-      e: event, t: tab || '', s: window.__wsagSrc || 'none', r: window.__wsagReturning || '0'
+      e: event, t: tab || '', s: window.__wsagSrc || 'none',
+      r: window.__wsagReturning || '0', site: SITE_ID
     });
     var url = TRACK_URL + '?' + params.toString();
     if (navigator.sendBeacon) navigator.sendBeacon(url);
