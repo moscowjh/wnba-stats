@@ -495,8 +495,10 @@ through the broken path cannot see the breakage.
 own `leagueleaders` API (never a scraped page — WNBA.com's rendered page has
 been observed days stale while the API was current). Design, endpoints,
 qualification-rule sources, and check thresholds are documented in the script's
-docstring; the planning record is `LAYER2-VALIDATION-HANDOFF.md` and
-`../WNBA-leader-qualification-rules.md` at the projects root.
+docstring; the qualification rules are `docs/wnba-leader-qualification-rules.md`
+in this repo. The planning record is `LAYER2-VALIDATION-HANDOFF.md`, in the
+private docs repo at `statsataglance-docs/product-archive/` (a separate
+repository, so that one is a reference rather than a link).
 
 The contract:
 

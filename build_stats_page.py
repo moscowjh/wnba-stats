@@ -616,7 +616,7 @@ def compute_leaders(p_base, full=False):
     qualification (deliberately not ESPN's 70%-of-games-only rule). Counting
     boards apply the league's "70% of games OR volume" disjunction; percentage
     boards apply made-shot minimums only. Full rules, sources and the rationale:
-    ../../WNBA-leader-qualification-rules.md
+    docs/wnba-leader-qualification-rules.md
 
     full=False (the site build) returns display-shaped boards only — renderers
     and emit_social_payload assume the value column is last, so never widen
@@ -672,7 +672,7 @@ def compute_leaders(p_base, full=False):
     # are the official full-season numbers prorated by season progress; the
     # games-played branch is taken as-is. Implementing only the volume half
     # (as we did through 2026-07-27) is stricter than the league and can
-    # silently drop a qualified player — see WNBA-leader-qualification-rules.md
+    # silently drop a qualified player — see docs/wnba-leader-qualification-rules.md
     # §4a. Harmless on most boards, because a player entering via the GP branch
     # has a rate ceiling of volume/(44*0.70) that sits below the cut line, but
     # STEALS is genuinely exposed (ceiling 1.79 vs a ~1.62 tenth-best).
