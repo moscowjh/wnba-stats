@@ -68,6 +68,43 @@ does not publish anything on its own. Never run `npx wrangler deploy` locally.
 Run the build with the local venv's Python (3.13 — the build uses 3.12+ syntax):
 `.venv/bin/python build_stats_page.py`.
 
+## Local working gotchas
+
+Two things that bite repeatedly. They lived only in per-directory Claude memory
+until 2026-08-07, which meant they were invisible from inside this repo — so
+they're recorded here instead, where they're versioned and travel with the code.
+
+**1. The local CSVs go stale, and nothing tells you.**
+`wnba_player_box_2026.csv`, `wnba_team_box_2026.csv`, and `wnba_pbp_2026.csv` are
+**build artifacts, not source** — gitignored, and carried between CI runs by the
+Actions cache rather than by git. The daily build refreshes them *in CI only*; it
+never touches the local copies. Nothing needs them locally for the site to work,
+which is exactly why they drift unnoticed.
+
+> **Before answering any season-wide question from the local CSVs, check the max
+> `game_date` first.** If it's behind, refresh with `.venv/bin/python fetch_data.py`
+> (incremental — it only pulls games it doesn't have).
+
+Two real instances: on 2026-07-10 the local team box ended July 2, a week behind.
+On 2026-08-07 the local set was at 225 games while CI was at 232, and a
+byte-comparison prediction was made backwards as a result — the local copy was
+assumed to be the fresher one.
+
+Note ESPN dates late games in **UTC**, so a "July 9" night slate can appear under
+`2026-07-10`.
+
+**2. Always `git pull --rebase` before pushing.**
+The daily build commits and pushes `public/index.html` (plus
+`validation_report.json`, `player_id_crosswalk.json`, `usage_history.jsonl`) as
+`wnba-stats-bot` every morning. Push without pulling and it's rejected because
+the remote is ahead. Applies to manual pushes and any scripted commit-and-push.
+
+**3. Never construct an ESPN URL by hand.** Go through the adapter's origin
+handling — `ESPN_ORIGIN`. `site.api.espn.com` and `site.web.api.espn.com` mirror
+the same paths and *either* can fail host-wide; the first 403'd for ~4 hours on
+2026-08-05 while the second served fine. A standalone spike script that hardcoded
+the dead host produced a false negative that day. See `docs/data-sources.md`.
+
 ## Session closeout (end of any session that ships or decides something)
 
 Keep it light — this is the only channel by which work here flows back to the
