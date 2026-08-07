@@ -56,10 +56,10 @@ Keep it separate from your big multi-sport workspace — you do **not** want the
 files.
 
 ```bash
-cd basketball-data/WNBA
+cd ~/projects/statsataglance
 git init
 git add fetch_data.py build_stats_page.py requirements.txt .gitignore \
-        wrangler.toml .github/workflows/daily.yml DEPLOY.md
+        wrangler.toml .github/workflows/build.yml DEPLOY.md
 git commit -m "WNBA stats site: automated daily build"
 # create an empty public repo on github.com first, then:
 git remote add origin https://github.com/moscowjh/wnba-stats.git

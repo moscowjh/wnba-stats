@@ -15,7 +15,7 @@ actually requires, so "our board disagrees with site X" can be diagnosed instead
 
 ## 1. What we implement
 
-From `compute_leaders()` in `basketball-data/WNBA/build_stats_page.py`.
+From `compute_leaders()` in `build_stats_page.py` (this repo).
 
 Two derived quantities:
 
@@ -260,7 +260,7 @@ and should be investigated as such.
 - WNBA official: [Statistical Minimums to Qualify For WNBA League Leaders](https://stats.wnba.com/help/statminimums/) — verified 2026-07-26
 - WNBA official (alternate page): [Qualifications For League Leaders](https://www.wnba.com/qualifications-for-league-wnba-com-stats)
 - Basketball-Reference: [WNBA Rate Statistic Requirements](https://www.basketball-reference.com/about/wnba_rate_stat_req.html) — verified 2026-07-26
-- Our implementation: `compute_leaders()` in `basketball-data/WNBA/build_stats_page.py`
+- Our implementation: `compute_leaders()` in `build_stats_page.py` (this repo)
 - Decision record: `statsataglance-backlog.md`, Decisions Log 2026-07-01 ("Category leaders use the
   WNBA's official League Leaders qualification")
 
@@ -291,4 +291,4 @@ Confirm in the local Claude Code session, alongside the other pending work:
 - `run_data_guards()` and `run_integrity_checks()` still pass.
 
 The change is uncommitted and sits alongside the P0.5 abbreviation work — see
-`basketball-data/WNBA/LAYER2-VALIDATION-HANDOFF.md` §3a for the review gate.
+`statsataglance-docs/product-archive/LAYER2-VALIDATION-HANDOFF.md` §3a for the review gate (separate repo — a reference, not a link).
