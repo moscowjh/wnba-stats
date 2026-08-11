@@ -61,7 +61,8 @@ RETRY_SLEEP = 2
 #   blob1 = event (pageview | tab | box)   blob2 = tab id / game:<id>
 #   blob3 = source (utm_source, session-cached, else 'none')
 #   blob4 = returning ('1' | '0')          double1 = 1
-#   blob5-9 reserved (P3 recency, P4 country/device/referrer/session)
+#   blob8 = referring hostname ('direct' | 'self' | host | ''), added 2026-08-11
+#   blob5-7, blob9 reserved (P3 recency, P4 country/device/session)
 #   blob10 = site ('wnba' | 'wwc' | 'ncaaw'), added 2026-08-05
 COUNT = "SUM(_sample_interval)"
 
@@ -205,6 +206,8 @@ def collect(sql, start: dt.date, end: dt.date | None,
                     f"WHERE blob1 = 'pageview' AND {w} GROUP BY r")
     alltime_src = sql(f"SELECT blob3 AS source, {COUNT} AS n FROM {DATASET} "
                       f"WHERE blob1 = 'pageview' AND {s} GROUP BY source")
+    referrers = sql(f"SELECT blob8 AS ref, {COUNT} AS n FROM {DATASET} "
+                    f"WHERE blob1 = 'pageview' AND {w} GROUP BY ref ORDER BY n DESC")
 
     return {
         "daily": [(r["d"], _n(r)) for r in daily],
@@ -212,6 +215,7 @@ def collect(sql, start: dt.date, end: dt.date | None,
         "tabs": [(r["tab"], _n(r)) for r in tabs],
         "returning": {r["r"]: _n(r) for r in returning},
         "alltime_source": {r["source"]: _n(r) for r in alltime_src},
+        "referrers": [(r["ref"], _n(r)) for r in referrers],
     }
 
 
@@ -245,6 +249,12 @@ def build_report(raw: dict, start: dt.date, end: dt.date | None) -> dict:
         "alltime_pageviews_by_source": raw["alltime_source"],
         "tabs": [{"tab": t, "events": n} for t, n in raw["tabs"]],
         "returning": {"returning": returning_n, "new": new_n},
+        # '' is deliberately kept as its own row rather than merged into
+        # 'direct'. It means "not collected" — a pre-2026-08-11 row, or a
+        # cached page still running the old JS — and merging the two would
+        # invent direct traffic that was never measured.
+        "referrers": [{"referrer": r or "(not collected)", "pageviews": n}
+                      for r, n in raw["referrers"]],
     }
 
 
@@ -306,6 +316,21 @@ def print_report(rep: dict) -> None:
         print(f"  ! small sample ({', '.join(thin)}): a handful of visits is a "
               f"curiosity, not a trend.")
 
+    print("\n── Referrers " + "─" * 48)
+    print("  where traffic came from when it carried no utm tag")
+    refs = rep["referrers"]
+    if not refs or all(x["referrer"] == "(not collected)" for x in refs):
+        print("  (no referrer data yet — added 2026-08-11; needs a deploy of")
+        print("   both the page JS and analytics-worker/, then a day of traffic)")
+    else:
+        for x in refs:
+            print(f"  {x['referrer']:<24} {x['pageviews']:>6} {_pct(x['pageviews'], pv):>5}")
+        print("  ! 'direct' = no referrer sent, NOT 'typed the URL'. Privacy")
+        print("    settings and in-app browsers strip it, so a low bsky.app")
+        print("    count is not low Bluesky traffic — utm_source is the signal")
+        print("    there. 'self' is in-site navigation; '(not collected)' is a")
+        print("    row from before the field existed, or a cached old page.")
+
     r = rep["returning"]
     tot = r["returning"] + r["new"]
     print("\n── New vs returning " + "─" * 41)
@@ -328,6 +353,10 @@ def snapshot_row(rep: dict, day: dt.date) -> dict:
         "box_opens": rep["totals"]["box"],
         "returning": rep["returning"]["returning"],
         "new": rep["returning"]["new"],
+        # Added 2026-08-11. Rows written before this date simply lack the key;
+        # any reader must treat a missing "referrers" as "not collected"
+        # rather than as zero referred traffic.
+        "referrers": {x["referrer"]: x["pageviews"] for x in rep["referrers"]},
     }
 
 

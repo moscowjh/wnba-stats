@@ -23,6 +23,10 @@
 //       client-side in sessionStorage for the rest of that session)
 //   r = "1" if this is a returning visitor (localStorage flag set on
 //       first visit), else "0"
+//   ref = referring HOSTNAME only, captured on the session's first load and
+//       cached client-side. "direct" = no referrer, "self" = in-site
+//       navigation, "" = row predates the field (added 2026-08-11). Never
+//       the full referrer URL — paths can carry private context.
 //   site = which statsataglance property sent it ("wnba", "wwc", "ncaaw").
 //       Added 2026-08-05, BEFORE a second site existed, so cross-site funnel
 //       questions (does the Cup site hand users back to WNBA?) are answerable
@@ -85,14 +89,32 @@ export default {
       const rawSite = (p.get("site") || "wnba").slice(0, 16);
       const site = KNOWN_SITES.includes(rawSite) ? rawSite : "unknown";
 
+      // Referring hostname (blob8), sent by the page — the Referer header is
+      // useless here because the beacon fires from our own page and always
+      // reads back as us. Sent as a bare hostname; anything not shaped like
+      // one is coerced to "unknown" rather than stored, so a junk sender
+      // can't inflate cardinality (same stance as KNOWN_SITES above).
+      //
+      // "" means the row predates this field OR came from a cached page still
+      // running the old JS — which is NOT the same as "direct" (arrived with
+      // no referrer). Readers must keep those apart; usage_report.py does.
+      const rawRef = (p.get("ref") || "").slice(0, 64).toLowerCase();
+      const ref = rawRef === "" ? ""
+                : /^[a-z0-9.:-]+$/.test(rawRef) ? rawRef
+                : "unknown";
+
       if (env.USAGE) {
-        // blobs 5-9 are RESERVED — blob5 for P3 (recency bucket), blob6-9 for
-        // P4 (country, device, referrer, session). Site takes blob10 to stay
-        // clear of both; see USAGE-TRACKER-HANDOFF.md. Positions are arbitrary
-        // to Analytics Engine but not to the queries already written against
-        // them, so nothing before blob10 may be reused.
+        // blob8 is referrer, added 2026-08-11 ahead of Phase 1 — search
+        // traffic carries no utm, so without it ~185 new SEO pages would land
+        // in an undifferentiated bucket and attribution can't be applied
+        // retroactively. blobs 5-7 and 9 remain RESERVED — blob5 for P3
+        // (recency bucket), blob6/7/9 for P4 (country, device, session).
+        // Site takes blob10 to stay clear of both; see
+        // USAGE-TRACKER-HANDOFF.md. Positions are arbitrary to Analytics
+        // Engine but not to the queries already written against them, so
+        // nothing already in use may be reassigned.
         env.USAGE.writeDataPoint({
-          blobs: [event, tab, src, returning, "", "", "", "", "", site],
+          blobs: [event, tab, src, returning, "", "", "", ref, "", site],
           doubles: [1],
           indexes: [event], // lets queries group/filter by event type cheaply
         });
@@ -104,7 +126,8 @@ export default {
 
     return new Response(
       "wnba-usage-tracker is alive.\n" +
-      "POST or GET /t?e=<event>&t=<tab>&s=<utm_source>&r=<0|1>&site=<wnba|wwc|ncaaw>\n",
+      "POST or GET /t?e=<event>&t=<tab>&s=<utm_source>&r=<0|1>&site=<wnba|wwc|ncaaw>" +
+      "&ref=<hostname|direct|self>\n",
       { headers: { "content-type": "text/plain; charset=utf-8" } }
     );
   },

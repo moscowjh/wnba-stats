@@ -1514,6 +1514,26 @@ var TRACK_URL = 'https://usage.statsataglance.com/t';
    to WNBA?). Added 2026-08-05 before a second site existed — rows without it
    predate the change and are WNBA by definition. */
 var SITE_ID = 'wnba';
+/* Referring hostname -- the only way to see search/Reddit/etc, since
+   utm_source can only see links we tagged ourselves. HOSTNAME ONLY: full
+   referrer URLs carry private context (search terms, for one). Captured
+   once per session so an in-site reload can't overwrite the real arrival.
+   'direct' = no referrer sent, which is NOT the same as "typed the URL";
+   see DEPLOY.md before drawing conclusions from it. */
+function refHost() {
+  var cached = sessionStorage.getItem('wsag_ref');
+  if (cached) return cached;
+  var bare = function (h) { return h.toLowerCase().replace(/^www\\./, ''); };
+  var h = 'direct';
+  if (document.referrer) {
+    try {
+      var d = bare(new URL(document.referrer).hostname);
+      h = (d === bare(window.location.hostname)) ? 'self' : d;
+    } catch (e) {}
+  }
+  sessionStorage.setItem('wsag_ref', h);
+  return h;
+}
 function initTracking() {
   try {
     var qs = new URLSearchParams(window.location.search);
@@ -1522,6 +1542,7 @@ function initTracking() {
     window.__wsagSrc = src || sessionStorage.getItem('wsag_src') || 'none';
     window.__wsagReturning = localStorage.getItem('wsag_seen') ? '1' : '0';
     localStorage.setItem('wsag_seen', '1');
+    window.__wsagRef = refHost();
     track('pageview', '');
   } catch (e) {}
 }
@@ -1529,7 +1550,8 @@ function track(event, tab) {
   try {
     var params = new URLSearchParams({
       e: event, t: tab || '', s: window.__wsagSrc || 'none',
-      r: window.__wsagReturning || '0', site: SITE_ID
+      r: window.__wsagReturning || '0', site: SITE_ID,
+      ref: window.__wsagRef || 'direct'
     });
     var url = TRACK_URL + '?' + params.toString();
     if (navigator.sendBeacon) navigator.sendBeacon(url);

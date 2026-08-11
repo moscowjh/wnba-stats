@@ -332,7 +332,7 @@ and late-season) as ESPN backfills/corrects data.
 | `validation_report.json` | Latest validator run (per-check PASS/FAIL/SKIPPED). Committed by each build; read by the cron Worker's health check. |
 | `player_id_crosswalk.json` | Persisted ESPN `athlete_id` → WNBA `PLAYER_ID` matches, grown by each validator run so later joins are exact even if a name spelling drifts. |
 | `cron-worker/` | Cloudflare Worker: triggers daily builds + health check. **Tracked in git as of 2026-07** (reversing the 2026-07-12 stance — it now gates data-quality alerting, so losing its history would hurt). Being tracked does NOT put it in the Actions deploy path: deploys remain manual (`cd cron-worker && npx wrangler deploy`). Secrets (`GH_TOKEN`, `CRON_KEY`) live only in `wrangler secret put`; `.wrangler/` and `.dev.vars` are gitignored. |
-| `analytics-worker/` | Cloudflare Worker: receives usage beacons → Workers Analytics Engine. Deployed separately, **intentionally untracked**; see "Usage analytics worker" below. |
+| `analytics-worker/` | Cloudflare Worker: receives usage beacons → Workers Analytics Engine. **Tracked in git since 2026-08-05**, under the `.gitignore` rule that every Worker's source is tracked and only its `.wrangler/` build cache is not. Like `cron-worker/`, being tracked does NOT put it in the Actions deploy path: deploys remain manual (`cd analytics-worker && npx wrangler deploy`). See "Usage analytics worker" below. |
 
 ## Health check + email alerts (added 2026-06-11)
 
@@ -563,7 +563,7 @@ can see which tabs get used and whether box scores get opened, not just that
 someone showed up.
 
 **The contract** (client in `build_stats_page.py` ↔ worker in `analytics-worker/`):
-- Client → `GET`/`POST https://usage.statsataglance.com/t?e=<event>&t=<tab>&s=<utm_source>&r=<0|1>`
+- Client → `GET`/`POST https://usage.statsataglance.com/t?e=<event>&t=<tab>&s=<utm_source>&r=<0|1>&site=<site>&ref=<host>`
   via `navigator.sendBeacon` (fetch fallback). Wrapped in try/catch — fails
   silently, never blocks the page.
 - Events: `pageview` (one per load), `tab` (`t` = tab id, e.g. `leaders`),
@@ -571,15 +571,50 @@ someone showed up.
   load (cached in `sessionStorage`); `r` = `1` for a returning visitor
   (`localStorage` flag), else `0`.
 - Worker writes one aggregate, PII-free data point per event to Workers
-  Analytics Engine (dataset `wnba_usage`), CORS-restricted to
-  `https://wnba.statsataglance.com`.
+  Analytics Engine (dataset `wnba_usage`), CORS-restricted to the
+  statsataglance origins in `ALLOWED_ORIGINS`.
 
-**Not tracked in git.** The worker source lives in `analytics-worker/` locally
-and in Cloudflare; it is deployed separately and is not part of the daily HTML
-build. (`cron-worker/` used to share this stance but has been tracked since
-2026-07 — it gates data-quality alerting now. This worker stays untracked until
-it crosses a similar line.) Trade-off: no git history/backup for the worker
-itself — **this section is the durable record of how it's wired.**
+| Param | Blob | Meaning |
+|---|---|---|
+| `e` | `blob1` | `pageview` \| `tab` \| `box` |
+| `t` | `blob2` | tab id, or `game:<id>` for `box`; empty for `pageview` |
+| `s` | `blob3` | utm_source, session-cached; `none` if untagged |
+| `r` | `blob4` | returning visitor — `1` \| `0` |
+| `ref` | `blob8` | referring **hostname** — added 2026-08-11 |
+| `site` | `blob10` | `wnba` \| `wwc` \| `ncaaw`; `''` on rows predating 2026-08-05, all WNBA |
+
+`blob5`–`blob7` and `blob9` stay reserved for P3/P4 (recency bucket, country,
+device class, session id) — see `statsataglance-docs/USAGE-TRACKER-HANDOFF.md`.
+Positions are arbitrary to Analytics Engine but not to the queries already
+written against them, so nothing in use may be reassigned.
+
+**Referrer (`ref`), added 2026-08-11 — why, and what it does not mean.**
+`utm_source` can only ever see links *we* tagged, so organic search, Reddit and
+anywhere else that links us unannounced all collapsed into `none` — 97% of
+traffic. That was tolerable until Phase 1: ~185 SEO pages whose entire premise
+is that search becomes a discovery channel, landing in a bucket that can't
+distinguish search from direct. Attribution cannot be applied retroactively,
+which is why this shipped ahead of the pages.
+
+- **Hostname only, never the full URL** — referrer paths and query strings carry
+  private context (the search terms someone typed, for one).
+- Captured once per session and cached in `sessionStorage`, so an in-site
+  reload can't overwrite where the visit actually came from.
+- `direct` = no referrer was sent. **This is not "typed the URL".** Privacy
+  settings, `referrer-policy`, and most in-app browsers strip it, so a low
+  `bsky.app` count is *not* low Bluesky traffic — `utm_source` remains the
+  reliable signal there. `self` = navigation within the site.
+- `''` = the row predates the field, or came from a cached page still running
+  the old JS. Kept distinct from `direct` in `usage_report.py`; merging them
+  would invent direct traffic that was never measured.
+
+**Tracked in git since 2026-08-05**, along with `cron-worker/`, under the
+`.gitignore` rule that a Worker's source is tracked and only its `.wrangler/`
+build cache is not. It is still deployed manually and is not part of the daily
+HTML build — **so a change here does not ship until someone runs `wrangler
+deploy` in this directory.** That is the one trap in this section: the page JS
+deploys automatically with the next daily build, the worker does not, and a
+page sending `ref` to a worker that ignores it fails silently and looks fine.
 
 ### One-time setup
 1. **Enable Analytics Engine on the account (one-time).** Until this is done,
