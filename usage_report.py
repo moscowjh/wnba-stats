@@ -57,7 +57,7 @@ API_BASE = "https://api.cloudflare.com/client/v4/accounts/{acct}/analytics_engin
 TIMEOUT = (5, 30)          # (connect, read)
 RETRY_SLEEP = 2
 
-# Beacon schema, from analytics-worker/worker.js:
+# Beacon schema, from workers/analytics/worker.js:
 #   blob1 = event (pageview | tab | box)   blob2 = tab id / game:<id>
 #   blob3 = source (utm_source, session-cached, else 'none')
 #   blob4 = returning ('1' | '0')          double1 = 1
@@ -321,7 +321,7 @@ def print_report(rep: dict) -> None:
     refs = rep["referrers"]
     if not refs or all(x["referrer"] == "(not collected)" for x in refs):
         print("  (no referrer data yet — added 2026-08-11; needs a deploy of")
-        print("   both the page JS and analytics-worker/, then a day of traffic)")
+        print("   both the page JS and workers/analytics/, then a day of traffic)")
     else:
         for x in refs:
             print(f"  {x['referrer']:<24} {x['pageviews']:>6} {_pct(x['pageviews'], pv):>5}")

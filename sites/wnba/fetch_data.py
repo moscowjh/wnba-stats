@@ -21,6 +21,8 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import requests
 
+from config import WNBA
+
 SEASON = 2026
 SEASON_START = "2026-05-08"
 
@@ -40,9 +42,11 @@ EXCLUDE_GAME_IDS: set[int] = {
                 # _is_noncounting_game(); kept here as a redundant safety net in
                 # case ESPN ever drops that field.
 }
-HERE = Path(__file__).resolve().parent
-PLAYER_CSV = HERE / "wnba_player_box_2026.csv"
-TEAM_CSV = HERE / "wnba_team_box_2026.csv"
+# Paths come from the league config, derived by convention (D13) — never
+# spelled out here, so a second league cannot collide with this one by typo.
+CFG = WNBA
+PLAYER_CSV = CFG.player_box
+TEAM_CSV = CFG.team_box
 
 # Columns a pre-existing CSV must already carry to be reused for an incremental
 # fetch. When a schema migration adds a column (e.g. athlete_id, season_type),
@@ -52,9 +56,9 @@ TEAM_CSV = HERE / "wnba_team_box_2026.csv"
 # bumping the actions/cache vN token in CI.
 REQUIRED_PLAYER_COLS = {"athlete_id", "season_type"}
 REQUIRED_TEAM_COLS = {"season_type"}
-PBP_CSV = HERE / "wnba_pbp_2026.csv"
-LINESCORE_JSON = HERE / "wnba_linescores_2026.json"
-SCHEDULE_JSON = HERE / "wnba_schedule_today.json"
+PBP_CSV = CFG.pbp
+LINESCORE_JSON = CFG.linescores
+SCHEDULE_JSON = CFG.schedule_today
 # Where to reach ESPN's API.
 #
 # 2026-08-05: `site.api.espn.com` — the host used since the ESPN migration —
@@ -76,7 +80,7 @@ SCHEDULE_JSON = HERE / "wnba_schedule_today.json"
 # Don't reinstate the old host on the theory that it's "fixed now" — the point
 # is that either host can fail. ESPN_ORIGIN is the real mitigation: switching is
 # an env var, not a deploy. Point it at another ESPN host or at the espn-proxy
-# Worker (see espn-proxy/README.md), both of which mirror the same paths.
+# Worker (see workers/espn-proxy/README.md), both of which mirror the same paths.
 ESPN_ORIGIN = os.environ.get("ESPN_ORIGIN", "https://site.web.api.espn.com").rstrip("/")
 ESPN_SCOREBOARD = f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba/scoreboard"
 ESPN_SUMMARY = f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba/summary"
@@ -764,7 +768,7 @@ def regression_check(
 def fetch_schedule() -> bool:
     """Fetch today's WNBA schedule from ESPN's scoreboard endpoint.
 
-    Writes wnba_schedule_today.json with the ET date used, a `status`, and a
+    Writes sites/wnba/data/schedule_today.json with the ET date used, a `status`, and a
     list of games: {away, home, tip_et, state} where state is pre/in/post.
     Returns True if the schedule was actually retrieved.
 
@@ -829,6 +833,7 @@ def fetch_schedule() -> bool:
 # ── Main ─────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    CFG.ensure_dirs()
     existing_ids, old_player, old_team, old_pbp = load_existing()
     print(f"Existing data: {len(existing_ids)} game(s) known")
 

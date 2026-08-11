@@ -12,7 +12,7 @@ Reads the season PBP + team-box CSVs already on disk, and fetches each game's
 official line score live from ESPN. Run in an environment with real ESPN access
 (the Cowork sandbox mirror returns frozen pre-game data and won't work).
 
-    python validate_linescores.py
+    python sites/wnba/validate_linescores.py
 
 Exit code 0 if everything reconciles, 1 if any mismatch/missing is found.
 """
@@ -24,10 +24,10 @@ from pathlib import Path
 import pandas as pd
 
 import fetch_data as fd  # reuse espn_get + parse_linescores + ESPN_SUMMARY
+from config import WNBA
 
-HERE = Path(__file__).resolve().parent
-PBP_CSV = HERE / "wnba_pbp_2026.csv"
-TEAM_CSV = HERE / "wnba_team_box_2026.csv"
+PBP_CSV = WNBA.pbp
+TEAM_CSV = WNBA.team_box
 
 
 def pbp_runmax_quarters(g: pd.DataFrame) -> tuple[list[int], list[int]]:

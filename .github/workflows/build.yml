@@ -45,12 +45,22 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: core/pyproject.toml
 
+      # One dependency declaration, in core/pyproject.toml (D9). The editable
+      # install also puts `sag` on the path, which every site script imports
+      # for its league config.
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -e core/
 
       # Persist the accumulated box-score / pbp CSVs between runs so
-      # fetch_data.py only pulls games it hasn't seen (incremental). Without
+      # fetch_data.py only pulls games it hasn't seen (incremental). The path
+      # is the league's data DIRECTORY rather than a list of filenames (D12),
+      # so a data file added later is cached without anyone remembering to
+      # update this. Bumped to v5 at the Phase 1 restructure: a cache restores
+      # files to the paths recorded when it was saved, so moving the CSVs
+      # orphans the v4 entries — bumping makes the one full re-fetch
+      # intentional and legible instead of a mystery slow build. Without
       # this, every fresh checkout starts empty and re-fetches the whole season
       # (~170 ESPN summary calls). These files are gitignored build artifacts,
       # so the cache — not git — is how they carry over.
@@ -62,14 +72,10 @@ jobs:
       - name: Restore fetched-data cache
         uses: actions/cache@v4
         with:
-          path: |
-            wnba_player_box_2026.csv
-            wnba_team_box_2026.csv
-            wnba_pbp_2026.csv
-            wnba_linescores_2026.json
-          key: wnba-data-v4-${{ github.run_id }}
+          path: sites/wnba/data
+          key: wnba-data-v5-${{ github.run_id }}
           restore-keys: |
-            wnba-data-v4-
+            wnba-data-v5-
 
       # fetch_data.py exits non-zero when the fetch came back incomplete — an
       # unreadable scoreboard date, a game that wouldn't download, or a missing
@@ -80,15 +86,14 @@ jobs:
       #
       # Tick "allow_partial" in the Run workflow UI to publish anyway.
       - name: Fetch latest box scores
-        run: python fetch_data.py
+        run: python sites/wnba/fetch_data.py
         env:
           ALLOW_PARTIAL: ${{ inputs.allow_partial && '1' || '0' }}
 
       - name: Build static page
         run: |
-          python build_stats_page.py
-          mkdir -p public
-          cp WNBA-2026-stats-explorer.html public/index.html
+          python sites/wnba/build_stats_page.py
+          cp sites/wnba/wnba-2026-stats-explorer.html sites/wnba/public/index.html
 
       # Layer-2 external verification (validate_stats.py) — diffs our leader
       # boards against stats.wnba.com's API. Never blocks the site deploy
@@ -100,7 +105,7 @@ jobs:
       - name: Validate against stats.wnba.com
         id: validate
         continue-on-error: true
-        run: python validate_stats.py --gate
+        run: python sites/wnba/validate_stats.py --gate
 
       # Append yesterday's usage totals to usage_history.jsonl. Workers
       # Analytics Engine only retains 90 days, and collection started
@@ -123,7 +128,7 @@ jobs:
         run: |
           git config user.name  "wnba-stats-bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/index.html
+          git add sites/wnba/public/index.html
           git add validation_report.json player_id_crosswalk.json
           git add usage_history.jsonl
           # Only commit if something actually changed (e.g. skip on an off-day).
@@ -135,7 +140,7 @@ jobs:
           fi
 
       - name: Deploy to Cloudflare
-        run: npx wrangler deploy --message "Daily stats update $(date -u +'%Y-%m-%d')"
+        run: npx wrangler deploy -c sites/wnba/wrangler.toml --message "Daily stats update $(date -u +'%Y-%m-%d')"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -159,4 +164,4 @@ jobs:
         env:
           BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
           BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
-        run: python post_to_bluesky.py
+        run: python sites/wnba/post_to_bluesky.py

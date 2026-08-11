@@ -12,23 +12,34 @@ A self-contained HTML stats page for the 2026 WNBA season, live at [wnba.statsat
 
 ```
 statsataglance/                    # repo root (was basketball-data/WNBA/ until 2026-08-07)
-├── build_stats_page.py            # Build script — run this to regenerate HTML
-├── fetch_data.py                  # ESPN box score fetcher (used by GitHub Actions)
-├── validate_stats.py              # Leader/stat validation; gates the CI deploy
-├── usage_report.py                # Analytics rollup → usage_history.jsonl
-├── post_to_bluesky.py             # Nightly factoid post (never blocks the deploy)
-├── WNBA-2026-stats-explorer.html  # Output — static, self-contained, no server needed
-├── public/index.html              # The deployed copy of the above
-├── wnba_player_box_2026.csv       # Per-game player box scores (source: ESPN)
-├── wnba_team_box_2026.csv         # Per-game team box scores (source: ESPN)
-├── wnba_pbp_2026.csv              # Play-by-play (feeds box-score line scores)
+│                                  # restructured into core/ + sites/ + workers/ 2026-08-11
+├── core/                          # Shared library — `pip install -e core/`
+│   ├── pyproject.toml             # THE dependency declaration (replaced requirements.txt)
+│   └── sag/                       # Imported as `sag`, not `core` (D11)
+│       ├── config.py              # LeagueConfig — owns slug/season/data_dir, derives paths
+│       ├── adapters/              # Per-upstream data clients (ESPN, FIBA) — lands here next
+│       ├── render/                # Page/component engine — the SEO work forces this out
+│       └── seo/                   # Slugs, sitemap, canonical/meta, Schema.org
+├── sites/
+│   └── wnba/                      # One directory per site; a second league is a sibling
+│       ├── config.py              # The WNBA LeagueConfig instance
+│       ├── build_stats_page.py    # Build script — run this to regenerate HTML
+│       ├── fetch_data.py          # ESPN box score fetcher (used by GitHub Actions)
+│       ├── validate_stats.py      # Leader/stat validation; gates the Bluesky post
+│       ├── post_to_bluesky.py     # Nightly factoid post (never blocks the deploy)
+│       ├── wrangler.toml          # THIS SITE's Cloudflare config, not shared infra
+│       ├── data/                  # Fetched CSV/JSON — gitignored, Actions-cached
+│       ├── public/index.html      # The deployed page
+│       └── wnba-2026-stats-explorer.html   # Build output, copied to public/
+├── workers/                       # Shared infra — NOT deployed by CI
+│   ├── cron/                      # Build dispatch + health checks
+│   ├── analytics/                 # Usage beacon → Analytics Engine
+│   └── espn-proxy/                # Contingency only, NOT deployed
+├── usage_report.py                # Analytics rollup → usage_history.jsonl (shared, root)
+├── validation_report.json         # ⚠️ Root-pinned: workers/cron reads it by raw URL
 ├── DEPLOY.md                      # Infrastructure, domain, cron/health-check details
-├── docs/build-internals.md        # This file
-├── docs/data-sources.md           # Per-league feed capability matrix
-├── .github/workflows/build.yml    # GitHub Actions: fetch → validate → build → deploy
-├── cron-worker/                   # Cloudflare Worker: build dispatch + health checks
-├── analytics-worker/              # Cloudflare Worker: usage beacon
-└── espn-proxy/                    # Cloudflare Worker: contingency only, NOT deployed
+├── docs/                          # build-internals.md (this file), data-sources.md
+└── .github/workflows/build.yml    # ⚠️ Name is load-bearing — workers/cron hardcodes it
 ```
 
 UX prototypes (`prototype_site.py`, `prototype_players.py`, the `*-prototype.html`
@@ -43,10 +54,14 @@ files) moved to `wbb-lab/wnba/prototypes/` in the 2026-08-07 workspace migration
 **Local build:** After updating the CSVs, run from the repo root with the local
 venv's Python (3.13 — the build uses 3.12+ syntax):
 ```bash
-.venv/bin/python build_stats_page.py
+.venv/bin/pip install -e core/          # once — puts `sag` on the path
+.venv/bin/python sites/wnba/build_stats_page.py
 ```
 
-**Production pipeline:** Cloudflare cron Worker dispatches GitHub Actions at 11:17 UTC daily → `fetch_data.py` pulls fresh box scores → `validate_stats.py` gates → `build_stats_page.py` bakes HTML → copied to `public/index.html` → **`npx wrangler deploy` from inside the Action**. Health checks at 11:45 / 13:15 / 14:45 UTC auto-rebuild on a fixable problem and email only what survives the final pass. See `DEPLOY.md` for full details.
+Run it from anywhere: paths resolve through `sag.config.LeagueConfig`, which
+anchors to the *site directory* rather than the working directory.
+
+**Production pipeline:** Cloudflare cron Worker dispatches GitHub Actions at 11:17 UTC daily → `fetch_data.py` pulls fresh box scores → `validate_stats.py` gates → `build_stats_page.py` bakes HTML → copied to `sites/wnba/public/index.html` → **`npx wrangler deploy` from inside the Action**. Health checks at 11:45 / 13:15 / 14:45 UTC auto-rebuild on a fixable problem and email only what survives the final pass. See `DEPLOY.md` for full details.
 
 > **Deploy path.** `wrangler deploy` from the workflow is the *only* deploy path.
 > Cloudflare's Connect-to-Git integration was disconnected in June 2026 — a commit
@@ -57,7 +72,7 @@ venv's Python (3.13 — the build uses 3.12+ syntax):
 ## What the Build Script Computes
 
 ### Standings
-From `wnba_team_box_2026.csv` grouped by team, sorted by Win% descending:
+From `sites/wnba/data/team_box_2026.csv` grouped by team, sorted by Win% descending:
 
 | Column | Formula |
 |--------|---------|
@@ -89,7 +104,7 @@ Top 10 per category with **WNBA qualifying minimums** prorated by `max_gp / 44`:
 Player names are **clickable links** that navigate to the Players tab with that player's name pre-filled in the search. Leaders support **team filter** and **player search**.
 
 ### Efficiency (Four Factors)
-Computed via a **self-join** on `wnba_team_box_2026.csv`: each team's game row is joined to its opponent's game row using `game_id` + `opponent_team_id = team_id`. This provides opponent box-score stats needed for defensive factors.
+Computed via a **self-join** on `sites/wnba/data/team_box_2026.csv`: each team's game row is joined to its opponent's game row using `game_id` + `opponent_team_id = team_id`. This provides opponent box-score stats needed for defensive factors.
 
 **Possession estimate:**
 ```

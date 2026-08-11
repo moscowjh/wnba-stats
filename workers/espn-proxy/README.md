@@ -68,7 +68,7 @@ them (5xx and 429 retried, 403 fails fast), so flattening upstream errors into
 ## Deploy
 
 ```bash
-cd espn-proxy
+cd workers/espn-proxy
 npx wrangler secret put PROXY_KEY      # paste a long random string
 npx wrangler deploy
 ```
@@ -97,7 +97,7 @@ Then add them to the fetch step in `.github/workflows/build.yml`:
 
 ```yaml
       - name: Fetch latest box scores
-        run: python fetch_data.py
+        run: python sites/wnba/fetch_data.py
         env:
           ALLOW_PARTIAL: ${{ inputs.allow_partial && '1' || '0' }}
           ESPN_ORIGIN: ${{ secrets.ESPN_ORIGIN }}

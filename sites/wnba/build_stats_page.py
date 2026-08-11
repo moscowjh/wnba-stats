@@ -1,6 +1,6 @@
 """
 build_stats_page.py
-Builds WNBA-2026-stats-explorer.html from wehoop box score CSVs.
+Builds sites/wnba/wnba-2026-stats-explorer.html from wehoop box score CSVs.
 All stats -- including four factors -- are computed from the CSVs.
 
 Usage:
@@ -15,8 +15,9 @@ from pathlib import Path
 from html import escape as esc
 from zoneinfo import ZoneInfo
 
-HERE   = Path(__file__).parent
-OUTPUT = HERE / 'WNBA-2026-stats-explorer.html'
+from config import WNBA
+
+OUTPUT = WNBA.page_output
 
 PYTH_EXP = 13.91  # Pythagorean exponent for basketball
 PLAYOFF_SPOTS = 8  # teams that make the WNBA playoffs
@@ -136,8 +137,8 @@ def load_data():
     playoffs begin, are carried in the CSVs but excluded here; a future playoff
     view can select them explicitly. Guarded by a column check so a pre-migration
     CSV (no season_type) still builds, treating all rows as regular season."""
-    player_raw = pd.read_csv(HERE / 'wnba_player_box_2026.csv')
-    team_raw   = pd.read_csv(HERE / 'wnba_team_box_2026.csv')
+    player_raw = pd.read_csv(WNBA.player_box)
+    team_raw   = pd.read_csv(WNBA.team_box)
     if 'season_type' in player_raw.columns:
         player_raw = player_raw[player_raw['season_type'] == 2]
     if 'season_type' in team_raw.columns:
@@ -714,7 +715,7 @@ _PCT_CATS = {'3PT%', 'eFG%', 'FT%', 'TS%'}
 
 
 def emit_social_payload(player_raw, leaders, display_date, data_through_iso,
-                        path='social_payload.json'):
+                        path=None):
     """Write a small JSON the Bluesky auto-post consumes: top-5 per broadcast
     category plus a deterministic 'last night' factoid. The page is the source
     of truth; this only mirrors the already-computed leaders so the post can
@@ -771,6 +772,10 @@ def emit_social_payload(player_raw, leaders, display_date, data_through_iso,
         'categories': cats,
         'factoid': factoid,
     }
+    # Anchored to the site dir via the config, not to CWD. post_to_bluesky.py
+    # resolves the same path from the same config, so writer and reader cannot
+    # drift apart the way they would have when both scripts lived in the root.
+    path = path or WNBA.social_payload
     with open(path, 'w', encoding='utf-8') as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2)
     return payload
@@ -1193,7 +1198,7 @@ def _team_table(g, meta):
 def _line_score(linescores, gid, away, home):
     """Quarter-by-quarter line score from ESPN's OFFICIAL per-team linescores.
 
-    `linescores` is the dict loaded from wnba_linescores_2026.json, keyed by
+    `linescores` is the dict loaded from sites/wnba/data/linescores_2026.json, keyed by
     str(game_id) -> {"home_abbr","away_abbr","home":[...],"away":[...]}.
 
     Correct-or-blank policy: we never reconstruct quarters from play-by-play.
@@ -1283,7 +1288,7 @@ def build_games_section(player_raw, team_raw):
     # which is the same epistemic situation — we do NOT know today's slate and
     # must not claim there are no games. Older files predate the status field;
     # treat those as "ok" for backward compatibility.
-    sched_path = HERE / 'wnba_schedule_today.json'
+    sched_path = WNBA.schedule_today
     sched_games = []
     sched_known = False
     if sched_path.exists():
@@ -1302,7 +1307,7 @@ def build_games_section(player_raw, team_raw):
     # the quarter columns rather than guessing from play-by-play.
     linescores = None
     if yest_ids:
-        ls_path = HERE / 'wnba_linescores_2026.json'
+        ls_path = WNBA.linescores
         if ls_path.exists():
             try:
                 linescores = json.loads(ls_path.read_text())
@@ -1838,6 +1843,7 @@ def assemble_page(display_date, data_through_iso,
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def main():
+    WNBA.ensure_dirs()
     player_raw, team_raw = load_data()
 
     through_dt   = pd.to_datetime(player_raw['game_date'].max())

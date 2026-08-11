@@ -32,6 +32,8 @@ import sys
 import urllib.error
 import urllib.request
 
+from config import WNBA
+
 PDS         = "https://bsky.social"
 # Tagged so the usage beacon can separate "clicked the daily card" from direct
 # traffic. Matches the /bsky bio redirect's `bluesky-bio`; keep these two values
@@ -43,9 +45,8 @@ CARD_DESC   = ("Fast, ad-free WNBA stats — leaders, standings, four factors, "
 CTA         = "Full season stats, ad-free ↓"
 MAX_CHARS   = 300  # Bluesky post limit
 
-HERE     = os.path.dirname(os.path.abspath(__file__))
-PAYLOAD  = os.path.join(HERE, "social_payload.json")
-OG_IMAGE = os.path.join(HERE, "public", "og.png")
+PAYLOAD  = str(WNBA.social_payload)
+OG_IMAGE = str(WNBA.og_image)
 
 # Rotation order — must match BROADCAST_CATS in build_stats_page.py. Sequence
 # is intentional: related stats sit next to each other (scoring → shooting

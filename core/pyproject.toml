@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sag"
+version = "0.1.0"
+description = "Shared statsataglance library — adapters, render, seo"
+requires-python = ">=3.12"
+
+# THE single dependency declaration for this repo (D9). It replaced the
+# root requirements.txt at the Phase 1 restructure; there is deliberately
+# no per-site file, because there is no divergence to accommodate — the
+# FIBA parser and the NCAAW spike are pure standard library (urllib,
+# json, re) and neither imports requests. Separate files would have been
+# identical copies that drift silently.
+#
+# ── Why upper-bounded rather than exact-pinned (2026-08-05) ──
+#
+# Patch and minor releases still flow automatically, so these do NOT go
+# stale — security and bug fixes arrive without intervention. What's
+# gated is the MAJOR version bump, which is where APIs get removed and
+# builds break, and which deserves a human choosing the moment.
+#
+# Before this, both were fully unpinned: CI installed whatever shipped
+# most recently, unreviewed, on a repo whose workflow holds a write
+# token. It also meant no reproducibility — on 2026-08-05 this laptop was
+# on pandas 3.0.3 while CI was on 3.0.5.
+#
+# To take a new major version: raise the ceiling here deliberately and
+# run the build before merging. Dependabot alerts (repo Settings →
+# Advanced Security) are the intended trigger for noticing a CVE in the
+# meantime.
+dependencies = [
+    "pandas>=3,<4",
+    "requests>=2,<3",
+]
+
+[tool.setuptools.packages.find]
+include = ["sag*"]

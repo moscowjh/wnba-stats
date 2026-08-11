@@ -2,11 +2,14 @@
 #
 # The play-by-play file alone is ~13 MB and would churn daily. In CI these are
 # fetched fresh (or restored from the Actions cache), so nothing here is lost.
+# Paths follow sag.config.LeagueConfig's convention: everything fetched for a
+# league lives under sites/<slug>/data/, which is also what the Actions cache
+# key names (D12) — so a new data file is covered here and cached there without
+# anyone remembering to add it.
 *.csv
-WNBA-2026-stats-explorer.html
-wnba_schedule_today.json
-wnba_linescores_2026.json
-social_payload.json
+sites/*/data/
+sites/*/*-stats-explorer.html
+sites/*/social_payload.json
 
 # Local secrets. THIS REPO IS PUBLIC. In CI these come from repo secrets.
 .env
@@ -18,16 +21,21 @@ social_payload.json
 # only the cache is ignored. Secrets live solely in `wrangler secret put`.
 #
 # Workers in this repo:
-#   cron-worker/       deployed — build dispatch + health checks
-#   analytics-worker/  deployed — usage beacon
-#   espn-proxy/        NOT deployed — contingency only
+#   workers/cron/       deployed — build dispatch + health checks
+#   workers/analytics/  deployed — usage beacon
+#   workers/espn-proxy/ NOT deployed — contingency only
 #
 # analytics-worker/ sat untracked from 2026-07-12 to 2026-08-05: nothing was
 # ignoring it, it was just never `git add`ed. Hence the explicit list — add to
 # it when you add a Worker.
+#
+# NONE of these are deployed by CI. The Action's `wrangler deploy` ships the
+# WNBA site only (sites/wnba/wrangler.toml); a Worker change needs a manual
+# `wrangler deploy` from its own directory that nothing will remind you to do.
 .wrangler/
 
 # Python
+core/*.egg-info/
 .venv/
 __pycache__/
 *.pyc

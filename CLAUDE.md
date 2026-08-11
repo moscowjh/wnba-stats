@@ -57,8 +57,8 @@ in the repo they govern (`workspace-architecture.md` D4):
 Daily GitHub Actions build: `fetch_data.py` pulls from ESPN's public API (player
 box + team box + play-by-play + today's schedule JSON) → `validate_stats.py`
 gates → `build_stats_page.py` bakes one static HTML → copied to
-`public/index.html` → **`npx wrangler deploy` from inside the Action**. A
-Cloudflare cron Worker (`cron-worker/`) dispatches the build ~11:17 UTC plus
+`sites/wnba/public/index.html` → **`npx wrangler deploy` from inside the Action**. A
+Cloudflare cron Worker (`workers/cron/`) dispatches the build ~11:17 UTC plus
 health checks at 11:45 / 13:15 / 14:45 UTC (emails on failure only).
 
 **`wrangler deploy` from the workflow is the only deploy path.** Cloudflare's
@@ -66,7 +66,35 @@ Connect-to-Git integration was disconnected in June 2026 — a commit to `main`
 does not publish anything on its own. Never run `npx wrangler deploy` locally.
 
 Run the build with the local venv's Python (3.13 — the build uses 3.12+ syntax):
-`.venv/bin/python build_stats_page.py`.
+`.venv/bin/python sites/wnba/build_stats_page.py`. It needs `sag` on the path —
+`.venv/bin/pip install -e core/`, once.
+
+## Repo layout (restructured 2026-08-11, Phase 1)
+
+```
+core/       shared library, installed with `pip install -e core/`, imported as `sag`
+sites/      one directory per site; wnba/ has its own config.py, wrangler.toml, data/, public/
+workers/    cron/ analytics/ espn-proxy/ — shared infra, NOT deployed by CI
+docs/       engineering docs, shipped with the code they govern
+```
+
+Reasoning lives in `statsataglance-docs/workspace-architecture.md` §9 (D7–D13) —
+don't re-derive it here. Three things are load-bearing and easy to break:
+
+1. **`.github/workflows/build.yml` must keep that filename.** `workers/cron/worker.js:39`
+   hardcodes `const WORKFLOW = "build.yml"` in both the dispatch and the health-check
+   query. Rename it and the daily build silently stops firing.
+2. **`validation_report.json` must stay at the repo root.** The same Worker fetches it
+   from `raw.githubusercontent.com/<repo>/main/validation_report.json`.
+3. **No Worker is deployed by CI.** The Action's `wrangler deploy` ships the WNBA site
+   only. A Worker change needs a manual `wrangler deploy` from its own directory, and
+   nothing will remind you — a page sending a field the deployed Worker ignores fails
+   silently.
+
+Paths are never spelled out in site scripts: `sag.config.LeagueConfig` owns
+`slug`/`season`/`data_dir` and **derives** filenames by convention (D13), anchored to
+the site directory rather than the working directory. Add a league by adding a config,
+not by adding paths.
 
 ## Local working gotchas
 
@@ -75,14 +103,14 @@ until 2026-08-07, which meant they were invisible from inside this repo — so
 they're recorded here instead, where they're versioned and travel with the code.
 
 **1. The local CSVs go stale, and nothing tells you.**
-`wnba_player_box_2026.csv`, `wnba_team_box_2026.csv`, and `wnba_pbp_2026.csv` are
+`sites/wnba/data/player_box_2026.csv`, `sites/wnba/data/team_box_2026.csv`, and `sites/wnba/data/pbp_2026.csv` are
 **build artifacts, not source** — gitignored, and carried between CI runs by the
 Actions cache rather than by git. The daily build refreshes them *in CI only*; it
 never touches the local copies. Nothing needs them locally for the site to work,
 which is exactly why they drift unnoticed.
 
 > **Before answering any season-wide question from the local CSVs, check the max
-> `game_date` first.** If it's behind, refresh with `.venv/bin/python fetch_data.py`
+> `game_date` first.** If it's behind, refresh with `.venv/bin/python sites/wnba/fetch_data.py`
 > (incremental — it only pulls games it doesn't have).
 
 Two real instances: on 2026-07-10 the local team box ended July 2, a week behind.
@@ -94,7 +122,7 @@ Note ESPN dates late games in **UTC**, so a "July 9" night slate can appear unde
 `2026-07-10`.
 
 **2. Always `git pull --rebase` before pushing.**
-The daily build commits and pushes `public/index.html` (plus
+The daily build commits and pushes `sites/wnba/public/index.html` (plus
 `validation_report.json`, `player_id_crosswalk.json`, `usage_history.jsonl`) as
 `wnba-stats-bot` every morning. Push without pulling and it's rejected because
 the remote is ahead. Applies to manual pushes and any scripted commit-and-push.

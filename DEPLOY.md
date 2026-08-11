@@ -7,13 +7,13 @@ rebuild the static page → publish to a public URL.** No server, no R, no cost.
 
 ```
 GitHub Actions (cron, 7am ET)
-    └─ python fetch_data.py        # pulls box scores + pbp + line scores + today's schedule (no R)
-    └─ python build_stats_page.py  # bakes data into one static HTML
-    └─ copies it to public/index.html and commits + pushes
-    └─ npx wrangler deploy         # deploys directly to Cloudflare
+    └─ python sites/wnba/fetch_data.py        # pulls box scores + pbp + line scores + today's schedule (no R)
+    └─ python sites/wnba/build_stats_page.py  # bakes data into one static HTML
+    └─ copies it to sites/wnba/public/index.html and commits + pushes
+    └─ npx wrangler deploy -c sites/wnba/wrangler.toml   # deploys to Cloudflare
             │
             ▼
-Cloudflare Workers  →  serves public/index.html at wnba.statsataglance.com
+Cloudflare Workers  →  serves sites/wnba/public/index.html at wnba.statsataglance.com
 ```
 
 GitHub does all the work — fetching, building, committing, AND deploying. The
@@ -33,7 +33,7 @@ dashboard to fix.
 Root cause: when two pushes arrive close together, Cloudflare's Git-trigger may
 promote the first and leave the second as an inactive version. With a single
 deploy path (the Action calling `wrangler deploy`), every deploy uses the commit
-that just rebuilt `public/index.html`, so the correct version is always active.
+that just rebuilt `sites/wnba/public/index.html`, so the correct version is always active.
 
 **Manual deploys:** push your code changes to `main`, then trigger the Action
 (GitHub Actions tab → "Run workflow", or `gh workflow run build.yml` from CLI).
@@ -42,9 +42,11 @@ deploys — all in one run.
 
 ## Static site on Cloudflare Workers
 
-Cloudflare has merged "Pages" into "Workers." This repo includes a small
-`wrangler.toml` that tells Wrangler to serve the `public/` folder as a static
-site, so `npx wrangler deploy` just works. You do **not** need to write any
+Cloudflare has merged "Pages" into "Workers." `sites/wnba/wrangler.toml` tells
+Wrangler to serve that site's `public/` folder as a static site. The `[assets]
+directory` is resolved **relative to the config file**, not the working
+directory, which is why the Action passes `-c sites/wnba/wrangler.toml` and
+still uploads `sites/wnba/public/`. You do **not** need to write any
 Worker code — it's still a plain static site under the hood.
 
 ## One-time setup
@@ -58,8 +60,7 @@ files.
 ```bash
 cd ~/projects/statsataglance
 git init
-git add fetch_data.py build_stats_page.py requirements.txt .gitignore \
-        wrangler.toml .github/workflows/build.yml DEPLOY.md
+git add core/ sites/wnba/ .gitignore .github/workflows/build.yml DEPLOY.md
 git commit -m "WNBA stats site: automated daily build"
 # create an empty public repo on github.com first, then:
 git remote add origin https://github.com/moscowjh/wnba-stats.git
@@ -73,19 +74,19 @@ HTML is generated, so build it locally (this uses your local CSVs and only needs
 pandas — no fetch step required) and commit the result:
 
 ```bash
-python3 build_stats_page.py            # regenerates WNBA-2026-stats-explorer.html
-mkdir -p public
-cp WNBA-2026-stats-explorer.html public/index.html
-git add public/index.html
+pip install -e core/                   # once — puts `sag` on the path
+python sites/wnba/build_stats_page.py  # regenerates sites/wnba/wnba-2026-stats-explorer.html
+cp sites/wnba/wnba-2026-stats-explorer.html sites/wnba/public/index.html
+git add sites/wnba/public/index.html
 git commit -m "Add static site content"
 git push
 ```
 
-`git status` should show `public/index.html` as tracked — `.gitignore` blocks
-`*.csv` but not `public/`.
+`git status` should show `sites/wnba/public/index.html` as tracked — `.gitignore`
+blocks `sites/*/data/` and `*.csv` but not `public/`.
 
 > Alternative: instead of building by hand, trigger the GitHub Action once
-> (step 4) and let it create and commit `public/index.html` for you. Either way,
+> (step 4) and let it create and commit `sites/wnba/public/index.html` for you. Either way,
 > the folder must contain `index.html` before Cloudflare can serve anything.
 
 ### 3. Create Cloudflare API credentials
@@ -161,17 +162,17 @@ No `wrangler.toml` change is needed for steps 1–4 — the custom domain is wir
 the dashboard.
 
 ## Adjusting the schedule
-The schedule is controlled by the Cloudflare cron Worker (`cron-worker/`), which
+The schedule is controlled by the Cloudflare cron Worker (`workers/cron/`), which
 calls GitHub's `workflow_dispatch` API at 11:17 UTC (7:17am ET in summer). Later
 in the year, when ET shifts to EST (UTC-5), 11:17 UTC becomes 6:17am ET — adjust
-the cron trigger in `cron-worker/wrangler.toml` if you want to hold ~7am.
+the cron trigger in `workers/cron/wrangler.toml` if you want to hold ~7am.
 
 ## RESOLVED ISSUE — scheduled run not firing (opened 2026-06-08, resolved 2026-06-09)
 **Resolution:** GitHub's native `schedule` missed three mornings straight (June 7,
-8, 9). Replaced it with a **Cloudflare Cron Trigger** Worker (`cron-worker/`) that
+8, 9). Replaced it with a **Cloudflare Cron Trigger** Worker (`workers/cron/`) that
 calls GitHub's `workflow_dispatch` API at 11:17 UTC daily. Setup: create a
 fine-grained GitHub PAT (repo `wnba-stats`, Actions: Read and write), then
-`cd cron-worker && npx wrangler login && npx wrangler deploy && npx wrangler secret
+`cd workers/cron && npx wrangler login && npx wrangler deploy && npx wrangler secret
 put GH_TOKEN`. The Worker's `?key=` route (CRON_KEY secret) fires a manual test.
 Keep `workflow_dispatch` in daily.yml — the Worker depends on it; the old
 `schedule:` line can stay (harmless; concurrency guard prevents double runs). The
@@ -239,7 +240,7 @@ error was still present.
 2. Renamed the workflow file from `daily.yml` to `build.yml` because GitHub's
    internal workflow registry was stuck on the broken state even after the parse
    error was fixed. The rename forced re-registration as a new workflow. The cron
-   Worker (`cron-worker/worker.js`) was updated to dispatch `build.yml` and
+   Worker (`workers/cron/worker.js`) was updated to dispatch `build.yml` and
    redeployed.
 
 **Lesson — YAML gotcha for workflow files:** Never use an unquoted colon-space
@@ -321,22 +322,22 @@ and late-season) as ESPN backfills/corrects data.
 ## Files in this repo
 | File | Role |
 |------|------|
-| `fetch_data.py` | Fetches all data directly from ESPN's public API → **three CSVs** (`wnba_player_box_2026.csv`, `wnba_team_box_2026.csv`, `wnba_pbp_2026.csv`) **plus** today's schedule JSON and `wnba_linescores_2026.json` (official per-quarter line scores). Incremental: only fetches new games on each run. Box-score quarter columns come from the official line scores JSON — **not** derived from PBP (that reconstruction was wrong in ~47% of games; see note below). If a game has no official line scores, its quarter columns are left blank ("correct-or-blank"). |
-| `validate_linescores.py` | One-off cross-check: for every completed game, compares ESPN's official line scores against an independent PBP running-max derivation and confirms each reconciles to the team-box final. Run manually in an env with live ESPN access (`python validate_linescores.py`); exits non-zero on any mismatch. |
+| `fetch_data.py` | Fetches all data directly from ESPN's public API → **three CSVs** (`sites/wnba/data/player_box_2026.csv`, `sites/wnba/data/team_box_2026.csv`, `sites/wnba/data/pbp_2026.csv`) **plus** today's schedule JSON and `sites/wnba/data/linescores_2026.json` (official per-quarter line scores). Incremental: only fetches new games on each run. Box-score quarter columns come from the official line scores JSON — **not** derived from PBP (that reconstruction was wrong in ~47% of games; see note below). If a game has no official line scores, its quarter columns are left blank ("correct-or-blank"). |
+| `validate_linescores.py` | One-off cross-check: for every completed game, compares ESPN's official line scores against an independent PBP running-max derivation and confirms each reconciles to the team-box final. Run manually in an env with live ESPN access (`python sites/wnba/validate_linescores.py`); exits non-zero on any mismatch. |
 | `build_stats_page.py` | Builds the self-contained HTML from the CSVs + schedule JSON + line scores JSON |
-| `wrangler.toml` | Tells Cloudflare to serve `public/` as a static site |
+| `sites/wnba/wrangler.toml` | Tells Cloudflare to serve this site's `public/` as a static site. Per-site, not shared infra (D10) |
 | `.github/workflows/build.yml` | Daily cron: fetch → build → commit → deploy |
-| `requirements.txt` | Python deps for the Action (`pandas`, `requests`) |
-| `public/index.html` | The built site Cloudflare serves (regenerated daily) |
+| `core/pyproject.toml` | Python deps for the Action (`pandas`, `requests`), and the packaging for `sag`. Replaced `requirements.txt` at the Phase 1 restructure (D9) |
+| `sites/wnba/public/index.html` | The built site Cloudflare serves (regenerated daily) |
 | `validate_stats.py` | Layer-2 external verification: diffs our leader boards against stats.wnba.com's API. Runs in CI before the Bluesky post and gates it; also runnable by hand. See "Layer-2 stats validation" below. |
 | `validation_report.json` | Latest validator run (per-check PASS/FAIL/SKIPPED). Committed by each build; read by the cron Worker's health check. |
 | `player_id_crosswalk.json` | Persisted ESPN `athlete_id` → WNBA `PLAYER_ID` matches, grown by each validator run so later joins are exact even if a name spelling drifts. |
-| `cron-worker/` | Cloudflare Worker: triggers daily builds + health check. **Tracked in git as of 2026-07** (reversing the 2026-07-12 stance — it now gates data-quality alerting, so losing its history would hurt). Being tracked does NOT put it in the Actions deploy path: deploys remain manual (`cd cron-worker && npx wrangler deploy`). Secrets (`GH_TOKEN`, `CRON_KEY`) live only in `wrangler secret put`; `.wrangler/` and `.dev.vars` are gitignored. |
-| `analytics-worker/` | Cloudflare Worker: receives usage beacons → Workers Analytics Engine. **Tracked in git since 2026-08-05**, under the `.gitignore` rule that every Worker's source is tracked and only its `.wrangler/` build cache is not. Like `cron-worker/`, being tracked does NOT put it in the Actions deploy path: deploys remain manual (`cd analytics-worker && npx wrangler deploy`). See "Usage analytics worker" below. |
+| `workers/cron/` | Cloudflare Worker: triggers daily builds + health check. **Tracked in git as of 2026-07** (reversing the 2026-07-12 stance — it now gates data-quality alerting, so losing its history would hurt). Being tracked does NOT put it in the Actions deploy path: deploys remain manual (`cd workers/cron && npx wrangler deploy`). Secrets (`GH_TOKEN`, `CRON_KEY`) live only in `wrangler secret put`; `.wrangler/` and `.dev.vars` are gitignored. |
+| `workers/analytics/` | Cloudflare Worker: receives usage beacons → Workers Analytics Engine. **Tracked in git since 2026-08-05**, under the `.gitignore` rule that every Worker's source is tracked and only its `.wrangler/` build cache is not. Like `workers/cron/`, being tracked does NOT put it in the Actions deploy path: deploys remain manual (`cd workers/analytics && npx wrangler deploy`). See "Usage analytics worker" below. |
 
 ## Health check + email alerts (added 2026-06-11)
 
-The cron Worker (`cron-worker/`) now has a second job: at **11:45 UTC** daily it
+The cron Worker (`workers/cron/`) now has a second job: at **11:45 UTC** daily it
 verifies the morning build end-to-end and emails horowitz.jason@gmail.com
 **only on failure**. Silence = all good. This replaces the temporary Claude
 scheduled check.
@@ -404,7 +405,7 @@ before writing a workaround down as permanent.
 
 ### ESPN proxy fallback (prototype, 2026-08-05 — NOT needed, NOT deployed)
 
-`espn-proxy/` is a narrow, key-authenticated Cloudflare Worker that passes
+`workers/espn-proxy/` is a narrow, key-authenticated Cloudflare Worker that passes
 through to ESPN's WNBA API. It was drafted for the IP-range-block theory that
 the table above disproved, so it solves a problem this project does not have.
 
@@ -413,7 +414,7 @@ or IP-fenced, which is the one situation where Cloudflare's egress helps. Try
 a plain host swap first. `fetch_data.py` sends `ESPN_PROXY_KEY` as
 `X-Proxy-Key` when set, so switching over is two repo secrets and three lines
 of workflow YAML — and deleting the secrets is the rollback. Setup and limits
-in `espn-proxy/README.md`.
+in `workers/espn-proxy/README.md`.
 
 ### Fail-loud on an incomplete fetch (added 2026-08-05)
 
@@ -430,7 +431,7 @@ red, notifies you, and makes the cron-worker health check auto-rebuild.
 Escape hatch: tick **allow_partial** in the Run workflow UI (or set
 `ALLOW_PARTIAL=1`) to publish a partial update anyway.
 
-Related: `wnba_schedule_today.json` now carries a `status` field. `"ok"` with an
+Related: `sites/wnba/data/schedule_today.json` now carries a `status` field. `"ok"` with an
 empty `games` list means ESPN confirmed there are no games today; `"unavailable"`
 means the fetch failed. The Games tab renders "No games today." only for the
 first, and "Today's schedule is unavailable." otherwise — on 2026-08-05 a failed
@@ -513,7 +514,7 @@ The contract:
   crash blocks the post; the source being unreachable or behind us
   (`SKIPPED — source not caught up`) does NOT, since our own data already
   passed the Layer-1 guards.
-- **By hand:** `python validate_stats.py` checks all 11 boards and prints a
+- **By hand:** `python sites/wnba/validate_stats.py` checks all 11 boards and prints a
   readable report; `--date YYYY-MM-DD` cuts our side off at a date (only
   meaningful while the source is frozen there too, e.g. over a break).
 - The stats API needs browser-ish headers **plus gzip Accept-Encoding**
@@ -535,7 +536,7 @@ The contract:
 3. **Redeploy the Worker** (picks up the new code, second cron, and email
    binding):
    ```bash
-   cd cron-worker && npx wrangler deploy
+   cd workers/cron && npx wrangler deploy
    ```
    `GH_TOKEN` and `CRON_KEY` secrets carry over; no changes needed.
 4. **Test it**:
@@ -562,7 +563,7 @@ Worker on page load, on every tab switch, and on every box-score open — so we
 can see which tabs get used and whether box scores get opened, not just that
 someone showed up.
 
-**The contract** (client in `build_stats_page.py` ↔ worker in `analytics-worker/`):
+**The contract** (client in `build_stats_page.py` ↔ worker in `workers/analytics/`):
 - Client → `GET`/`POST https://usage.statsataglance.com/t?e=<event>&t=<tab>&s=<utm_source>&r=<0|1>&site=<site>&ref=<host>`
   via `navigator.sendBeacon` (fetch fallback). Wrapped in try/catch — fails
   silently, never blocks the page.
@@ -608,7 +609,7 @@ which is why this shipped ahead of the pages.
   the old JS. Kept distinct from `direct` in `usage_report.py`; merging them
   would invent direct traffic that was never measured.
 
-**Tracked in git since 2026-08-05**, along with `cron-worker/`, under the
+**Tracked in git since 2026-08-05**, along with `workers/cron/`, under the
 `.gitignore` rule that a Worker's source is tracked and only its `.wrangler/`
 build cache is not. It is still deployed manually and is not part of the daily
 HTML build — **so a change here does not ship until someone runs `wrangler
@@ -625,7 +626,7 @@ page sending `ref` to a worker that ignores it fails silently and looks fine.
    `wrangler.toml` is what matters.
 2. **Deploy the worker:**
    ```bash
-   cd analytics-worker && npx wrangler deploy
+   cd workers/analytics && npx wrangler deploy
    ```
 3. **Route the hostname to it.** The client posts to `usage.statsataglance.com`,
    so map that subdomain to the worker: Workers & Pages → `wnba-usage-tracker` →
@@ -679,8 +680,10 @@ date is indistinguishable from direct traffic. Not recoverable retroactively.
 
 ### Python dependencies
 
-`requirements.txt` is the only manifest, consumed at one place —
-`pip install -r requirements.txt` in `build.yml`. The three Cloudflare Workers
+`core/pyproject.toml` is the only manifest, consumed at one place —
+`pip install -e core/` in `build.yml`. It replaced `requirements.txt` at the
+Phase 1 restructure: one declaration, no per-site files, because there is no
+divergence to accommodate (D9). The three Cloudflare Workers
 are plain JS with **no** `package.json`; `wrangler` is invoked via `npx` at
 deploy time and is not a tracked dependency.
 
@@ -730,7 +733,7 @@ presets, not readable via the API, so recorded here:
 
 | Rule | State | Why |
 |---|---|---|
-| Dismiss low-impact alerts for development-scoped dependencies | enabled (GitHub default) | Effectively inert: a plain `requirements.txt` carries no dev/prod scope metadata, so nothing should be classified development-scoped. Left on. Worth remembering it exists if an alert ever seems to vanish — and note that in this repo the "dev" environment *is* the production build, so a dev-scoped dismissal would be misleading if it ever fired. |
+| Dismiss low-impact alerts for development-scoped dependencies | enabled (GitHub default) | Effectively inert: `core/pyproject.toml` declares no optional/dev extras, so nothing carries dev/prod scope metadata, so nothing should be classified development-scoped. Left on. Worth remembering it exists if an alert ever seems to vanish — and note that in this repo the "dev" environment *is* the production build, so a dev-scoped dismissal would be misleading if it ever fired. |
 | Dismiss package malware alerts | **disabled — keep it that way** | This rule auto-dismisses malware alerts. Enabling it would silently undercut the malware alerts above, which are one of the few controls covering the `pip install`-with-a-write-token path. |
 
 **Known residual gap.** `CRON_KEY` and `PROXY_KEY` are self-generated random

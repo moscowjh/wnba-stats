@@ -38,9 +38,9 @@ Checks per category (thresholds from the handoff):
   top-10 set overlap ........................ WARN only
 
 Usage:
-  python validate_stats.py                    # all categories, human report
-  python validate_stats.py --date 2026-07-22  # our side cut off at a date
-  python validate_stats.py --gate             # broadcast category only; writes
+  python sites/wnba/validate_stats.py                    # all categories, human report
+  python sites/wnba/validate_stats.py --date 2026-07-22  # our side cut off at a date
+  python sites/wnba/validate_stats.py --gate             # broadcast category only; writes
                                               # leaders_ok=true/false to
                                               # $GITHUB_OUTPUT for the Bluesky
                                               # post gate (fail-closed on
@@ -66,11 +66,15 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from config import WNBA
 import build_stats_page as bsp
 
-HERE = Path(__file__).resolve().parent
-REPORT_PATH = HERE / "validation_report.json"
-CROSSWALK_PATH = HERE / "player_id_crosswalk.json"
+# Both stay at the REPO ROOT, not beside this script: workers/cron/worker.js
+# fetches validation_report.json from raw.githubusercontent at
+# `main/validation_report.json`, and that Worker is not deployed by CI — moving
+# it would break the health check silently and need a manual wrangler deploy.
+REPORT_PATH = WNBA.validation_report
+CROSSWALK_PATH = WNBA.player_crosswalk
 
 LEADERS_URL = "https://stats.wnba.com/stats/leagueleaders"
 # stats.wnba.com runs the stats.nba.com stack: it hangs (rather than failing)
