@@ -6,6 +6,7 @@ Built for checking stats courtside on your phone. No ads, no frameworks, no app 
 
 ## What's on it
 
+- **Games** (landing tab): today's schedule plus yesterday's finals, linked to inline box scores
 - **Standings** with Pythagorean expected W/L and playoff cutoff
 - **Leaders** with WNBA qualifying minimums
 - **Efficiency** (Four Factors: offensive/defensive ratings, pace, eFG%, TOV%, ORB%, FT rate)

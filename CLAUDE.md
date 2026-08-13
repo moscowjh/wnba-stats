@@ -54,11 +54,28 @@ in the repo they govern (`workspace-architecture.md` D4):
 
 ## Build / pipeline
 
-Daily GitHub Actions build: `fetch_data.py` pulls from ESPN's public API (player
-box + team box + play-by-play + today's schedule JSON) → `validate_stats.py`
-gates → `build_stats_page.py` bakes one static HTML → copied to
-`sites/wnba/public/index.html` → **`npx wrangler deploy` from inside the Action**. A
-Cloudflare cron Worker (`workers/cron/`) dispatches the build ~11:17 UTC plus
+Daily GitHub Actions build (`.github/workflows/build.yml` — heavily commented,
+read it for step-level detail):
+
+1. `fetch_data.py` pulls from ESPN's public API (player box + team box +
+   play-by-play + today's schedule JSON). An incomplete fetch exits non-zero and
+   **fails the job on purpose** so no stale page is rebuilt; the `allow_partial`
+   checkbox in the Run-workflow UI overrides.
+2. `build_stats_page.py` bakes one static HTML (plus `social_payload.json` for
+   the Bluesky post) → copied to `sites/wnba/public/index.html`.
+3. `validate_stats.py --gate` diffs our leader boards against stats.wnba.com.
+   It **never blocks the site deploy** (continue-on-error); its `leaders_ok`
+   output gates only the Bluesky post — a wrong page can be rebuilt tomorrow, a
+   wrong post can't be unpublished.
+4. `usage_report.py --snapshot` appends yesterday's usage to
+   `usage_history.jsonl` (Workers Analytics Engine only retains 90 days; this
+   committed rollup is what outlives it). Never blocks; a missed day is
+   recoverable with `--snapshot --date YYYY-MM-DD`, idempotent.
+5. Bot commit → **`npx wrangler deploy` from inside the Action**.
+6. `post_to_bluesky.py` posts one leader category per day (fixed rotation) +
+   last-night factoid, reading only our own `social_payload.json`.
+
+A Cloudflare cron Worker (`workers/cron/`) dispatches the build ~11:17 UTC plus
 health checks at 11:45 / 13:15 / 14:45 UTC (emails on failure only).
 
 **`wrangler deploy` from the workflow is the only deploy path.** Cloudflare's
@@ -68,6 +85,15 @@ does not publish anything on its own. Never run `npx wrangler deploy` locally.
 Run the build with the local venv's Python (3.13 — the build uses 3.12+ syntax):
 `.venv/bin/python sites/wnba/build_stats_page.py`. It needs `sag` on the path —
 `.venv/bin/pip install -e core/`, once.
+
+Dependencies are declared in **`core/pyproject.toml` only** (D9) — there is no
+requirements.txt, and site scripts deliberately have no per-site file. Majors
+are upper-bounded; raising a ceiling is a deliberate human act (run the build
+before merging).
+
+There is no test suite or linter. Verification is running the build locally and
+letting the validators (`validate_stats.py`, and the one-off
+`validate_linescores.py`, which needs real ESPN access) check the output.
 
 ## Repo layout (restructured 2026-08-11, Phase 1)
 
