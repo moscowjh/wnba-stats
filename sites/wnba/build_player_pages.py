@@ -289,10 +289,15 @@ details.exp>summary:hover{border-color:var(--accent);color:var(--accent)}
 .pf table.s td{padding:3px 4px;border-bottom:1px solid var(--border)}
 .scr{overflow-x:auto}
 details.inl{display:inline-block}
-details.inl>summary{list-style:none;border-bottom:1px dotted var(--muted);cursor:pointer;
+/* Tap-target padding lives on the summary; the dotted "clickable" cue lives
+   on the inner span so it underlines the text itself rather than drawing at
+   the padded box's bottom edge, where it collided with the number below. */
+details.inl>summary{list-style:none;cursor:pointer;
   display:inline-block;padding:6px 10px 6px 0;margin:-6px 0 -6px 0}
 details.inl>summary::-webkit-details-marker{display:none}
-details.inl[open]>summary{color:var(--accent);border-bottom-color:var(--accent)}
+details.inl>summary .t{border-bottom:1px dotted var(--muted)}
+details.inl[open]>summary{color:var(--accent)}
+details.inl[open]>summary .t{border-bottom-color:var(--accent)}
 details.inl .body{position:absolute;width:215px;background:#000;border:1px solid var(--accent);
   padding:8px 9px;font-size:10px;line-height:1.65;color:var(--text);z-index:20;margin-top:5px}
 .site-ft{color:#5a5a5a;font-size:10px;margin-top:14px;line-height:1.8}
@@ -324,19 +329,29 @@ def counting_card(stat, value, rank, accent=False):
 
 
 def ts_card(ts_value, lg_avg):
-    label = (f'<details class="inl" name="glossary"><summary>TS%</summary>'
+    label = (f'<details class="inl" name="glossary">'
+             f'<summary><span class="t">TS%</span></summary>'
              f'<span class="body">{TS_DEFINITION}</span></details>')
     sub = f'<div class="sub">WNBA avg {fmt_ts(lg_avg)}</div>'
     return card_html(label, fmt_ts(ts_value), sub)
 
 
 def season_splits_table(row):
-    fgp = bsp.pct(row["FGM"], row["FGA"])
-    mpg = round(row["MIN"] / row["GP"], 1) if row["GP"] else "-"
-    cells = [int(row["GP"]), bsp.f1(mpg), bsp.f1(fgp), bsp.f1(row["3PT%"]),
-             bsp.f1(row["FT%"]), bsp.f1(row["SPG"]), bsp.f1(row["BPG"]),
-             bsp.f1(row["TPG"])]
-    heads = ["G", "MPG", "FG%", "3P%", "FT%", "SPG", "BPG", "TO"]
+    """Column-for-column the Players tab's stat set (build_players_section's
+    col_labels minus the Player cell — the page header is the name), in the
+    same order, totals where the tab shows totals. Wide on purpose; the .scr
+    wrapper provides the swipe, same as the live site's tables."""
+    gp = row["GP"]
+    heads = ["MPG", "PPG", "GP", "FG", "FG%", "3PT", "3PT%", "FT", "FT%",
+             "OR", "DR", "TR", "A", "ST", "B", "TO", "PF"]
+    cells = [
+        bsp.f1(row["MIN"] / gp), bsp.f1(row["PTS"] / gp), int(gp),
+        bsp.ma(row["FGM"], row["FGA"]), bsp.f1(bsp.pct(row["FGM"], row["FGA"])),
+        bsp.ma(row["TPM"], row["TPA"]), bsp.f1(bsp.pct(row["TPM"], row["TPA"])),
+        bsp.ma(row["FTM"], row["FTA"]), bsp.f1(bsp.pct(row["FTM"], row["FTA"])),
+        int(row["ORB"]), int(row["DRB"]), int(row["TRB"]), int(row["AST"]),
+        int(row["STL"]), int(row["BLK"]), int(row["TOV"]), int(row["PF"]),
+    ]
     return ('<div class="scr"><table class="s"><tr>'
             + "".join(f"<th>{h}</th>" for h in heads) + "</tr><tr>"
             + "".join(f"<td>{c}</td>" for c in cells) + "</tr></table></div>")
