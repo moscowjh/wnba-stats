@@ -451,6 +451,19 @@ def render_page(row, bio, ranks, lg_ts, games, game_meta,
 
 
 def render_index(entries, data_through):
+    def quick_links(label, subset):
+        if not subset:
+            return ""
+        links = " · ".join(
+            f'<a href="{e["slug"]}/index.html">{esc(e["name"])}</a>'
+            for e in subset)
+        return (f'<div class="site-hd" style="margin-bottom:6px">'
+                f'{label}: {links}</div>')
+
+    tier1 = [e for e in entries if e["tier"] == "1"]
+    tier3 = [e for e in entries if e["tier"].startswith("3")]
+    review_lines = (quick_links("Tier 1 (editorial sentence)", tier1)
+                    + quick_links("Tier 3 (no sentence)", tier3[:8]))
     rows = "".join(
         f'<tr><td><a href="{e["slug"]}/index.html">{esc(e["name"])}</a></td>'
         f'<td>{esc(e["team"])}</td><td>{e["gp"]}</td><td>{e["ppg"]}</td>'
@@ -470,7 +483,7 @@ td{{padding:4px 6px;border-bottom:1px solid var(--border)}}
 </head>
 <body style="max-width:640px">
 <div class="site-hd">LOCAL PREVIEW — not deployed · stats through {data_through}</div>
-<table><tr><th>Player</th><th>Team</th><th>GP</th><th>PPG</th><th>Badges</th><th>Sentence</th></tr>{rows}</table>
+{review_lines}<table><tr><th>Player</th><th>Team</th><th>GP</th><th>PPG</th><th>Badges</th><th>Sentence</th></tr>{rows}</table>
 </body>
 </html>
 """
