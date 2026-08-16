@@ -16,6 +16,9 @@ from pathlib import Path
 from html import escape as esc
 from zoneinfo import ZoneInfo
 
+from sag import seo
+from sag.render import chrome
+
 from config import WNBA
 
 OUTPUT = WNBA.page_output
@@ -901,7 +904,12 @@ def build_players_section(p_team, p_season, team_abbrevs):
         gp = r['GP']
         name = r['athlete_display_name']
         sn = short_name(name)
-        name_cell = f'{esc(sn)} <span class="tm">{esc(team_label)}</span>'
+        # Every row funnels through here, so the 2TM combined row and each
+        # per-team stint all link to the same page — slug is trade-safe (no
+        # team in it) and comes from the same slugify the emitter uses.
+        slug = seo.slugify(name)
+        name_cell = (f'<a class="pl" href="/players/{slug}/">{esc(sn)}</a> '
+                     f'<span class="tm">{esc(team_label)}</span>')
 
         cells = (
             f'<td>{name_cell}</td>'
@@ -1368,21 +1376,20 @@ def build_games_section(player_raw, team_raw):
 
 # ── CSS & JS ──────────────────────────────────────────────────────────────
 
-PAGE_CSS = """\
-  :root {
-    --bg:#0f0f0f; --surface:#1a1a1a; --border:#2e2e2e;
-    --text:#e8e8e8; --muted:#888; --accent:#f5a623;
-    --avg:#aaa;
-  }
+# Assembled from the shared chrome (sag.render.chrome) plus this page's own
+# styles, in the order the monolithic block always had — golden_check.py
+# holds the rendered page byte-identical through this split.
+PAGE_CSS = (
+    chrome.TOKENS_CSS
+    + """\
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);
         font-size:13px;padding:16px}
   h1{color:var(--accent);font-size:17px;margin-bottom:3px}
   .meta{color:var(--muted);font-size:11px;margin-bottom:24px}
-  .site-footer{margin-top:34px;padding-top:12px;border-top:1px solid var(--border);
-      color:var(--muted);font-size:11px;line-height:1.8}
-  .site-footer a{color:var(--muted);text-decoration:underline}
-  .site-footer a:hover{color:var(--accent)}
+"""
+    + chrome.SITE_FOOTER_CSS
+    + """\
   h2{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;
       margin:24px 0 10px;border-bottom:1px solid var(--border);padding-bottom:5px}
   h2 .sub{color:var(--muted);text-transform:none;letter-spacing:0;font-size:11px}
@@ -1393,12 +1400,9 @@ PAGE_CSS = """\
         font-size:12px;letter-spacing:.5px}
   .tab.active{border-color:var(--accent);color:var(--accent)}
   .section{display:none}.section.active{display:block}
-  .table-scroll{position:relative;margin-bottom:16px}
-  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .table-scroll::after{content:"";position:absolute;top:0;bottom:0;right:0;
-    width:28px;pointer-events:none;opacity:0;transition:opacity .15s ease;z-index:5;
-    background:linear-gradient(to right, rgba(15,15,15,0), var(--bg))}
-  .table-scroll.more-right::after{opacity:1}
+"""
+    + chrome.SCROLL_FADE_CSS
+    + """\
   table{border-collapse:collapse;width:100%;white-space:nowrap}
   thead tr{background:var(--surface)}
   th{padding:7px 11px;text-align:left;color:var(--muted);font-size:11px;
@@ -1414,6 +1418,11 @@ PAGE_CSS = """\
   tr.playoff-cutoff td{border-bottom:2px dashed rgba(218,165,32,0.4)}
   /* Team chip */
   .tm{color:#888;margin-left:5px;font-size:11px}
+  /* Player-name link -> her page. Muted underline: legible as a link,
+     quiet enough not to turn the table into a wall of accent. */
+  .pl{color:var(--text);text-decoration:underline;
+      text-decoration-color:rgba(136,136,136,0.4);text-underline-offset:2px}
+  .pl:hover{color:var(--accent)}
   /* One stint of a multi-team player's season: subordinate to the combined line
      above it, and still legible as a partial line if the user re-sorts. */
   tr.tm-split td{color:var(--muted)}
@@ -1516,66 +1525,11 @@ PAGE_CSS = """\
   .gm-bx .gm-sec td{color:var(--accent);font-size:10px;letter-spacing:.1em;padding-top:9px;text-transform:uppercase}
   .gm-bx tr:not(.gm-cols):not(.gm-sec) td{border-top:1px solid #18181b}
   .gm-pos{color:var(--muted);font-size:10px;display:inline-block;min-width:18px}"""
+)
 
-PAGE_JS = """\
-/* -- Usage tracking (Workers Analytics Engine via wnba-usage-tracker) --
-   Cloudflare Web Analytics only sees the initial page load on this
-   single-file site, since tabs and box scores are client-side JS, not
-   real navigation. This sends small, cookie-free beacon pings so we can
-   see which tabs get used and whether box scores get opened. Fails
-   silently if the endpoint is unreachable -- never blocks the page. */
-var TRACK_URL = 'https://usage.statsataglance.com/t';
-/* Which statsataglance property this page is. Sent on every beacon so one
-   dataset can answer cross-site questions (does the Cup site hand users back
-   to WNBA?). Added 2026-08-05 before a second site existed — rows without it
-   predate the change and are WNBA by definition. */
-var SITE_ID = 'wnba';
-/* Referring hostname -- the only way to see search/Reddit/etc, since
-   utm_source can only see links we tagged ourselves. HOSTNAME ONLY: full
-   referrer URLs carry private context (search terms, for one). Captured
-   once per session so an in-site reload can't overwrite the real arrival.
-   'direct' = no referrer sent, which is NOT the same as "typed the URL";
-   see DEPLOY.md before drawing conclusions from it. */
-function refHost() {
-  var cached = sessionStorage.getItem('wsag_ref');
-  if (cached) return cached;
-  var bare = function (h) { return h.toLowerCase().replace(/^www\\./, ''); };
-  var h = 'direct';
-  if (document.referrer) {
-    try {
-      var d = bare(new URL(document.referrer).hostname);
-      h = (d === bare(window.location.hostname)) ? 'self' : d;
-    } catch (e) {}
-  }
-  sessionStorage.setItem('wsag_ref', h);
-  return h;
-}
-function initTracking() {
-  try {
-    var qs = new URLSearchParams(window.location.search);
-    var src = qs.get('utm_source');
-    if (src) sessionStorage.setItem('wsag_src', src);
-    window.__wsagSrc = src || sessionStorage.getItem('wsag_src') || 'none';
-    window.__wsagReturning = localStorage.getItem('wsag_seen') ? '1' : '0';
-    localStorage.setItem('wsag_seen', '1');
-    window.__wsagRef = refHost();
-    track('pageview', '');
-  } catch (e) {}
-}
-function track(event, tab) {
-  try {
-    var params = new URLSearchParams({
-      e: event, t: tab || '', s: window.__wsagSrc || 'none',
-      r: window.__wsagReturning || '0', site: SITE_ID,
-      ref: window.__wsagRef || 'direct'
-    });
-    var url = TRACK_URL + '?' + params.toString();
-    if (navigator.sendBeacon) navigator.sendBeacon(url);
-    else fetch(url, { method: 'GET', keepalive: true, mode: 'no-cors' });
-  } catch (e) {}
-}
-window.addEventListener('load', initTracking);
-
+PAGE_JS = (
+    chrome.usage_js(WNBA.slug)
+    + """
 function showTab(id, btn) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1594,23 +1548,9 @@ function showTab(id, btn) {
   document.querySelectorAll('.gm-box').forEach(s => s.style.display = 'none');
 }
 
-/* -- Horizontal-scroll fade -- */
-function updateScrollFades(wrap) {
-  const scroll = wrap.closest('.table-scroll') || wrap.closest('.gm-tscroll');
-  if (!scroll) return;
-  scroll.classList.toggle('more-right',
-    wrap.scrollWidth - wrap.clientWidth - wrap.scrollLeft > 1);
-}
-function initScrollFades() {
-  document.querySelectorAll('.table-wrap, .gm-tw').forEach(wrap => {
-    updateScrollFades(wrap);
-    wrap.addEventListener('scroll', () => updateScrollFades(wrap), {passive:true});
-  });
-}
-window.addEventListener('load', initScrollFades);
-window.addEventListener('resize', () =>
-  document.querySelectorAll('.table-wrap, .gm-tw').forEach(updateScrollFades));
-
+"""
+    + chrome.SCROLL_FADE_JS
+    + """
 let sortState = {};
 function sortTable(id, col) {
   const tbl = document.getElementById(id);
@@ -1779,6 +1719,7 @@ function backToGames() {
   document.getElementById('games-view').style.display = 'block';
   window.scrollTo(0, 0);
 }"""
+)
 
 
 # ── Page assembly ─────────────────────────────────────────────────────────
@@ -1838,16 +1779,10 @@ def assemble_page(display_date, data_through_iso,
         f'{team_totals_html}\n'
         f'{players_html}\n'
         f'{abbreviations_html}\n'
-        '<div class="site-footer">\n'
-        '  feedback → <a href="mailto:hello@statsataglance.com">hello@statsataglance.com</a><br>\n'
-        '  an independent, non-commercial fan project\n'
-        '</div>\n'
-        f'<script>\n{PAGE_JS}\n</script>\n'
-        '<!-- Cloudflare Web Analytics -->'
-        '<script defer src="https://static.cloudflareinsights.com/beacon.min.js" '
-        'data-cf-beacon=\'{"token": "7397748b2cd6455b8887cfe01269a48b"}\'></script>'
-        '<!-- End Cloudflare Web Analytics -->\n'
-        '</body>\n</html>'
+        + chrome.SITE_FOOTER_HTML
+        + f'<script>\n{PAGE_JS}\n</script>\n'
+        + chrome.cf_beacon_html(WNBA.cf_analytics_token)
+        + '</body>\n</html>'
     )
 
 

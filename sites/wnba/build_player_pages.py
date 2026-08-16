@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
-"""build_player_pages.py — LOCAL CHECKPOINT emitter for per-player pages.
+"""build_player_pages.py — production emitter for per-player pages.
 
-Renders one static page per player into sites/wnba/preview/players/<slug>/
-so the Block B design (wbb-lab prototype round 6, settled 2026-08-11) can be
-reviewed in a browser against real season data before any production wiring.
+Renders one static page per player into ``public/players/<slug>/index.html``
+plus a players index at ``public/players/``, and — because it is the step
+that knows every published URL — also writes ``public/sitemap.xml`` and
+``public/robots.txt``. Wired into build.yml after the main page build;
+everything under public/ deploys via the Action's `wrangler deploy`.
 
-NOT wired into build.yml; nothing under preview/ deploys or is tracked.
-Deferred to the production-wiring session, per the 2026-08-13 handoff:
-the sag package extraction, sitemap/robots/canonical/Schema.org, the
-automated rank-assertion, and hooks.json provenance for Tier 1 sentences.
+Chrome comes from ``sag.render.chrome`` — the same tokens, footer,
+scroll-fade and analytics the tab site uses, imported, not copied. Slugs
+come from ``sag.seo.slugify`` — the same function the Players-tab
+cross-links use, so a link and its page cannot disagree.
+
+Editorial (Tier 1) sentences come from ``reference/hooks.json`` with full
+provenance (sources with verbatim quotes, falsifiable_by_game: false);
+``validate_hooks.py`` asserts the contract. A slug absent from hooks.json
+gets no editorial sentence — omit rather than pad.
 
 Bio fields (height, college, draft, jersey, experience) come from ESPN's
 athlete endpoint via fetch_data.espn_get — the adapter with origin handling;
 never construct an ESPN URL any other way. Results are cached in
-data/player_bios_<season>.json (gitignored) so repeat runs fetch nothing.
+data/player_bios_<season>.json (gitignored locally, carried in CI by the
+Actions data cache) so repeat runs fetch nothing.
 
 Usage:
     .venv/bin/python sites/wnba/build_player_pages.py             # fetch missing bios, emit all
@@ -23,47 +31,25 @@ Usage:
 import argparse
 import json
 import re
-import sys
 import time
-import unicodedata
 from html import escape as esc
 
 import pandas as pd
+
+from sag import seo
+from sag.render import chrome
 
 import build_stats_page as bsp
 import fetch_data as fd
 from config import WNBA
 
-# Both become LeagueConfig fields at the sag extraction (per the settled
-# design: WWC's prefix is "No.", and the cutoff anchors on the size of the
-# league's honour pool, not a bare integer). Local constants until then.
-JERSEY_PREFIX = "#"
-RANK_BADGE_TOP_N = 20
-
 BIOS_PATH = WNBA.data_dir / f"player_bios_{WNBA.season}.json"
-OUT_DIR = WNBA.site_dir / "preview" / "players"
+HOOKS_PATH = WNBA.site_dir / "reference" / "hooks.json"
+OUT_DIR = WNBA.public_dir / "players"
+
+SITE_TITLE = f"{WNBA.display_name} {WNBA.season} — At a Glance"
 
 ESPN_ATHLETE = f"{fd.ESPN_ORIGIN}/apis/common/v3/sports/basketball/wnba/athletes"
-
-# ── Tier 1 sentences ──────────────────────────────────────────────────────
-# PLACEHOLDERS for the visual checkpoint, keyed by slug. Production keeps
-# these in hooks.json with source URL + date written; none of these ships
-# without that provenance pass. Rule: no claim a game could falsify.
-TIER1_SENTENCES = {
-    "aja-wilson": (
-        "The first pick of the 2018 draft out of South Carolina, where she "
-        "won the 2017 national championship."
-    ),
-    "caitlin-clark": (
-        "The NCAA's all-time leading scorer — men's or women's — and the "
-        "first pick of the 2024 draft."
-    ),
-    "sonia-citron": (
-        "The third pick of the 2025 draft and an All-Rookie selection that "
-        "year — the only player in Notre Dame history with 1,700 points, "
-        "700 rebounds and 300 assists."
-    ),
-}
 
 TS_DEFINITION = (
     "<b>True shooting.</b> Points scored per shot, counting three-pointers "
@@ -85,14 +71,6 @@ POSITION_WORDS = {
 
 
 # ── Small helpers ─────────────────────────────────────────────────────────
-
-def slugify(name):
-    """'A'ja Wilson' -> 'aja-wilson'. Stable ASCII, trade-safe (no team)."""
-    s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-    s = s.replace("'", "").replace("’", "")
-    s = re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
-    return s
-
 
 def ordinal(n):
     n = int(n)
@@ -138,6 +116,20 @@ def parse_experience(display_experience):
     return int(m.group(1)) if m else None
 
 
+# ── Tier 1 editorial sentences ────────────────────────────────────────────
+
+def load_hooks():
+    """Tier 1 sentences with provenance, keyed by slug. Underscore-prefixed
+    keys (_schema, _rejected) are metadata, not entries. Only `sentence`
+    renders; the sources/claims fields are the provenance record that
+    validate_hooks.py asserts over. A slug with no entry gets no editorial
+    sentence — that is the 'omit rather than pad' rule, not an error."""
+    if not HOOKS_PATH.exists():
+        return {}
+    data = json.loads(HOOKS_PATH.read_text())
+    return {k: v for k, v in data.items() if not k.startswith("_")}
+
+
 # ── Bio fetch ─────────────────────────────────────────────────────────────
 
 def _trim_bio(ath):
@@ -152,7 +144,7 @@ def _trim_bio(ath):
 
 
 def load_or_fetch_bios(athlete_ids, fetch=True):
-    """One athlete-endpoint call per player not already cached. ~170 calls on
+    """One athlete-endpoint call per player not already cached. ~230 calls on
     the first run, zero after. A hard failure caches {} so one broken id
     can't re-stall every later run; delete the entry to retry it."""
     bios = {}
@@ -196,6 +188,32 @@ def compute_card_ranks(season):
         stat: season[stat + "_raw"].where(q).rank(ascending=False, method="min")
         for stat, q in quals.items()
     }
+
+
+def assert_ranks_match_leaders(season, ranks):
+    """Build-time assertion: the card badges must agree with compute_leaders —
+    the implementation of docs/wnba-leader-qualification-rules.md that
+    validate_stats.py diffs against stats.wnba.com every morning. If the two
+    rank computations ever drift (a qualification tweak lands in one place),
+    227 pages of badges go quietly wrong; at this scale a manual check does
+    not hold, so the build refuses instead."""
+    leaders = bsp.compute_leaders(season, full=True)
+    by_id = season.reset_index().set_index("athlete_id")["index"]
+    for cat, stat in (("Scoring", "PPG"), ("Rebounds", "RPG"),
+                      ("Assists", "APG")):
+        prev_raw, prev_rank = None, 0
+        for pos, (_, row) in enumerate(leaders[cat].iterrows(), start=1):
+            # method="min" semantics: a tie shares the higher (lower-numbered)
+            # rank, so expected rank only advances when the raw value drops.
+            exp = prev_rank if row["_raw"] == prev_raw else pos
+            got = ranks[stat].loc[by_id[row["athlete_id"]]]
+            assert pd.notna(got) and int(got) == exp, (
+                f"rank drift vs compute_leaders: {row['Player']} is #{pos} "
+                f"on the {cat} board but card rank for {stat} is {got!r} "
+                f"(expected {exp}). compute_card_ranks and compute_leaders "
+                "no longer implement the same qualification rule."
+            )
+            prev_raw, prev_rank = row["_raw"], exp
 
 
 def league_ts_avg(season):
@@ -242,21 +260,18 @@ def generated_sentence(bio):
             # so say only what's certain.
             parts.append(f"Drafted: {year}, round {rd}.")
     if bio.get("jersey"):
-        parts.append(f"Jersey: {JERSEY_PREFIX}{esc(str(bio['jersey']))}.")
+        parts.append(f"Jersey: {WNBA.jersey_prefix}{esc(str(bio['jersey']))}.")
     return " ".join(parts) if has_new_fact else None
 
 
 # ── Page pieces ───────────────────────────────────────────────────────────
 
-PAGE_CSS = """
-:root{--bg:#0f0f0f;--surface:#1a1a1a;--border:#2e2e2e;--text:#e8e8e8;--muted:#888;--accent:#f5a623}
-*{box-sizing:border-box;margin:0;padding:0}
+# Page-specific styles; the shared chrome (tokens, masthead, footer,
+# scroll fade) is prepended in PAGE_CSS below.
+_CARD_CSS = """\
 body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);
   font-size:13px;padding:14px 10px;max-width:480px;margin:0 auto;line-height:1.45}
 a{color:var(--muted)}
-.site-hd{font-size:11px;color:var(--muted);margin-bottom:12px}
-.site-hd a{text-decoration:none}
-.site-hd a:hover{color:var(--accent)}
 .pf{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px}
 .pf h1{color:var(--accent);font-size:15px;margin-bottom:2px;font-weight:normal}
 .mu{color:var(--muted);font-size:10px}
@@ -287,7 +302,6 @@ details.exp>summary:hover{border-color:var(--accent);color:var(--accent)}
 .pf table.s th{color:var(--muted);text-align:left;padding:3px 4px;
   border-bottom:1px solid var(--border);font-weight:normal}
 .pf table.s td{padding:3px 4px;border-bottom:1px solid var(--border)}
-.scr{overflow-x:auto}
 details.inl{display:inline-block}
 /* Tap-target padding lives on the summary; the dotted "clickable" cue lives
    on the inner span so it underlines the text itself rather than drawing at
@@ -300,18 +314,61 @@ details.inl[open]>summary{color:var(--accent)}
 details.inl[open]>summary .t{border-bottom-color:var(--accent)}
 details.inl .body{position:absolute;width:215px;background:#000;border:1px solid var(--accent);
   padding:8px 9px;font-size:10px;line-height:1.65;color:var(--text);z-index:20;margin-top:5px}
-.site-ft{color:#5a5a5a;font-size:10px;margin-top:14px;line-height:1.8}
-.site-ft a{color:#5a5a5a}
+.data-note{color:var(--muted);font-size:10px;margin-top:14px}
 """
 
+PAGE_CSS = (
+    chrome.TOKENS_CSS
+    + "*{box-sizing:border-box;margin:0;padding:0}\n"
+    + _CARD_CSS
+    + chrome.SUBPAGE_HEADER_CSS
+    + chrome.SCROLL_FADE_CSS
+    + chrome.SITE_FOOTER_CSS
+)
+
 # The splits expand is sticky per VISITOR, not per page: a returning reader
-# who wants the dense tables open shouldn't re-click on every page.
-STICKY_JS = """
+# who wants the dense tables open shouldn't re-click on every page. Opening
+# it also sends the depth beacon — the signal that a landing became a read.
+STICKY_JS = """\
 var d=document.querySelector('details.exp');
 if(d){try{if(localStorage.getItem('sag-expand')==='1')d.open=true}catch(e){}
 d.addEventListener('toggle',function(){
-  try{localStorage.setItem('sag-expand',d.open?'1':'0')}catch(e){}})}
+  try{localStorage.setItem('sag-expand',d.open?'1':'0')}catch(e){}
+  if(d.open)track('expand','player:__SLUG__')})}
 """
+
+
+def page_js(slug):
+    return (chrome.usage_js(WNBA.slug)
+            + "\n" + STICKY_JS.replace("__SLUG__", slug)
+            + "\n" + chrome.SCROLL_FADE_JS)
+
+
+def head_html(title, path, description, jsonld=None):
+    """Shared <head> for every page under /players/: canonical + meta +
+    Open Graph/Twitter, plus optional JSON-LD. All URLs absolute."""
+    canonical = seo.canonical_url(WNBA, path)
+    og_image = f"{WNBA.base_url}/og.png"
+    parts = [
+        '<meta charset="utf-8">',
+        '<meta name="viewport" content="width=device-width,initial-scale=1">',
+        f"<title>{esc(title)}</title>",
+        f'<meta name="description" content="{esc(description)}">',
+        f'<link rel="canonical" href="{esc(canonical)}">',
+        '<meta property="og:type" content="profile">',
+        '<meta property="og:site_name" content="statsataglance">',
+        f'<meta property="og:title" content="{esc(title)}">',
+        f'<meta property="og:description" content="{esc(description)}">',
+        f'<meta property="og:url" content="{esc(canonical)}">',
+        f'<meta property="og:image" content="{esc(og_image)}">',
+        '<meta name="twitter:card" content="summary">',
+        f'<meta name="twitter:title" content="{esc(title)}">',
+        f'<meta name="twitter:description" content="{esc(description)}">',
+    ]
+    if jsonld:
+        parts.append(f'<script type="application/ld+json">{jsonld}</script>')
+    parts.append(f"<style>{PAGE_CSS}</style>")
+    return "\n".join(parts)
 
 
 def card_html(label_html, value, sub_html="", accent=False):
@@ -321,8 +378,9 @@ def card_html(label_html, value, sub_html="", accent=False):
 
 
 def counting_card(stat, value, rank, accent=False):
-    if pd.notna(rank) and rank <= RANK_BADGE_TOP_N:
-        sub = f'<div class="sub badge">{ordinal(rank)} in WNBA</div>'
+    if pd.notna(rank) and rank <= WNBA.rank_badge_top_n:
+        sub = (f'<div class="sub badge">{ordinal(rank)} in '
+               f'{esc(WNBA.display_name)}</div>')
     else:
         sub = '<div class="sub"></div>'
     return card_html(stat, bsp.f1(value), sub, accent=accent)
@@ -332,15 +390,23 @@ def ts_card(ts_value, lg_avg):
     label = (f'<details class="inl" name="glossary">'
              f'<summary><span class="t">TS%</span></summary>'
              f'<span class="body">{TS_DEFINITION}</span></details>')
-    sub = f'<div class="sub">WNBA avg {fmt_ts(lg_avg)}</div>'
+    sub = (f'<div class="sub">{esc(WNBA.display_name)} avg '
+           f'{fmt_ts(lg_avg)}</div>')
     return card_html(label, fmt_ts(ts_value), sub)
+
+
+def _scroll_table(inner):
+    """Wide-table wrapper: the shared chrome's fade + swipe, same structure
+    the tab site uses (.table-scroll > .table-wrap)."""
+    return (f'<div class="table-scroll"><div class="table-wrap">{inner}'
+            f'</div></div>')
 
 
 def season_splits_table(row):
     """Column-for-column the Players tab's stat set (build_players_section's
     col_labels minus the Player cell — the page header is the name), in the
-    same order, totals where the tab shows totals. Wide on purpose; the .scr
-    wrapper provides the swipe, same as the live site's tables."""
+    same order, totals where the tab shows totals. Wide on purpose; the
+    shared scroll fade provides the swipe cue, same as the live site."""
     gp = row["GP"]
     heads = ["MPG", "PPG", "GP", "FG", "FG%", "3PT", "3PT%", "FT", "FT%",
              "OR", "DR", "TR", "A", "ST", "B", "TO", "PF"]
@@ -352,9 +418,10 @@ def season_splits_table(row):
         int(row["ORB"]), int(row["DRB"]), int(row["TRB"]), int(row["AST"]),
         int(row["STL"]), int(row["BLK"]), int(row["TOV"]), int(row["PF"]),
     ]
-    return ('<div class="scr"><table class="s"><tr>'
-            + "".join(f"<th>{h}</th>" for h in heads) + "</tr><tr>"
-            + "".join(f"<td>{c}</td>" for c in cells) + "</tr></table></div>")
+    return _scroll_table(
+        '<table class="s"><tr>'
+        + "".join(f"<th>{h}</th>" for h in heads) + "</tr><tr>"
+        + "".join(f"<td>{c}</td>" for c in cells) + "</tr></table>")
 
 
 def build_game_meta(team_raw):
@@ -393,22 +460,23 @@ def game_log_table(games, game_meta):
                  bsp.ma(g["free_throws_made"], g["free_throws_attempted"]),
                  pm]
         rows.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
-    return ('<div class="scr"><table class="s"><tr>'
-            + "".join(f"<th>{h}</th>" for h in heads) + "</tr>"
-            + "".join(rows) + "</table></div>")
+    return _scroll_table(
+        '<table class="s"><tr>'
+        + "".join(f"<th>{h}</th>" for h in heads) + "</tr>"
+        + "".join(rows) + "</table>")
 
 
 def render_page(row, bio, ranks, lg_ts, games, game_meta,
-                team_names, data_through):
+                team_names, data_through, hooks):
     name = row["athlete_display_name"]
-    slug = slugify(name)
+    slug = seo.slugify(name)
     abbr = row["team_abbreviation"]
     team_full = team_names.get(abbr, abbr)
     pos = row["athlete_position_abbreviation"] or ""
     bio = bio or {}
 
     jersey = bio.get("jersey")
-    mono_num = f"{JERSEY_PREFIX}{jersey}" if jersey else (pos or "—")
+    mono_num = f"{WNBA.jersey_prefix}{jersey}" if jersey else (pos or "—")
 
     id_line1 = " · ".join(p for p in (esc(team_full), esc(pos)) if p)
     exp = parse_experience(bio.get("experience"))
@@ -417,7 +485,7 @@ def render_page(row, bio, ranks, lg_ts, games, game_meta,
                   esc(bio["college"]) if bio.get("college") else None, yr]
     id_line2 = " · ".join(b for b in line2_bits if b)
 
-    editorial = TIER1_SENTENCES.get(slug)
+    editorial = (hooks.get(slug) or {}).get("sentence")
     generated = generated_sentence(bio)
 
     cards = "".join([
@@ -446,60 +514,69 @@ def render_page(row, bio, ranks, lg_ts, games, game_meta,
         + '<div class="sec">Game log</div>'
         + game_log_table(games, game_meta) + "</details>")
 
+    path = f"/players/{slug}/"
+    title = f"{name} — {WNBA.display_name} {WNBA.season} stats at a glance"
+    description = (
+        f"{name} ({team_full}) {WNBA.season} {WNBA.display_name} season "
+        f"stats: {bsp.f1(row['PPG'])} PPG, {bsp.f1(row['RPG'])} RPG, "
+        f"{bsp.f1(row['APG'])} APG. Fast, ad-free, updated every morning.")
+    jsonld = seo.person_jsonld(name, seo.canonical_url(WNBA, path), team_full)
+
+    masthead = chrome.subpage_header_html(
+        esc(SITE_TITLE), "/",
+        crumb_html='<a href="/players/">← all players</a>')
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{esc(name)} — WNBA stats at a glance</title>
-<style>{PAGE_CSS}</style>
+{head_html(title, path, description, jsonld)}
 </head>
 <body>
-<div class="site-hd"><a href="../index.html">← all players</a> · <a href="https://wnba.statsataglance.com">wnba.statsataglance.com</a></div>
-<div class="pf">{"".join(parts)}</div>
-<div class="site-ft">Stats through games of {data_through} ·
-<a href="https://wnba.statsataglance.com">WNBA stats at a glance</a></div>
-<script>{STICKY_JS}</script>
-</body>
+{masthead}<div class="pf">{"".join(parts)}</div>
+<div class="data-note">Stats through games of {data_through}</div>
+{chrome.SITE_FOOTER_HTML}<script>{page_js(slug)}</script>
+{chrome.cf_beacon_html(WNBA.cf_analytics_token)}</body>
 </html>
 """
 
 
 def render_index(entries, data_through):
-    def quick_links(label, subset):
-        if not subset:
-            return ""
-        links = " · ".join(
-            f'<a href="{e["slug"]}/index.html">{esc(e["name"])}</a>'
-            for e in subset)
-        return (f'<div class="site-hd" style="margin-bottom:6px">'
-                f'{label}: {links}</div>')
+    """The public players index at /players/ — every player page, one row
+    each, alphabetical by last name. Doubles as the crawl hub the sitemap
+    and the Players-tab links converge on."""
+    def sort_key(e):
+        parts = e["name"].split()
+        return (parts[-1].lower(), e["name"].lower())
 
-    tier1 = [e for e in entries if e["tier"] == "1"]
-    tier3 = [e for e in entries if e["tier"].startswith("3")]
-    review_lines = (quick_links("Tier 1 (editorial sentence)", tier1)
-                    + quick_links("Tier 3 (no sentence)", tier3[:8]))
     rows = "".join(
-        f'<tr><td><a href="{e["slug"]}/index.html">{esc(e["name"])}</a></td>'
-        f'<td>{esc(e["team"])}</td><td>{e["gp"]}</td><td>{e["ppg"]}</td>'
-        f'<td>{e["badges"] or ""}</td><td>{e["tier"]}</td></tr>'
-        for e in entries)
+        f'<tr><td><a href="/players/{e["slug"]}/">{esc(e["name"])}</a></td>'
+        f'<td>{esc(e["team"])}</td><td>{e["gp"]}</td><td>{e["ppg"]}</td></tr>'
+        for e in sorted(entries, key=sort_key))
+
+    title = f"{WNBA.display_name} {WNBA.season} player pages — At a Glance"
+    description = (
+        f"One page per {WNBA.display_name} player: {WNBA.season} season "
+        "stats at a glance, updated every morning. Fast, ad-free.")
+    masthead = chrome.subpage_header_html(
+        esc(SITE_TITLE), "/",
+        crumb_html=f'{len(entries)} players · stats through {data_through}')
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Player pages — local preview</title>
-<style>{PAGE_CSS}
+{head_html(title, "/players/", description)}
+<style>
 table{{border-collapse:collapse;width:100%;font-size:11px}}
 th{{color:var(--muted);text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);font-weight:normal}}
 td{{padding:4px 6px;border-bottom:1px solid var(--border)}}
+td a{{color:var(--text);text-decoration:underline;text-decoration-color:rgba(136,136,136,0.5);text-underline-offset:2px}}
+td a:hover{{color:var(--accent)}}
 </style>
 </head>
 <body style="max-width:640px">
-<div class="site-hd">LOCAL PREVIEW — not deployed · stats through {data_through}</div>
-{review_lines}<table><tr><th>Player</th><th>Team</th><th>GP</th><th>PPG</th><th>Badges</th><th>Sentence</th></tr>{rows}</table>
-</body>
+{masthead}<table><tr><th>Player</th><th>Team</th><th>GP</th><th>PPG</th></tr>{rows}</table>
+{chrome.SITE_FOOTER_HTML}<script>{page_js("index")}</script>
+{chrome.cf_beacon_html(WNBA.cf_analytics_token)}</body>
 </html>
 """
 
@@ -516,11 +593,14 @@ def main():
     season = bsp.compute_player_season(player_raw)
     season = season.reset_index(drop=True)
 
-    data_through = pd.Timestamp(player_raw["game_date"].max()).strftime(
-        "%B %-d, %Y")
+    through_dt = pd.Timestamp(player_raw["game_date"].max())
+    data_through = through_dt.strftime("%B %-d, %Y")
+    data_through_iso = through_dt.strftime("%Y-%m-%d")
 
     bios = load_or_fetch_bios(list(season["athlete_id"]), fetch=not args.no_fetch)
+    hooks = load_hooks()
     ranks = compute_card_ranks(season)
+    assert_ranks_match_leaders(season, ranks)
     lg_ts = league_ts_avg(season)
     game_meta = build_game_meta(team_raw)
     team_names = (team_raw.drop_duplicates("team_abbreviation")
@@ -528,9 +608,16 @@ def main():
                   .to_dict())
 
     # Slug collisions would silently overwrite a page — fail loudly instead.
-    slugs = season["athlete_display_name"].map(slugify)
+    slugs = season["athlete_display_name"].map(seo.slugify)
     dupes = slugs[slugs.duplicated()].tolist()
     assert not dupes, f"slug collision: {dupes}"
+
+    # A hooks entry for a player who no longer renders is stale editorial;
+    # warn here (the page just doesn't exist), hard-fail in validate_hooks.py.
+    orphans = set(hooks) - set(slugs)
+    if orphans:
+        print(f"WARNING: hooks.json entries with no rendered page: "
+              f"{sorted(orphans)}")
 
     pr = player_raw.copy()
     pr["athlete_id"] = pr["athlete_id"].astype(str)
@@ -539,38 +626,48 @@ def main():
     entries = []
     n_badged = 0
     for i, row in season.iterrows():
-        slug = slugify(row["athlete_display_name"])
+        slug = slugs.loc[i]
         bio = bios.get(row["athlete_id"], {})
         row_ranks = {s: ranks[s].loc[i] for s in ranks}
         games = pr[pr["athlete_id"] == row["athlete_id"]].sort_values(
             "game_date", ascending=False)
         html = render_page(row, bio, row_ranks, lg_ts, games, game_meta,
-                           team_names, data_through)
+                           team_names, data_through, hooks)
         page_dir = OUT_DIR / slug
         page_dir.mkdir(parents=True, exist_ok=True)
         (page_dir / "index.html").write_text(html)
 
         badges = sum(1 for s in row_ranks
-                     if pd.notna(row_ranks[s]) and row_ranks[s] <= RANK_BADGE_TOP_N)
+                     if pd.notna(row_ranks[s])
+                     and row_ranks[s] <= WNBA.rank_badge_top_n)
         n_badged += bool(badges)
-        tier = ("1" if slug in TIER1_SENTENCES
-                else ("2" if generated_sentence(bio) else "3 (none)"))
         entries.append({"slug": slug, "name": row["athlete_display_name"],
                         "team": row["team_abbreviation"], "gp": int(row["GP"]),
-                        "ppg": bsp.f1(row["PPG"]), "badges": badges,
-                        "tier": tier})
+                        "ppg": bsp.f1(row["PPG"]),
+                        "tier": ("1" if slug in hooks
+                                 else "2" if generated_sentence(bio)
+                                 else "3")})
 
     (OUT_DIR / "index.html").write_text(render_index(entries, data_through))
 
+    # This step knows every published URL, so the per-host SEO files are
+    # emitted here: sitemap.xml (all pages, lastmod = the data date) and
+    # robots.txt (minimal + absolute Sitemap line; see sag.seo.robots_txt
+    # for why the Cloudflare Content Signals block is NOT replicated).
+    paths = ["/", "/players/"] + [f"/players/{s}/" for s in slugs]
+    seo.write_sitemap(WNBA, paths, data_through_iso)
+    seo.write_robots(WNBA)
+
     n = len(entries)
-    t3 = sum(1 for e in entries if e["tier"].startswith("3"))
+    t1 = sum(1 for e in entries if e["tier"] == "1")
+    t3 = sum(1 for e in entries if e["tier"] == "3")
     print(f"Wrote {n} player pages + index to {OUT_DIR}")
     print(f"  badges: {n_badged}/{n} pages carry at least one "
           f"({n_badged / n:.0%})")
-    print(f"  tiers: {len(TIER1_SENTENCES)} hand-written · "
-          f"{n - t3 - len(TIER1_SENTENCES)} generated · {t3} omitted")
+    print(f"  tiers: {t1} hand-written · {n - t1 - t3} generated · "
+          f"{t3} omitted")
     print(f"  league TS% avg: {fmt_ts(lg_ts)}")
-    print(f"Open: {OUT_DIR / 'index.html'}")
+    print(f"  sitemap: {len(paths)} URLs · robots.txt written")
 
 
 if __name__ == "__main__":

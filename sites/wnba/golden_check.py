@@ -57,17 +57,20 @@ def _build(out_site_dir, sag_today):
     out_site_dir instead of the real site directory. All of the builder's
     paths resolve through its module-level WNBA config at call time, so
     rebinding that one name redirects every read and write."""
+    import dataclasses
+
     import pandas  # noqa: F401 — fail here, clearly, if the venv is wrong
 
     os.environ["SAG_TODAY"] = sag_today
     sys.path.insert(0, str(SITE_DIR))
-    from sag.config import LeagueConfig
     import build_stats_page as bsp
+    from config import WNBA
 
-    cfg = LeagueConfig(
-        slug="wnba", season="2026", site_dir=Path(out_site_dir),
-        data_dir_override=SNAP_DATA,
-    )
+    # The real league config with only the paths redirected — never a
+    # hand-built copy, which would silently drop any field added later
+    # (cf_analytics_token nearly slipped through exactly that way).
+    cfg = dataclasses.replace(
+        WNBA, site_dir=Path(out_site_dir), data_dir_override=SNAP_DATA)
     bsp.WNBA = cfg
     bsp.OUTPUT = cfg.page_output
     bsp.main()
