@@ -8,6 +8,7 @@ Usage:
 """
 
 import json
+import os
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -22,6 +23,17 @@ OUTPUT = WNBA.page_output
 PYTH_EXP = 13.91  # Pythagorean exponent for basketball
 PLAYOFF_SPOTS = 8  # teams that make the WNBA playoffs
 ET = ZoneInfo("America/New_York")
+
+
+def today_et():
+    """ET calendar date of 'today'. SAG_TODAY (YYYY-MM-DD) overrides it so the
+    golden harness can re-render a pinned snapshot byte-for-byte on any later
+    day — the Games tab's today/yesterday split and the social factoid's
+    'last night' gate both key off this date."""
+    ov = os.environ.get('SAG_TODAY')
+    if ov:
+        return datetime.strptime(ov, '%Y-%m-%d').date()
+    return datetime.now(ET).date()
 
 
 # ── Formatting helpers ────────────────────────────────────────────────────
@@ -722,7 +734,6 @@ def emit_social_payload(player_raw, leaders, display_date, data_through_iso,
     never drift from the site. Purely additive — never affects the HTML build."""
     import json
     import datetime as _dt
-    from zoneinfo import ZoneInfo
 
     cats = {}
     for cat in BROADCAST_CATS:
@@ -744,7 +755,7 @@ def emit_social_payload(player_raw, leaders, display_date, data_through_iso,
     factoid = None
     gd = pd.to_datetime(player_raw['game_date'])
     last = gd.max()
-    et_today = _dt.datetime.now(ZoneInfo("America/New_York")).date()
+    et_today = today_et()
     yesterday = pd.Timestamp(et_today) - pd.Timedelta(days=1)
     if pd.notna(last) and last.normalize() == yesterday:
         ln = player_raw[gd == last].copy()
@@ -1278,8 +1289,8 @@ def _sched_row(away, home, tip_et):
 def build_games_section(player_raw, team_raw):
     """Build the Games tab: today's schedule + yesterday's results with
     inline box scores. Returns HTML string."""
-    today_et = datetime.now(ET).date()
-    yest_et = today_et - timedelta(days=1)
+    today = today_et()
+    yest_et = today - timedelta(days=1)
 
     # Load today's schedule from JSON (written by fetch_data.py).
     #
@@ -1351,7 +1362,7 @@ def build_games_section(player_raw, team_raw):
         '</section>'
         '%s'
         '</div>\n'
-        % (_dow(today_et), sched_html, _dow(yest_et), results_html, box_html)
+        % (_dow(today), sched_html, _dow(yest_et), results_html, box_html)
     )
 
 

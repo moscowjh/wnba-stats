@@ -18,6 +18,9 @@ sites/*/data/
 sites/*/*-stats-explorer.html
 sites/*/social_payload.json
 sites/*/preview/
+# Golden-harness snapshot + pinned renders (golden_check.py) — local dev tool;
+# no fetched CSVs are committed to this public repo.
+sites/*/golden/
 
 # Local secrets. THIS REPO IS PUBLIC. In CI these come from repo secrets.
 .env
