@@ -8,6 +8,13 @@
 # anyone remembering to add it.
 *.csv
 sites/*/data/
+
+# ...but hand-maintained reference data is SOURCE, not an artifact. The rule is
+# provenance, not extension: anything under sites/<slug>/reference/ is typed by a
+# human, has no upstream to re-fetch it from, and is lost forever if it isn't
+# tracked. (wnba_coaches_2026.csv is the first of these.)
+!sites/*/reference/
+!sites/*/reference/*.csv
 sites/*/*-stats-explorer.html
 sites/*/social_payload.json
 
