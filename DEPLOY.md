@@ -665,12 +665,13 @@ curl -s "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/analytics_en
 > with traffic. Sampling is not a future problem; it is already on.
 
 ### utm_source taxonomy
-Three stable values — they are the historical series, so don't rename them:
+Four stable values — they are the historical series, so don't rename them:
 
 | Value | Surface |
 |---|---|
 | `bluesky-post` | the daily automated leaders post's OG card (`post_to_bluesky.py`'s `SITE_URL`) |
 | `bluesky-bio` | the profile bio link — `wnba.statsataglance.com/bsky`, a **Cloudflare Redirect Rule** (dashboard → Rules → Redirect Rules) that 301s to `/?utm_source=bluesky-bio`. Configured only in the dashboard; this line is its only record. |
+| `x-bio` | the X profile's Website-field link — `wnba.statsataglance.com/x`, a **Cloudflare Redirect Rule** (dashboard → Rules → Overview → Create rule → Redirect Rule) that 301s to `/?utm_source=x-bio`. Configured only in the dashboard; this line is its only record. Added 2026-08-14, confirmed working. |
 | `none` | direct, bookmark, organic, or any untagged referrer |
 
 The post card was untagged until 2026-08-04, so every click on it before that
