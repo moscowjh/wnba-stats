@@ -47,6 +47,15 @@ BIOS_PATH = WNBA.data_dir / f"player_bios_{WNBA.season}.json"
 HOOKS_PATH = WNBA.site_dir / "reference" / "hooks.json"
 OUT_DIR = WNBA.public_dir / "players"
 
+# MIRRORS the analytics worker's blob slice width — workers/analytics/worker.js
+# slices `e`/`t` to 32 chars, and the two must be changed together. A key
+# longer than the slice is not lossy display, it is a SILENT COLLISION: two
+# slugs sharing their first 25 characters after "player:" would merge their
+# expand events into one analytics key with no signal that it happened. main()
+# asserts every emitted key fits; the current longest (player:darianna-
+# littlepage-buggs) is exactly 32, so the margin is zero.
+ANALYTICS_KEY_MAX = 32
+
 SITE_TITLE = f"{WNBA.display_name} {WNBA.season} — At a Glance"
 
 ESPN_ATHLETE = f"{fd.ESPN_ORIGIN}/apis/common/v3/sports/basketball/wnba/athletes"
@@ -611,6 +620,16 @@ def main():
     slugs = season["athlete_display_name"].map(seo.slugify)
     dupes = slugs[slugs.duplicated()].tolist()
     assert not dupes, f"slug collision: {dupes}"
+
+    # Same posture for the analytics keys: every "player:<slug>" must fit the
+    # worker's slice (ANALYTICS_KEY_MAX) or two players' expand events merge
+    # into one key with no signal — we'd read the number and believe it.
+    over = [(s, len(f"player:{s}") - ANALYTICS_KEY_MAX)
+            for s in slugs if len(f"player:{s}") > ANALYTICS_KEY_MAX]
+    assert not over, (
+        "analytics key overflow — silent collision risk, widen the worker "
+        "slice and ANALYTICS_KEY_MAX together: "
+        + ", ".join(f"player:{s} (+{n} over)" for s, n in over))
 
     # A hooks entry for a player who no longer renders is stale editorial;
     # warn here (the page just doesn't exist), hard-fail in validate_hooks.py.

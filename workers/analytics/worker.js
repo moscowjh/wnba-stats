@@ -20,8 +20,13 @@
 //   tab      — one per tab switch (tab = tab id, e.g. "leaders")
 //   box      — one per box-score open (tab = "game:<id>")
 //   expand   — one per splits-expand open on a player page
-//              (tab = "player:<slug>"; longest current slug hits the
-//              32-char slice exactly — a longer one truncates harmlessly)
+//              (tab = "player:<slug>"). The page emitter ASSERTS at build
+//              time that every key fits the 32-char slice below
+//              (ANALYTICS_KEY_MAX in build_player_pages.py mirrors this
+//              width — change both together). A key exceeding it would NOT
+//              truncate harmlessly: it would silently COLLIDE with any
+//              other slug sharing its first 32 chars, merging their events
+//              with no signal. Longest current key is exactly 32.
 //
 // No event whitelist on purpose: `e` is sliced, not validated, so a new
 // page type can add an event WITHOUT the manual worker redeploy that
