@@ -13,10 +13,19 @@
 // site). Query later via the Analytics Engine SQL API (see README note
 // below, or DEPLOY.md).
 //
-// Events logged (sent by build_stats_page.py's PAGE_JS):
-//   pageview — one per page load
+// Events logged (sent by the shared usage JS in sag.render.chrome, embedded
+// by build_stats_page.py and build_player_pages.py):
+//   pageview — one per page load (player pages are real navigations, so
+//              since 2026-08 these arrive from /players/* too)
 //   tab      — one per tab switch (tab = tab id, e.g. "leaders")
 //   box      — one per box-score open (tab = "game:<id>")
+//   expand   — one per splits-expand open on a player page
+//              (tab = "player:<slug>"; longest current slug hits the
+//              32-char slice exactly — a longer one truncates harmlessly)
+//
+// No event whitelist on purpose: `e` is sliced, not validated, so a new
+// page type can add an event WITHOUT the manual worker redeploy that
+// nothing reminds anyone to do.
 //
 // Every event also carries:
 //   s = utm_source from the page's first load (?utm_source=..., cached
