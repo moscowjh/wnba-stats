@@ -349,11 +349,22 @@ PAGE_CSS = (
 # The splits expand is sticky per VISITOR, not per page: a returning reader
 # who wants the dense tables open shouldn't re-click on every page. Opening
 # it also sends the depth beacon — the signal that a landing became a read.
+#
+# The `restored` flag exists because setting `d.open` fires a `toggle` event
+# asynchronously, so the sticky restore lands on the listener like a real
+# click. Counting it would break the metric twice over: an auto-open is not
+# a reader choosing to read (every returning visitor would emit an expand on
+# every page, forever, inflating exactly the signal we want), and the restore
+# fires before `initTracking()`, so it would carry no source and read as a
+# brand-new visitor — silently polluting the source and returning columns.
+# Only the first toggle is suppressed; a genuine click afterwards counts.
 STICKY_JS = """\
 var d=document.querySelector('details.exp');
-if(d){try{if(localStorage.getItem('sag-expand')==='1')d.open=true}catch(e){}
+if(d){var restored=false;
+try{if(localStorage.getItem('sag-expand')==='1'){restored=true;d.open=true}}catch(e){}
 d.addEventListener('toggle',function(){
   try{localStorage.setItem('sag-expand',d.open?'1':'0')}catch(e){}
+  if(restored){restored=false;return}
   if(d.open)track('expand','__PAGE_KEY__')})}
 """
 

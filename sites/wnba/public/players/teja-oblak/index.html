@@ -153,9 +153,11 @@ function track(event, tab) {
 window.addEventListener('load', initTracking);
 
 var d=document.querySelector('details.exp');
-if(d){try{if(localStorage.getItem('sag-expand')==='1')d.open=true}catch(e){}
+if(d){var restored=false;
+try{if(localStorage.getItem('sag-expand')==='1'){restored=true;d.open=true}}catch(e){}
 d.addEventListener('toggle',function(){
   try{localStorage.setItem('sag-expand',d.open?'1':'0')}catch(e){}
+  if(restored){restored=false;return}
   if(d.open)track('expand','player:teja-oblak')})}
 
 /* -- Horizontal-scroll fade -- */
