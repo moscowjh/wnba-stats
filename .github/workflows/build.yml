@@ -95,20 +95,6 @@ jobs:
           python sites/wnba/build_stats_page.py
           cp sites/wnba/wnba-2026-stats-explorer.html sites/wnba/public/index.html
 
-      # Player pages: one static page per player under public/players/, plus
-      # the /players/ index — and, because this step knows every published
-      # URL, sitemap.xml and robots.txt. Bios come from ESPN's athlete
-      # endpoint and are cached in sites/wnba/data (same Actions cache as the
-      # box scores), so steady-state runs fetch only players it hasn't seen.
-      # validate_hooks.py gates first — an invalid hand-edited hooks.json
-      # should fail loudly here, not ship on 227 pages quietly. The emitter
-      # itself hard-asserts that the pages' rank badges agree with
-      # compute_leaders (docs/wnba-leader-qualification-rules.md).
-      - name: Build player pages
-        run: |
-          python sites/wnba/validate_hooks.py
-          python sites/wnba/build_player_pages.py
-
       # Layer-2 external verification (validate_stats.py) — diffs our leader
       # boards against stats.wnba.com's API. Never blocks the site deploy
       # (continue-on-error), but its leaders_ok output gates the Bluesky post
@@ -143,7 +129,6 @@ jobs:
           git config user.name  "wnba-stats-bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add sites/wnba/public/index.html
-          git add sites/wnba/public/players sites/wnba/public/sitemap.xml sites/wnba/public/robots.txt
           git add validation_report.json player_id_crosswalk.json
           git add usage_history.jsonl
           # Only commit if something actually changed (e.g. skip on an off-day).

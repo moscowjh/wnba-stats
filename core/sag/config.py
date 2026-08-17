@@ -39,24 +39,6 @@ class LeagueConfig:
     season: str
     site_dir: Path
 
-    #: League label as shown to readers ("WNBA", "WWC") — page titles and
-    #: the shared masthead derive from it, e.g. f"{display_name} {season} —
-    #: At a Glance".
-    display_name: str = ""
-    #: Canonical public origin, no trailing slash. Canonical URLs, the
-    #: sitemap, and robots.txt's absolute Sitemap line all derive from it —
-    #: robots.txt is per-host, so every league needs its own.
-    base_url: str = ""
-    #: Cloudflare Web Analytics token for this site's beacon; None renders
-    #: no beacon (a league can launch unmeasured on purpose, not by accident).
-    cf_analytics_token: str | None = None
-    #: Jersey-number prefix as this league renders it ("#"; WWC uses "No.").
-    jersey_prefix: str = "#"
-    #: Player pages show an "Nth in <league>" badge only inside this cutoff.
-    #: Anchored to the size of the league's honour pool, not a bare integer —
-    #: NCAAW's will differ from a 15-team league's.
-    rank_badge_top_n: int = 20
-
     # Overrides — leave as None to take the convention.
     data_dir_override: Path | None = None
     public_dir_override: Path | None = None

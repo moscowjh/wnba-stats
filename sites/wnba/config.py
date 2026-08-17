@@ -13,10 +13,4 @@ WNBA = LeagueConfig(
     slug="wnba",
     season="2026",
     site_dir=Path(__file__).resolve().parent,
-    display_name="WNBA",
-    base_url="https://wnba.statsataglance.com",
-    # Public by design — this token is already visible in every served page.
-    cf_analytics_token="7397748b2cd6455b8887cfe01269a48b",
-    jersey_prefix="#",
-    rank_badge_top_n=20,
 )
