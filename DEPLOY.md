@@ -746,7 +746,7 @@ protects them instead is design, not scanning: secrets live only in
 a pre-commit hook grepping staged diffs for high-entropy strings is the free
 local equivalent — considered 2026-08-05, not built.
 
-## Player pages + SEO surface (added 2026-08-16, deployed 2026-08-18)
+## Player pages + SEO surface (added 2026-08-16, deployed 2026-08-17)
 
 The daily build now also emits ~227 static player pages
 (`public/players/<slug>/index.html`), a players index (`/players/`),
@@ -764,38 +764,83 @@ plus an `expand` event (`t=player:<slug>`) when the splits/game-log
 expand opens. The analytics worker needed NO change: it slices `e`/`t`
 without a whitelist, so no manual worker redeploy was involved.
 
-### robots.txt — Cloudflare MERGES, it doesn't replace
+### robots.txt — on THIS zone an origin file REPLACES Cloudflare's block
 
-Before 2026-08-18 this zone had **no origin robots.txt**; Cloudflare served
-its managed Content Signals boilerplate. The byte-exact capture of that
-before-state lives in `sites/wnba/reference/robots-txt-observed/2026-08-16.txt`
-— notably it is **entirely comments**: no `User-agent:`, no
-`Content-signal:` directives, so per the policy's own clause (c) the site
-had taken **no position** on search/ai-input/ai-train (it was never
-publishing `ai-train=no`, despite what planning assumed).
+> **Corrected 2026-08-17 by direct observation.** The section previously
+> said Cloudflare *merges* (prepends) its managed block onto an origin
+> 200, per its published docs. **That is not what this zone does.** The
+> planning assumption was wrong and the cutover measured it.
 
-Our origin file (emitted by `sag.seo.robots_txt`) is minimal on purpose —
-`User-agent: * / Allow: /` plus the absolute `Sitemap:` line. Per
-Cloudflare's managed-robots.txt docs, when the origin serves a 200 they
-*prepend* their managed block to ours, combining both into one response.
-So we do NOT replicate the Content Signals block: Cloudflare owns the AI
-policy and keeps it current; we own the sitemap line. Duplicating their
-block would serve it twice and freeze our copy the day it was written.
-(<https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/>)
+Three byte-exact captures in `sites/wnba/reference/robots-txt-observed/`
+tell the whole story, and the rollback rehearsal confirmed it in both
+directions:
 
-**Verify after any deploy that changes robots.txt** — the failure mode is
-silent in both directions:
+| Capture | Origin file? | Served |
+|---|---|---|
+| `2026-08-16.txt` | no | **1248 B** — Cloudflare Content Signals boilerplate |
+| `2026-08-17.txt` | **yes** | **77 B** — only our three lines; CF block **gone** |
+| `2026-08-17-during-rollback-rehearsal.txt` | no (reverted) | **1248 B**, byte-identical to 08-16 |
+
+So: with no origin file Cloudflare serves its boilerplate; the moment an
+origin `robots.txt` exists it is served **alone**. Removing ours brings
+Cloudflare's back, unchanged. No merge, in either direction.
+
+Note what the 1248-byte block actually contained: **entirely comments** —
+the preamble *defining* `search` / `ai-input` / `ai-train` plus the EU
+Directive Art. 4 sentence, and **zero `Content-Signal:` directives**. Per
+the policy's own clause (c), declaring no signal "neither grants nor
+restricts." The site had therefore taken **no position**, and never
+published `ai-train=no` as planning had assumed. What we stopped serving
+was an explanation of a policy we were not invoking.
+
+Current live file (`sag.seo.robots_txt`): `User-agent: * / Allow: /` plus
+the absolute `Sitemap:` line — which is what Search Console needs and the
+whole reason the file exists.
+
+**Open question, deliberately left open:** whether to reinstate a Content
+Signals block in `sag.seo.robots_txt` now that Cloudflare's is no longer
+served. The original argument against replicating it ("ours would freeze
+while Cloudflare's stays current") is much weaker now — Cloudflare's is
+not being served at all on this host, so there is nothing to drift from.
+The counter-argument is that the block asserted nothing. See the backlog.
+
+**Verify after any deploy that changes robots.txt:**
 
 ```bash
 curl -s https://wnba.statsataglance.com/robots.txt \
   > sites/wnba/reference/robots-txt-observed/$(date -u +%F).txt
 ```
 
-and confirm the response carries BOTH the Cloudflare block AND our
-`Sitemap:` line. If the merge does not happen (managed robots.txt off for
-this zone, or behavior differs from the docs), fall back to replicating
-the signals in `sag.seo.robots_txt` — and record the actual observed
-output here, not the assumption.
+Expect **only** our lines. If a Cloudflare block ever reappears alongside
+them, the zone's managed-robots.txt behavior has changed — record the new
+capture and revisit.
+
+### Rolling back a merge — corrections learned by rehearsing (2026-08-17)
+
+The player-pages rollback was rehearsed for real on cutover day. Three
+things the written procedure got wrong; fix these before trusting it in
+an actual incident:
+
+1. **`git revert -m 1 HEAD` is usually wrong.** The daily bot commits
+   during the very build you just triggered, so by the time you roll back,
+   `HEAD` is the bot's commit and the revert errors out ("not a merge").
+   **Name the merge commit explicitly:** `git revert -m 1 <merge-sha>`.
+2. **Expect modify/delete conflicts on every generated file** the bot
+   rewrote after the merge — 229 of them on cutover day (227 player pages
+   + `sitemap.xml` + `robots.txt`). In a rollback the resolution is to
+   accept the deletion:
+   ```bash
+   git diff --name-only --diff-filter=U | tr '\n' '\0' | xargs -0 git rm -q -f
+   git revert --continue --no-edit
+   ```
+3. **Let the deploy propagate before verifying.** Checking ~8 s after the
+   run completed reported `200` for paths that were genuinely gone;
+   ~60 s later the same paths correctly `404`d. Poll until the expected
+   code appears, or append a cache-busting query string (`?cb=$RANDOM`) —
+   otherwise you will misread a good rollback as a broken one.
+
+End to end (revert → rebuild → verify → roll forward → rebuild → verify)
+the rehearsal took about ten minutes, two ~50 s builds included.
 
 ### Search Console
 
