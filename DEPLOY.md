@@ -577,8 +577,8 @@ someone showed up.
 
 | Param | Blob | Meaning |
 |---|---|---|
-| `e` | `blob1` | `pageview` \| `tab` \| `box` |
-| `t` | `blob2` | tab id, or `game:<id>` for `box`; empty for `pageview` |
+| `e` | `blob1` | `pageview` \| `tab` \| `box` \| `expand` (added 2026-08-17) |
+| `t` | `blob2` | tab id; `game:<id>` for `box`; **page key** for `pageview`/`expand` — `''` = the single-file tab site (and every row before 2026-08-17), `players` = the players index, `player:<slug>` = one player page. Keys must fit this column's 32-char slice; `build_player_pages.py` asserts it at build time (`ANALYTICS_KEY_MAX`), because an over-long key silently COLLIDES with any other sharing its first 32 chars rather than merely truncating. |
 | `s` | `blob3` | utm_source, session-cached; `none` if untagged |
 | `r` | `blob4` | returning visitor — `1` \| `0` |
 | `ref` | `blob8` | referring **hostname** — added 2026-08-11 |
@@ -760,9 +760,28 @@ to that directory's `index.html` automatically.
 Analytics: player pages are real navigations, so the Cloudflare Web
 Analytics beacon sees each pageview (unlike the tab site, where it only
 ever sees "/"). They also carry the shared usage-beacon JS — pageviews
-plus an `expand` event (`t=player:<slug>`) when the splits/game-log
-expand opens. The analytics worker needed NO change: it slices `e`/`t`
-without a whitelist, so no manual worker redeploy was involved.
+plus an `expand` event when the splits/game-log expand opens, both keyed
+`player:<slug>` in `blob2` (see the beacon schema above). The analytics
+worker needed NO change: it slices `e`/`t` without a whitelist, so no
+manual worker redeploy was involved.
+
+**The `expand` event counts a CHOICE, not a state.** The expand is sticky
+per visitor (localStorage), and setting `details.open` fires a `toggle`
+event *asynchronously* — so the sticky restore arrives at the listener
+looking exactly like a click. Counting it was wrong twice over: a
+returning visitor would emit an expand on every player page forever,
+inflating the very signal the event exists to measure, and the restore
+runs before `initTracking()`, so those events carried no `utm_source` and
+reported as new visitors. A `restored` flag suppresses that first
+synthetic toggle only. Observed in production 2026-08-17 and fixed the
+same hour; if you ever change this JS, re-verify by loading a player page
+with `sag-expand=1` already in localStorage and confirming the page emits
+a pageview and nothing else.
+
+Minor known undercount, accepted: `toggle` events coalesce, so two clicks
+inside the double-click threshold can yield a single net open with no
+event. It errs toward under-reporting engagement, which is the safe
+direction.
 
 ### robots.txt — on THIS zone an origin file REPLACES Cloudflare's block
 
