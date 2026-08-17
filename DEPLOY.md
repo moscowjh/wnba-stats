@@ -745,3 +745,61 @@ protects them instead is design, not scanning: secrets live only in
 `.dev.vars` and `.env` gitignored. If a belt-and-braces check is ever wanted,
 a pre-commit hook grepping staged diffs for high-entropy strings is the free
 local equivalent — considered 2026-08-05, not built.
+
+## Player pages + SEO surface (added 2026-08-16, deployed 2026-08-18)
+
+The daily build now also emits ~227 static player pages
+(`public/players/<slug>/index.html`), a players index (`/players/`),
+`sitemap.xml`, and `robots.txt` — all from `build_player_pages.py`, which
+runs right after the main page build (gated by `validate_hooks.py`). They
+deploy exactly like `index.html`: committed by the bot, uploaded by the
+Action's `wrangler deploy`. No Cloudflare config changed — the `[assets]`
+directory upload picks up the whole tree, and `/players/<slug>/` resolves
+to that directory's `index.html` automatically.
+
+Analytics: player pages are real navigations, so the Cloudflare Web
+Analytics beacon sees each pageview (unlike the tab site, where it only
+ever sees "/"). They also carry the shared usage-beacon JS — pageviews
+plus an `expand` event (`t=player:<slug>`) when the splits/game-log
+expand opens. The analytics worker needed NO change: it slices `e`/`t`
+without a whitelist, so no manual worker redeploy was involved.
+
+### robots.txt — Cloudflare MERGES, it doesn't replace
+
+Before 2026-08-18 this zone had **no origin robots.txt**; Cloudflare served
+its managed Content Signals boilerplate. The byte-exact capture of that
+before-state lives in `sites/wnba/reference/robots-txt-observed/2026-08-16.txt`
+— notably it is **entirely comments**: no `User-agent:`, no
+`Content-signal:` directives, so per the policy's own clause (c) the site
+had taken **no position** on search/ai-input/ai-train (it was never
+publishing `ai-train=no`, despite what planning assumed).
+
+Our origin file (emitted by `sag.seo.robots_txt`) is minimal on purpose —
+`User-agent: * / Allow: /` plus the absolute `Sitemap:` line. Per
+Cloudflare's managed-robots.txt docs, when the origin serves a 200 they
+*prepend* their managed block to ours, combining both into one response.
+So we do NOT replicate the Content Signals block: Cloudflare owns the AI
+policy and keeps it current; we own the sitemap line. Duplicating their
+block would serve it twice and freeze our copy the day it was written.
+(<https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/>)
+
+**Verify after any deploy that changes robots.txt** — the failure mode is
+silent in both directions:
+
+```bash
+curl -s https://wnba.statsataglance.com/robots.txt \
+  > sites/wnba/reference/robots-txt-observed/$(date -u +%F).txt
+```
+
+and confirm the response carries BOTH the Cloudflare block AND our
+`Sitemap:` line. If the merge does not happen (managed robots.txt off for
+this zone, or behavior differs from the docs), fall back to replicating
+the signals in `sag.seo.robots_txt` — and record the actual observed
+output here, not the assumption.
+
+### Search Console
+
+`sitemap.xml` regenerates every build with `lastmod` = the data date.
+Submitting it to Google Search Console is a **manual, one-time step**
+(GSC → Sitemaps → add `https://wnba.statsataglance.com/sitemap.xml`);
+GSC was verified 2026-08-13 and its data is not retroactive.

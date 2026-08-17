@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WNBA 2026 player pages — At a Glance</title>
+<meta name="description" content="One page per WNBA player: 2026 season stats at a glance, updated every morning. Fast, ad-free.">
+<link rel="canonical" href="https://wnba.statsataglance.com/players/">
+<meta property="og:type" content="profile">
+<meta property="og:site_name" content="statsataglance">
+<meta property="og:title" content="WNBA 2026 player pages — At a Glance">
+<meta property="og:description" content="One page per WNBA player: 2026 season stats at a glance, updated every morning. Fast, ad-free.">
+<meta property="og:url" content="https://wnba.statsataglance.com/players/">
+<meta property="og:image" content="https://wnba.statsataglance.com/og.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="WNBA 2026 player pages — At a Glance">
+<meta name="twitter:description" content="One page per WNBA player: 2026 season stats at a glance, updated every morning. Fast, ad-free.">
+<style>  :root {
+    --bg:#0f0f0f; --surface:#1a1a1a; --border:#2e2e2e;
+    --text:#e8e8e8; --muted:#888; --accent:#f5a623;
+    --avg:#aaa;
+  }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);
+  font-size:13px;padding:14px 10px;max-width:480px;margin:0 auto;line-height:1.45}
+a{color:var(--muted)}
+.pf{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px}
+.pf h1{color:var(--accent);font-size:15px;margin-bottom:2px;font-weight:normal}
+.mu{color:var(--muted);font-size:10px}
+.ac{color:var(--accent)}
+.hd{display:flex;gap:11px;align-items:flex-start}
+.mono{width:60px;height:60px;background:var(--surface);border:1px solid var(--border);
+  flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.mono .tm{color:var(--muted);font-size:9px}
+.mono .num{color:var(--accent);font-size:23px;margin-top:4px}
+.slot-ed{font-size:11px;line-height:1.65;margin-top:10px}
+.slot-gen{color:var(--muted);font-size:10px;line-height:1.7;margin-top:10px}
+.grid4{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:10px}
+.card{background:var(--surface);padding:7px 8px}
+.card .big{font-size:19px}
+/* the sub-line reserves its height whether or not it has content — keeps the 2-up grid even */
+.card .sub{font-size:10px;color:var(--muted);min-height:14px;line-height:14px}
+.card .sub.badge{color:var(--accent)}
+details.exp{margin-top:9px}
+details.exp>summary{background:var(--surface);border:1px solid var(--border);color:var(--muted);
+  font-size:10px;padding:6px 9px;cursor:pointer;list-style:none;text-align:left}
+details.exp>summary::-webkit-details-marker{display:none}
+details.exp>summary::before{content:"+ "}
+details.exp[open]>summary::before{content:"\2212 "}
+details.exp>summary:hover{border-color:var(--accent);color:var(--accent)}
+.sec{color:var(--accent);font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  border-bottom:1px solid var(--border);padding-bottom:4px;margin:12px 0 6px}
+.pf table.s{border-collapse:collapse;width:100%;white-space:nowrap;font-size:10px}
+.pf table.s th{color:var(--muted);text-align:left;padding:3px 4px;
+  border-bottom:1px solid var(--border);font-weight:normal}
+.pf table.s td{padding:3px 4px;border-bottom:1px solid var(--border)}
+details.inl{display:inline-block}
+/* Tap-target padding lives on the summary; the dotted "clickable" cue lives
+   on the inner span so it underlines the text itself rather than drawing at
+   the padded box's bottom edge, where it collided with the number below. */
+details.inl>summary{list-style:none;cursor:pointer;
+  display:inline-block;padding:6px 10px 6px 0;margin:-6px 0 -6px 0}
+details.inl>summary::-webkit-details-marker{display:none}
+details.inl>summary .t{border-bottom:1px dotted var(--muted)}
+details.inl[open]>summary{color:var(--accent)}
+details.inl[open]>summary .t{border-bottom-color:var(--accent)}
+details.inl .body{position:absolute;width:215px;background:#000;border:1px solid var(--accent);
+  padding:8px 9px;font-size:10px;line-height:1.65;color:var(--text);z-index:20;margin-top:5px}
+.data-note{color:var(--muted);font-size:10px;margin-top:14px}
+  .masthead{margin-bottom:14px;font-size:12px;line-height:1.7}
+  .masthead .site-name{color:var(--accent);text-decoration:none;font-size:14px}
+  .masthead .site-name:hover{text-decoration:underline}
+  .masthead .crumb{color:var(--muted);font-size:11px}
+  .masthead .crumb a{color:var(--muted)}
+  .masthead .crumb a:hover{color:var(--accent)}
+  .table-scroll{position:relative;margin-bottom:16px}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .table-scroll::after{content:"";position:absolute;top:0;bottom:0;right:0;
+    width:28px;pointer-events:none;opacity:0;transition:opacity .15s ease;z-index:5;
+    background:linear-gradient(to right, rgba(15,15,15,0), var(--bg))}
+  .table-scroll.more-right::after{opacity:1}
+  .site-footer{margin-top:34px;padding-top:12px;border-top:1px solid var(--border);
+      color:var(--muted);font-size:11px;line-height:1.8}
+  .site-footer a{color:var(--muted);text-decoration:underline}
+  .site-footer a:hover{color:var(--accent)}
+</style>
+<style>
+table{border-collapse:collapse;width:100%;font-size:11px}
+th{color:var(--muted);text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);font-weight:normal}
+td{padding:4px 6px;border-bottom:1px solid var(--border)}
+td a{color:var(--text);text-decoration:underline;text-decoration-color:rgba(136,136,136,0.5);text-underline-offset:2px}
+td a:hover{color:var(--accent)}
+</style>
+</head>
+<body style="max-width:640px">
+<div class="masthead"><a class="site-name" href="/">WNBA 2026 — At a Glance</a><div class="crumb">227 players · stats through August 16, 2026</div></div>
+<table><tr><th>Player</th><th>Team</th><th>GP</th><th>PPG</th></tr><tr><td><a href="/players/kayla-alexander/">Kayla Alexander</a></td><td>TOR</td><td>4</td><td>2.2</td></tr><tr><td><a href="/players/julie-allemand/">Julie Allemand</a></td><td>TOR</td><td>26</td><td>6.6</td></tr><tr><td><a href="/players/rebecca-allen/">Rebecca Allen</a></td><td>NYL</td><td>21</td><td>5.2</td></tr><tr><td><a href="/players/laeticia-amihere/">Laeticia Amihere</a></td><td>GSV</td><td>29</td><td>3.1</td></tr><tr><td><a href="/players/georgia-amoore/">Georgia Amoore</a></td><td>WAS</td><td>34</td><td>5.6</td></tr><tr><td><a href="/players/nell-angloma/">Nell Angloma</a></td><td>CON</td><td>29</td><td>3.7</td></tr><tr><td><a href="/players/pauline-astier/">Pauline Astier</a></td><td>NYL</td><td>36</td><td>9.4</td></tr><tr><td><a href="/players/ariel-atkins/">Ariel Atkins</a></td><td>LAS</td><td>32</td><td>8.8</td></tr><tr><td><a href="/players/shakira-austin/">Shakira Austin</a></td><td>WAS</td><td>33</td><td>16.7</td></tr><tr><td><a href="/players/valeriane-ayayi/">Valeriane Ayayi</a></td><td>PHX</td><td>30</td><td>6.6</td></tr><tr><td><a href="/players/rachel-banham/">Rachel Banham</a></td><td>CHI</td><td>31</td><td>4.7</td></tr><tr><td><a href="/players/ornella-bankole/">Ornella Bankole</a></td><td>TOR</td><td>3</td><td>0.7</td></tr><tr><td><a href="/players/sarah-ashlee-barker/">Sarah Ashlee Barker</a></td><td>PDX</td><td>27</td><td>10.3</td></tr><tr><td><a href="/players/raegan-beers/">Raegan Beers</a></td><td>CON</td><td>27</td><td>3.3</td></tr><tr><td><a href="/players/kierstan-bell/">Kierstan Bell</a></td><td>LVA</td><td>23</td><td>2.0</td></tr><tr><td><a href="/players/lauren-betts/">Lauren Betts</a></td><td>WAS</td><td>34</td><td>6.4</td></tr><tr><td><a href="/players/chloe-bibby/">Chloe Bibby</a></td><td>CHI</td><td>4</td><td>5.5</td></tr><tr><td><a href="/players/monique-billings/">Monique Billings</a></td><td>IND</td><td>34</td><td>7.3</td></tr><tr><td><a href="/players/dewanna-bonner/">DeWanna Bonner</a></td><td>PHX</td><td>36</td><td>10.6</td></tr><tr><td><a href="/players/isobel-borlase/">Isobel Borlase</a></td><td>ATL</td><td>34</td><td>4.6</td></tr><tr><td><a href="/players/aliyah-boston/">Aliyah Boston</a></td><td>IND</td><td>32</td><td>17.0</td></tr><tr><td><a href="/players/cameron-brink/">Cameron Brink</a></td><td>LAS</td><td>25</td><td>9.1</td></tr><tr><td><a href="/players/noemie-brochant/">Noemie Brochant</a></td><td>PHX</td><td>35</td><td>5.9</td></tr><tr><td><a href="/players/lexie-brown/">Lexie Brown</a></td><td>SEA</td><td>10</td><td>3.8</td></tr><tr><td><a href="/players/paige-bueckers/">Paige Bueckers</a></td><td>DAL</td><td>33</td><td>20.5</td></tr><tr><td><a href="/players/frieda-buhner/">Frieda Buhner</a></td><td>PDX</td><td>32</td><td>6.5</td></tr><tr><td><a href="/players/kennedy-burke/">Kennedy Burke</a></td><td>CON</td><td>32</td><td>8.3</td></tr><tr><td><a href="/players/rae-burrell/">Rae Burrell</a></td><td>LAS</td><td>34</td><td>14.1</td></tr><tr><td><a href="/players/veronica-burton/">Veronica Burton</a></td><td>GSV</td><td>33</td><td>12.3</td></tr><tr><td><a href="/players/maya-caldwell/">Maya Caldwell</a></td><td>MIN</td><td>36</td><td>4.0</td></tr><tr><td><a href="/players/jordin-canada/">Jordin Canada</a></td><td>ATL</td><td>33</td><td>11.5</td></tr><tr><td><a href="/players/emma-cannon/">Emma Cannon</a></td><td>LAS</td><td>13</td><td>4.0</td></tr><tr><td><a href="/players/kamilla-cardoso/">Kamilla Cardoso</a></td><td>CHI</td><td>34</td><td>14.8</td></tr><tr><td><a href="/players/bridget-carleton/">Bridget Carleton</a></td><td>PDX</td><td>34</td><td>14.5</td></tr><tr><td><a href="/players/raquel-carrera/">Raquel Carrera</a></td><td>NYL</td><td>19</td><td>1.6</td></tr><tr><td><a href="/players/dijonai-carrington/">DiJonai Carrington</a></td><td>CHI</td><td>8</td><td>10.8</td></tr><tr><td><a href="/players/chennedy-carter/">Chennedy Carter</a></td><td>LVA</td><td>13</td><td>12.2</td></tr><tr><td><a href="/players/quionche-carter/">Quionche Carter</a></td><td>PHX</td><td>13</td><td>1.2</td></tr><tr><td><a href="/players/emma-cechova/">Emma Cechova</a></td><td>MIN</td><td>3</td><td>8.3</td></tr><tr><td><a href="/players/kaila-charles/">Kaila Charles</a></td><td>GSV</td><td>33</td><td>6.2</td></tr><tr><td><a href="/players/kaitlyn-chen/">Kaitlyn Chen</a></td><td>GSV</td><td>33</td><td>7.0</td></tr><tr><td><a href="/players/shay-ciezki/">Shay Ciezki</a></td><td>PHX</td><td>2</td><td>1.5</td></tr><tr><td><a href="/players/sonia-citron/">Sonia Citron</a></td><td>WAS</td><td>31</td><td>17.3</td></tr><tr><td><a href="/players/alysha-clark/">Alysha Clark</a></td><td>DAL</td><td>22</td><td>2.1</td></tr><tr><td><a href="/players/caitlin-clark/">Caitlin Clark</a></td><td>IND</td><td>31</td><td>22.0</td></tr><tr><td><a href="/players/natasha-cloud/">Natasha Cloud</a></td><td>CHI</td><td>34</td><td>10.5</td></tr><tr><td><a href="/players/nia-coffey/">Nia Coffey</a></td><td>MIN</td><td>36</td><td>6.8</td></tr><tr><td><a href="/players/napheesa-collier/">Napheesa Collier</a></td><td>MIN</td><td>9</td><td>19.1</td></tr><tr><td><a href="/players/maria-conde/">Maria Conde</a></td><td>TOR</td><td>32</td><td>9.0</td></tr><tr><td><a href="/players/zia-cooke/">Zia Cooke</a></td><td>SEA</td><td>37</td><td>7.5</td></tr><tr><td><a href="/players/kahleah-copper/">Kahleah Copper</a></td><td>PHX</td><td>35</td><td>20.5</td></tr><tr><td><a href="/players/aicha-coulibaly/">Aicha Coulibaly</a></td><td>CHI</td><td>24</td><td>5.0</td></tr><tr><td><a href="/players/sophie-cunningham/">Sophie Cunningham</a></td><td>IND</td><td>34</td><td>8.7</td></tr><tr><td><a href="/players/damiris-dantas/">Damiris Dantas</a></td><td>IND</td><td>12</td><td>3.3</td></tr><tr><td><a href="/players/antonia-delaere/">Antonia Delaere</a></td><td>MIN</td><td>35</td><td>3.1</td></tr><tr><td><a href="/players/skylar-diggins/">Skylar Diggins</a></td><td>CHI</td><td>19</td><td>14.2</td></tr><tr><td><a href="/players/megan-dileo/">Megan DiLeo</a></td><td>PDX</td><td>33</td><td>12.9</td></tr><tr><td><a href="/players/stefanie-dolson/">Stefanie Dolson</a></td><td>SEA</td><td>37</td><td>3.4</td></tr><tr><td><a href="/players/angela-dugalic/">Angela Dugalic</a></td><td>WAS</td><td>29</td><td>3.2</td></tr><tr><td><a href="/players/aaliyah-edwards/">Aaliyah Edwards</a></td><td>CON</td><td>22</td><td>9.9</td></tr><tr><td><a href="/players/emily-engstler/">Emily Engstler</a></td><td>PDX</td><td>35</td><td>9.0</td></tr><tr><td><a href="/players/dana-evans/">Dana Evans</a></td><td>LVA</td><td>10</td><td>3.4</td></tr><tr><td><a href="/players/temi-fagbenle/">Temi Fagbenle</a></td><td>TOR</td><td>16</td><td>4.6</td></tr><tr><td><a href="/players/awa-fam/">Awa Fam</a></td><td>SEA</td><td>31</td><td>10.6</td></tr><tr><td><a href="/players/mariella-fasoula/">Mariella Fasoula</a></td><td>TOR</td><td>3</td><td>1.3</td></tr><tr><td><a href="/players/marine-fauthoux/">Marine Fauthoux</a></td><td>NYL</td><td>15</td><td>4.3</td></tr><tr><td><a href="/players/sania-feagin/">Sania Feagin</a></td><td>PDX</td><td>4</td><td>0.0</td></tr><tr><td><a href="/players/leonie-fiebich/">Leonie Fiebich</a></td><td>NYL</td><td>14</td><td>10.0</td></tr><tr><td><a href="/players/nadia-fingall/">Nadia Fingall</a></td><td>GSV</td><td>5</td><td>1.0</td></tr><tr><td><a href="/players/alicia-florez/">Alicia Florez</a></td><td>WAS</td><td>25</td><td>3.6</td></tr><tr><td><a href="/players/alex-fowler/">Alex Fowler</a></td><td>NYL</td><td>2</td><td>6.0</td></tr><tr><td><a href="/players/azzi-fudd/">Azzi Fudd</a></td><td>DAL</td><td>30</td><td>13.1</td></tr><tr><td><a href="/players/rebekah-gardner/">Rebekah Gardner</a></td><td>NYL</td><td>34</td><td>5.2</td></tr><tr><td><a href="/players/luisa-geiselsoder/">Luisa Geiselsoder</a></td><td>PDX</td><td>22</td><td>4.3</td></tr><tr><td><a href="/players/allisha-gray/">Allisha Gray</a></td><td>ATL</td><td>34</td><td>19.6</td></tr><tr><td><a href="/players/chance-gray/">Chance Gray</a></td><td>LAS</td><td>31</td><td>2.8</td></tr><tr><td><a href="/players/chelsea-gray/">Chelsea Gray</a></td><td>LVA</td><td>35</td><td>12.3</td></tr><tr><td><a href="/players/aubrey-griffin/">Aubrey Griffin</a></td><td>NYL</td><td>4</td><td>0.5</td></tr><tr><td><a href="/players/brittney-griner/">Brittney Griner</a></td><td>CON</td><td>18</td><td>13.2</td></tr><tr><td><a href="/players/bree-hall/">Bree Hall</a></td><td>IND</td><td>2</td><td>2.5</td></tr><tr><td><a href="/players/dearica-hamby/">Dearica Hamby</a></td><td>LAS</td><td>34</td><td>15.1</td></tr><tr><td><a href="/players/rori-harmon/">Rori Harmon</a></td><td>WAS</td><td>10</td><td>1.0</td></tr><tr><td><a href="/players/tyasha-harris/">Tyasha Harris</a></td><td>IND</td><td>30</td><td>4.4</td></tr><tr><td><a href="/players/isabelle-harrison/">Isabelle Harrison</a></td><td>TOR</td><td>21</td><td>12.0</td></tr><tr><td><a href="/players/jordan-harrison/">Jordan Harrison</a></td><td>PDX</td><td>8</td><td>5.6</td></tr><tr><td><a href="/players/tiffany-hayes/">Tiffany Hayes</a></td><td>GSV</td><td>31</td><td>8.4</td></tr><tr><td><a href="/players/lexi-held/">Lexi Held</a></td><td>PHX</td><td>34</td><td>4.6</td></tr><tr><td><a href="/players/natisha-hiedeman/">Natisha Hiedeman</a></td><td>SEA</td><td>36</td><td>15.4</td></tr><tr><td><a href="/players/naz-hillmon/">Naz Hillmon</a></td><td>ATL</td><td>33</td><td>9.0</td></tr><tr><td><a href="/players/myisha-hines-allen/">Myisha Hines-Allen</a></td><td>IND</td><td>30</td><td>3.8</td></tr><tr><td><a href="/players/emese-hof/">Emese Hof</a></td><td>MIN</td><td>3</td><td>2.3</td></tr><tr><td><a href="/players/joyner-holmes/">Joyner Holmes</a></td><td>SEA</td><td>1</td><td>2.0</td></tr><tr><td><a href="/players/mackenzie-holmes/">Mackenzie Holmes</a></td><td>SEA</td><td>23</td><td>2.7</td></tr><tr><td><a href="/players/jordan-horston/">Jordan Horston</a></td><td>SEA</td><td>32</td><td>5.0</td></tr><tr><td><a href="/players/natasha-howard/">Natasha Howard</a></td><td>MIN</td><td>36</td><td>15.1</td></tr><tr><td><a href="/players/rhyne-howard/">Rhyne Howard</a></td><td>ATL</td><td>33</td><td>17.8</td></tr><tr><td><a href="/players/lexie-hull/">Lexie Hull</a></td><td>IND</td><td>35</td><td>5.2</td></tr><tr><td><a href="/players/sabrina-ionescu/">Sabrina Ionescu</a></td><td>NYL</td><td>23</td><td>16.0</td></tr><tr><td><a href="/players/kiki-iriafen/">Kiki Iriafen</a></td><td>WAS</td><td>31</td><td>14.8</td></tr><tr><td><a href="/players/ashlon-jackson/">Ashlon Jackson</a></td><td>CON</td><td>8</td><td>1.2</td></tr><tr><td><a href="/players/rickea-jackson/">Rickea Jackson</a></td><td>CHI</td><td>4</td><td>18.0</td></tr><tr><td><a href="/players/aziaha-james/">Aziaha James</a></td><td>DAL</td><td>34</td><td>6.1</td></tr><tr><td><a href="/players/gabriela-jaquez/">Gabriela Jaquez</a></td><td>CHI</td><td>31</td><td>6.8</td></tr><tr><td><a href="/players/juste-jocyte/">Juste Jocyte</a></td><td>GSV</td><td>10</td><td>2.6</td></tr><tr><td><a href="/players/marine-johannes/">Marine Johannes</a></td><td>NYL</td><td>33</td><td>9.3</td></tr><tr><td><a href="/players/flaujae-johnson/">Flau&#x27;jae Johnson</a></td><td>SEA</td><td>35</td><td>13.5</td></tr><tr><td><a href="/players/raven-johnson/">Raven Johnson</a></td><td>IND</td><td>32</td><td>3.3</td></tr><tr><td><a href="/players/eliska-joklova/">Eliska Joklova</a></td><td>MIN</td><td>18</td><td>2.0</td></tr><tr><td><a href="/players/brionna-jones/">Brionna Jones</a></td><td>ATL</td><td>9</td><td>8.2</td></tr><tr><td><a href="/players/haley-jones/">Haley Jones</a></td><td>DAL</td><td>7</td><td>4.0</td></tr><tr><td><a href="/players/jonquel-jones/">Jonquel Jones</a></td><td>NYL</td><td>35</td><td>14.7</td></tr><tr><td><a href="/players/dorka-juhasz/">Dorka Juhasz</a></td><td>MIN</td><td>14</td><td>3.7</td></tr><tr><td><a href="/players/laura-juskaite/">Laura Juskaite</a></td><td>TOR</td><td>33</td><td>10.1</td></tr><tr><td><a href="/players/teonni-key/">Teonni Key</a></td><td>TOR</td><td>29</td><td>1.6</td></tr><tr><td><a href="/players/liatu-king/">Liatu King</a></td><td>MIN</td><td>8</td><td>3.0</td></tr><tr><td><a href="/players/gianna-kneepkens/">Gianna Kneepkens</a></td><td>CON</td><td>25</td><td>3.2</td></tr><tr><td><a href="/players/sika-kone/">Sika Kone</a></td><td>ATL</td><td>28</td><td>1.7</td></tr><tr><td><a href="/players/anastasiia-olairi-kosu/">Anastasiia Olairi Kosu</a></td><td>MIN</td><td>27</td><td>4.0</td></tr><tr><td><a href="/players/awak-kuier/">Awak Kuier</a></td><td>DAL</td><td>32</td><td>5.6</td></tr><tr><td><a href="/players/leila-lacan/">Leila Lacan</a></td><td>CON</td><td>24</td><td>11.8</td></tr><tr><td><a href="/players/betnijah-laney-hamilton/">Betnijah Laney-Hamilton</a></td><td>WAS</td><td>20</td><td>4.4</td></tr><tr><td><a href="/players/taniya-latson/">Ta&#x27;Niya Latson</a></td><td>LVA</td><td>15</td><td>3.1</td></tr><tr><td><a href="/players/charlisse-leger-walker/">Charlisse Leger-Walker</a></td><td>CON</td><td>33</td><td>6.7</td></tr><tr><td><a href="/players/carla-leite/">Carla Leite</a></td><td>PDX</td><td>32</td><td>15.7</td></tr><tr><td><a href="/players/kyara-linskens/">Kyara Linskens</a></td><td>PHX</td><td>18</td><td>3.1</td></tr><tr><td><a href="/players/hailey-van-lith/">Hailey Van Lith</a></td><td>CON</td><td>14</td><td>6.1</td></tr><tr><td><a href="/players/darianna-littlepage-buggs/">Darianna Littlepage-Buggs</a></td><td>WAS</td><td>1</td><td>0.0</td></tr><tr><td><a href="/players/jewell-loyd/">Jewell Loyd</a></td><td>LVA</td><td>34</td><td>8.1</td></tr><tr><td><a href="/players/marina-mabrey/">Marina Mabrey</a></td><td>TOR</td><td>31</td><td>20.8</td></tr><tr><td><a href="/players/natasha-mack/">Natasha Mack</a></td><td>PHX</td><td>28</td><td>8.3</td></tr><tr><td><a href="/players/ezi-magbegor/">Ezi Magbegor</a></td><td>SEA</td><td>11</td><td>7.2</td></tr><tr><td><a href="/players/taina-mair/">Taina Mair</a></td><td>SEA</td><td>6</td><td>1.2</td></tr><tr><td><a href="/players/monique-akoa-makani/">Monique Akoa Makani</a></td><td>LAS</td><td>21</td><td>9.0</td></tr><tr><td><a href="/players/anneli-maley/">Anneli Maley</a></td><td>NYL</td><td>7</td><td>0.9</td></tr><tr><td><a href="/players/dominique-malonga/">Dominique Malonga</a></td><td>SEA</td><td>28</td><td>17.2</td></tr><tr><td><a href="/players/rayah-marshall/">Rayah Marshall</a></td><td>CON</td><td>2</td><td>0.5</td></tr><tr><td><a href="/players/kate-martin/">Kate Martin</a></td><td>LAS</td><td>15</td><td>2.4</td></tr><tr><td><a href="/players/kayla-mcbride/">Kayla McBride</a></td><td>MIN</td><td>36</td><td>18.2</td></tr><tr><td><a href="/players/teaira-mccowan/">Teaira McCowan</a></td><td>MIN</td><td>10</td><td>1.4</td></tr><tr><td><a href="/players/cotie-mcmahon/">Cotie McMahon</a></td><td>WAS</td><td>32</td><td>6.8</td></tr><tr><td><a href="/players/jade-melbourne/">Jade Melbourne</a></td><td>SEA</td><td>36</td><td>9.3</td></tr><tr><td><a href="/players/olivia-miles/">Olivia Miles</a></td><td>MIN</td><td>34</td><td>19.9</td></tr><tr><td><a href="/players/nikolina-milic/">Nikolina Milic</a></td><td>TOR</td><td>7</td><td>3.0</td></tr><tr><td><a href="/players/diamond-miller/">Diamond Miller</a></td><td>CON</td><td>33</td><td>9.3</td></tr><tr><td><a href="/players/kelsey-mitchell/">Kelsey Mitchell</a></td><td>IND</td><td>35</td><td>24.2</td></tr><tr><td><a href="/players/tonie-morgan/">Tonie Morgan</a></td><td>LAS</td><td>2</td><td>5.0</td></tr><tr><td><a href="/players/aneesah-morrow/">Aneesah Morrow</a></td><td>TOR</td><td>24</td><td>11.2</td></tr><tr><td><a href="/players/ndjakalenga-mwenentanda/">Ndjakalenga Mwenentanda</a></td><td>GSV</td><td>5</td><td>0.0</td></tr><tr><td><a href="/players/olivia-nelson-ododa/">Olivia Nelson-Ododa</a></td><td>CON</td><td>29</td><td>9.9</td></tr><tr><td><a href="/players/indya-nivar/">Indya Nivar</a></td><td>ATL</td><td>20</td><td>0.8</td></tr><tr><td><a href="/players/jovana-nogic/">Jovana Nogic</a></td><td>PHX</td><td>18</td><td>9.2</td></tr><tr><td><a href="/players/kia-nurse/">Kia Nurse</a></td><td>TOR</td><td>32</td><td>4.8</td></tr><tr><td><a href="/players/aaliyah-nye/">Aaliyah Nye</a></td><td>ATL</td><td>17</td><td>0.6</td></tr><tr><td><a href="/players/teja-oblak/">Teja Oblak</a></td><td>PDX</td><td>26</td><td>5.9</td></tr><tr><td><a href="/players/arike-ogunbowale/">Arike Ogunbowale</a></td><td>DAL</td><td>35</td><td>14.8</td></tr><tr><td><a href="/players/nneka-ogwumike/">Nneka Ogwumike</a></td><td>LAS</td><td>33</td><td>16.8</td></tr><tr><td><a href="/players/amy-okonkwo/">Amy Okonkwo</a></td><td>ATL</td><td>1</td><td>1.0</td></tr><tr><td><a href="/players/madina-okot/">Madina Okot</a></td><td>ATL</td><td>33</td><td>5.6</td></tr><tr><td><a href="/players/lucy-olsen/">Lucy Olsen</a></td><td>WAS</td><td>17</td><td>3.1</td></tr><tr><td><a href="/players/michaela-onyenwere/">Michaela Onyenwere</a></td><td>WAS</td><td>30</td><td>8.9</td></tr><tr><td><a href="/players/te-hina-paopao/">Te-Hina Paopao</a></td><td>ATL</td><td>25</td><td>3.8</td></tr><tr><td><a href="/players/jihyun-park/">Jihyun Park</a></td><td>LAS</td><td>29</td><td>2.4</td></tr><tr><td><a href="/players/cheyenne-parker-tyus/">Cheyenne Parker-Tyus</a></td><td>LVA</td><td>23</td><td>4.9</td></tr><tr><td><a href="/players/alissa-pili/">Alissa Pili</a></td><td>LAS</td><td>4</td><td>2.5</td></tr><tr><td><a href="/players/justine-pissott/">Justine Pissott</a></td><td>LVA</td><td>6</td><td>6.0</td></tr><tr><td><a href="/players/kelsey-plum/">Kelsey Plum</a></td><td>PHX</td><td>16</td><td>22.2</td></tr><tr><td><a href="/players/saylor-poffenbarger/">Saylor Poffenbarger</a></td><td>CHI</td><td>5</td><td>0.0</td></tr><tr><td><a href="/players/tima-pouye/">Tima Pouye</a></td><td>TOR</td><td>19</td><td>3.2</td></tr><tr><td><a href="/players/ashten-prechtel/">Ashten Prechtel</a></td><td>GSV</td><td>2</td><td>4.0</td></tr><tr><td><a href="/players/cassandre-prosper/">Cassandre Prosper</a></td><td>WAS</td><td>30</td><td>2.4</td></tr><tr><td><a href="/players/nyadiew-puoch/">Nyadiew Puoch</a></td><td>PDX</td><td>34</td><td>3.9</td></tr><tr><td><a href="/players/jj-quinerly/">JJ Quinerly</a></td><td>DAL</td><td>2</td><td>1.0</td></tr><tr><td><a href="/players/angel-reese/">Angel Reese</a></td><td>ATL</td><td>33</td><td>15.6</td></tr><tr><td><a href="/players/kiki-rice/">Kiki Rice</a></td><td>TOR</td><td>17</td><td>11.2</td></tr><tr><td><a href="/players/saniya-rivers/">Saniya Rivers</a></td><td>CON</td><td>29</td><td>6.6</td></tr><tr><td><a href="/players/iliana-rupert/">Iliana Rupert</a></td><td>GSV</td><td>1</td><td>0.0</td></tr><tr><td><a href="/players/mercedes-russell/">Mercedes Russell</a></td><td>IND</td><td>2</td><td>1.0</td></tr><tr><td><a href="/players/nyara-sabally/">Nyara Sabally</a></td><td>TOR</td><td>24</td><td>12.3</td></tr><tr><td><a href="/players/satou-sabally/">Satou Sabally</a></td><td>NYL</td><td>13</td><td>10.4</td></tr><tr><td><a href="/players/janelle-salaun/">Janelle Salaun</a></td><td>GSV</td><td>32</td><td>13.1</td></tr><tr><td><a href="/players/karlie-samuelson/">Karlie Samuelson</a></td><td>PDX</td><td>23</td><td>4.8</td></tr><tr><td><a href="/players/katie-lou-samuelson/">Katie Lou Samuelson</a></td><td>SEA</td><td>29</td><td>4.4</td></tr><tr><td><a href="/players/jacy-sheldon/">Jacy Sheldon</a></td><td>CHI</td><td>35</td><td>6.7</td></tr><tr><td><a href="/players/jessica-shepard/">Jessica Shepard</a></td><td>DAL</td><td>33</td><td>14.2</td></tr><tr><td><a href="/players/jaylyn-sherrod/">Jaylyn Sherrod</a></td><td>ATL</td><td>10</td><td>2.3</td></tr><tr><td><a href="/players/maddy-siegrist/">Maddy Siegrist</a></td><td>DAL</td><td>32</td><td>6.1</td></tr><tr><td><a href="/players/odyssey-sims/">Odyssey Sims</a></td><td>DAL</td><td>26</td><td>5.6</td></tr><tr><td><a href="/players/kamiah-smalls/">Kamiah Smalls</a></td><td>PDX</td><td>2</td><td>7.5</td></tr><tr><td><a href="/players/alanna-smith/">Alanna Smith</a></td><td>DAL</td><td>27</td><td>5.7</td></tr><tr><td><a href="/players/nalyssa-smith/">NaLyssa Smith</a></td><td>LVA</td><td>35</td><td>12.0</td></tr><tr><td><a href="/players/miela-sowah/">Miela Sowah</a></td><td>GSV</td><td>2</td><td>0.0</td></tr><tr><td><a href="/players/azura-stevens/">Azura Stevens</a></td><td>CHI</td><td>26</td><td>10.7</td></tr><tr><td><a href="/players/breanna-stewart/">Breanna Stewart</a></td><td>NYL</td><td>35</td><td>20.7</td></tr><tr><td><a href="/players/kiah-stokes/">Kiah Stokes</a></td><td>GSV</td><td>32</td><td>4.0</td></tr><tr><td><a href="/players/marta-suarez/">Marta Suarez</a></td><td>PHX</td><td>14</td><td>3.2</td></tr><tr><td><a href="/players/sug-sutton/">Sug Sutton</a></td><td>DAL</td><td>20</td><td>3.6</td></tr><tr><td><a href="/players/brittney-sykes/">Brittney Sykes</a></td><td>TOR</td><td>15</td><td>20.1</td></tr><tr><td><a href="/players/stephanie-talbot/">Stephanie Talbot</a></td><td>LVA</td><td>36</td><td>3.4</td></tr><tr><td><a href="/players/sydney-taylor/">Sydney Taylor</a></td><td>CHI</td><td>28</td><td>14.7</td></tr><tr><td><a href="/players/taylor-thierry/">Taylor Thierry</a></td><td>SEA</td><td>11</td><td>1.2</td></tr><tr><td><a href="/players/alyssa-thomas/">Alyssa Thomas</a></td><td>PHX</td><td>34</td><td>14.9</td></tr><tr><td><a href="/players/kayla-thornton/">Kayla Thornton</a></td><td>GSV</td><td>33</td><td>8.5</td></tr><tr><td><a href="/players/makayla-timpson/">Makayla Timpson</a></td><td>IND</td><td>34</td><td>4.9</td></tr><tr><td><a href="/players/brianna-turner/">Brianna Turner</a></td><td>LVA</td><td>33</td><td>1.8</td></tr><tr><td><a href="/players/courtney-vandersloot/">Courtney Vandersloot</a></td><td>CHI</td><td>18</td><td>9.2</td></tr><tr><td><a href="/players/julie-vanloo/">Julie Vanloo</a></td><td>NYL</td><td>5</td><td>5.8</td></tr><tr><td><a href="/players/grace-vanslooten/">Grace VanSlooten</a></td><td>IND</td><td>16</td><td>1.6</td></tr><tr><td><a href="/players/costanza-verona/">Costanza Verona</a></td><td>DAL</td><td>1</td><td>4.0</td></tr><tr><td><a href="/players/shatori-walker-kimbrough/">Shatori Walker-Kimbrough</a></td><td>ATL</td><td>9</td><td>0.9</td></tr><tr><td><a href="/players/maddy-westbeld/">Maddy Westbeld</a></td><td>CHI</td><td>3</td><td>1.0</td></tr><tr><td><a href="/players/erica-wheeler/">Erica Wheeler</a></td><td>LAS</td><td>34</td><td>9.2</td></tr><tr><td><a href="/players/sami-whitcomb/">Sami Whitcomb</a></td><td>PHX</td><td>13</td><td>4.8</td></tr><tr><td><a href="/players/courtney-williams/">Courtney Williams</a></td><td>MIN</td><td>36</td><td>14.6</td></tr><tr><td><a href="/players/elizabeth-williams/">Elizabeth Williams</a></td><td>CHI</td><td>35</td><td>5.2</td></tr><tr><td><a href="/players/gabby-williams/">Gabby Williams</a></td><td>GSV</td><td>31</td><td>14.6</td></tr><tr><td><a href="/players/kiana-williams/">Kiana Williams</a></td><td>LAS</td><td>21</td><td>3.8</td></tr><tr><td><a href="/players/peyton-williams/">Peyton Williams</a></td><td>PHX</td><td>1</td><td>0.0</td></tr><tr><td><a href="/players/serah-williams/">Serah Williams</a></td><td>PDX</td><td>31</td><td>4.2</td></tr><tr><td><a href="/players/aja-wilson/">A&#x27;ja Wilson</a></td><td>LVA</td><td>33</td><td>26.1</td></tr><tr><td><a href="/players/alex-wilson/">Alex Wilson</a></td><td>WAS</td><td>4</td><td>3.0</td></tr><tr><td><a href="/players/holly-winterburn/">Holly Winterburn</a></td><td>PDX</td><td>22</td><td>3.2</td></tr><tr><td><a href="/players/han-xu/">Han Xu</a></td><td>NYL</td><td>36</td><td>6.0</td></tr><tr><td><a href="/players/mai-yamamoto/">Mai Yamamoto</a></td><td>LVA</td><td>6</td><td>5.7</td></tr><tr><td><a href="/players/jackie-young/">Jackie Young</a></td><td>LVA</td><td>35</td><td>18.4</td></tr><tr><td><a href="/players/li-yueru/">Li Yueru</a></td><td>DAL</td><td>26</td><td>3.3</td></tr><tr><td><a href="/players/cecilia-zandalasini/">Cecilia Zandalasini</a></td><td>GSV</td><td>29</td><td>8.4</td></tr><tr><td><a href="/players/laura-ziegler/">Laura Ziegler</a></td><td>LAS</td><td>3</td><td>2.7</td></tr></table>
+<div class="site-footer">
+  feedback → <a href="mailto:hello@statsataglance.com">hello@statsataglance.com</a><br>
+  an independent, non-commercial fan project
+</div>
+<script>/* -- Usage tracking (Workers Analytics Engine via wnba-usage-tracker) --
+   Cloudflare Web Analytics only sees the initial page load on this
+   single-file site, since tabs and box scores are client-side JS, not
+   real navigation. This sends small, cookie-free beacon pings so we can
+   see which tabs get used and whether box scores get opened. Fails
+   silently if the endpoint is unreachable -- never blocks the page. */
+var TRACK_URL = 'https://usage.statsataglance.com/t';
+/* Which statsataglance property this page is. Sent on every beacon so one
+   dataset can answer cross-site questions (does the Cup site hand users back
+   to WNBA?). Added 2026-08-05 before a second site existed — rows without it
+   predate the change and are WNBA by definition. */
+var SITE_ID = 'wnba';
+/* Referring hostname -- the only way to see search/Reddit/etc, since
+   utm_source can only see links we tagged ourselves. HOSTNAME ONLY: full
+   referrer URLs carry private context (search terms, for one). Captured
+   once per session so an in-site reload can't overwrite the real arrival.
+   'direct' = no referrer sent, which is NOT the same as "typed the URL";
+   see DEPLOY.md before drawing conclusions from it. */
+function refHost() {
+  var cached = sessionStorage.getItem('wsag_ref');
+  if (cached) return cached;
+  var bare = function (h) { return h.toLowerCase().replace(/^www\./, ''); };
+  var h = 'direct';
+  if (document.referrer) {
+    try {
+      var d = bare(new URL(document.referrer).hostname);
+      h = (d === bare(window.location.hostname)) ? 'self' : d;
+    } catch (e) {}
+  }
+  sessionStorage.setItem('wsag_ref', h);
+  return h;
+}
+function initTracking() {
+  try {
+    var qs = new URLSearchParams(window.location.search);
+    var src = qs.get('utm_source');
+    if (src) sessionStorage.setItem('wsag_src', src);
+    window.__wsagSrc = src || sessionStorage.getItem('wsag_src') || 'none';
+    window.__wsagReturning = localStorage.getItem('wsag_seen') ? '1' : '0';
+    localStorage.setItem('wsag_seen', '1');
+    window.__wsagRef = refHost();
+    track('pageview', '');
+  } catch (e) {}
+}
+function track(event, tab) {
+  try {
+    var params = new URLSearchParams({
+      e: event, t: tab || '', s: window.__wsagSrc || 'none',
+      r: window.__wsagReturning || '0', site: SITE_ID,
+      ref: window.__wsagRef || 'direct'
+    });
+    var url = TRACK_URL + '?' + params.toString();
+    if (navigator.sendBeacon) navigator.sendBeacon(url);
+    else fetch(url, { method: 'GET', keepalive: true, mode: 'no-cors' });
+  } catch (e) {}
+}
+window.addEventListener('load', initTracking);
+
+var d=document.querySelector('details.exp');
+if(d){try{if(localStorage.getItem('sag-expand')==='1')d.open=true}catch(e){}
+d.addEventListener('toggle',function(){
+  try{localStorage.setItem('sag-expand',d.open?'1':'0')}catch(e){}
+  if(d.open)track('expand','player:index')})}
+
+/* -- Horizontal-scroll fade -- */
+function updateScrollFades(wrap) {
+  const scroll = wrap.closest('.table-scroll') || wrap.closest('.gm-tscroll');
+  if (!scroll) return;
+  scroll.classList.toggle('more-right',
+    wrap.scrollWidth - wrap.clientWidth - wrap.scrollLeft > 1);
+}
+function initScrollFades() {
+  document.querySelectorAll('.table-wrap, .gm-tw').forEach(wrap => {
+    updateScrollFades(wrap);
+    wrap.addEventListener('scroll', () => updateScrollFades(wrap), {passive:true});
+  });
+}
+window.addEventListener('load', initScrollFades);
+window.addEventListener('resize', () =>
+  document.querySelectorAll('.table-wrap, .gm-tw').forEach(updateScrollFades));
+</script>
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "7397748b2cd6455b8887cfe01269a48b"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
