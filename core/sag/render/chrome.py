@@ -115,7 +115,7 @@ function initTracking() {
     window.__wsagReturning = localStorage.getItem('wsag_seen') ? '1' : '0';
     localStorage.setItem('wsag_seen', '1');
     window.__wsagRef = refHost();
-    track('pageview', '');
+    track('pageview', '__PAGE_KEY__');
   } catch (e) {}
 }
 function track(event, tab) {
@@ -134,10 +134,22 @@ window.addEventListener('load', initTracking);
 """
 
 
-def usage_js(site_id):
-    """The usage-beacon JS for one site. `site_id` is the LeagueConfig slug;
-    it lands in every beacon row's `site` column."""
-    return _USAGE_JS.replace("__SITE_ID__", site_id)
+def usage_js(site_id, page_key=""):
+    """The usage-beacon JS for one page. `site_id` is the LeagueConfig slug,
+    landing in every row's `site` column.
+
+    `page_key` identifies WHICH page sent the pageview (blob2). It is empty
+    for the single-file tab site, which is both the historical meaning of
+    that column and what keeps this substitution byte-identical there —
+    every row written before 2026-08-17 came from the tab site, so "empty
+    = main page" reads correctly backwards through the whole series.
+    Multi-page surfaces pass a key (`player:<slug>`, `players`), which is
+    the only way the beacon can distinguish an SEO landing from a homepage
+    visit. Keys must fit the worker's 32-char slice — the page emitter
+    asserts that; see ANALYTICS_KEY_MAX in build_player_pages.py.
+    """
+    return (_USAGE_JS.replace("__SITE_ID__", site_id)
+                     .replace("__PAGE_KEY__", page_key))
 
 
 # ── Cloudflare Web Analytics beacon ──────────────────────────────────────

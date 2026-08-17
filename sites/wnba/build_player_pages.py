@@ -51,10 +51,21 @@ OUT_DIR = WNBA.public_dir / "players"
 # slices `e`/`t` to 32 chars, and the two must be changed together. A key
 # longer than the slice is not lossy display, it is a SILENT COLLISION: two
 # slugs sharing their first 25 characters after "player:" would merge their
-# expand events into one analytics key with no signal that it happened. main()
+# events into one analytics key with no signal that it happened. main()
 # asserts every emitted key fits; the current longest (player:darianna-
 # littlepage-buggs) is exactly 32, so the margin is zero.
 ANALYTICS_KEY_MAX = 32
+
+#: blob2 value for the players index. Distinct from both the empty string
+#: (the tab site) and from any `player:<slug>`.
+INDEX_ANALYTICS_KEY = "players"
+
+
+def analytics_key(slug):
+    """The one analytics identity for a player page — used for BOTH its
+    pageview and its expand event, so engagement is a grouping on one key
+    rather than a join between two naming conventions."""
+    return f"player:{slug}"
 
 SITE_TITLE = f"{WNBA.display_name} {WNBA.season} — At a Glance"
 
@@ -343,13 +354,16 @@ var d=document.querySelector('details.exp');
 if(d){try{if(localStorage.getItem('sag-expand')==='1')d.open=true}catch(e){}
 d.addEventListener('toggle',function(){
   try{localStorage.setItem('sag-expand',d.open?'1':'0')}catch(e){}
-  if(d.open)track('expand','player:__SLUG__')})}
+  if(d.open)track('expand','__PAGE_KEY__')})}
 """
 
 
-def page_js(slug):
-    return (chrome.usage_js(WNBA.slug)
-            + "\n" + STICKY_JS.replace("__SLUG__", slug)
+def page_js(page_key):
+    """Page JS for one subpage. The SAME `page_key` identifies the page on
+    both its pageview and its expand event, so "did arrivals on this page
+    read it?" is one grouping rather than a join across two conventions."""
+    return (chrome.usage_js(WNBA.slug, page_key)
+            + "\n" + STICKY_JS.replace("__PAGE_KEY__", page_key)
             + "\n" + chrome.SCROLL_FADE_JS)
 
 
@@ -543,7 +557,7 @@ def render_page(row, bio, ranks, lg_ts, games, game_meta,
 <body>
 {masthead}<div class="pf">{"".join(parts)}</div>
 <div class="data-note">Stats through games of {data_through}</div>
-{chrome.SITE_FOOTER_HTML}<script>{page_js(slug)}</script>
+{chrome.SITE_FOOTER_HTML}<script>{page_js(analytics_key(slug))}</script>
 {chrome.cf_beacon_html(WNBA.cf_analytics_token)}</body>
 </html>
 """
@@ -584,7 +598,7 @@ td a:hover{{color:var(--accent)}}
 </head>
 <body style="max-width:640px">
 {masthead}<table><tr><th>Player</th><th>Team</th><th>GP</th><th>PPG</th></tr>{rows}</table>
-{chrome.SITE_FOOTER_HTML}<script>{page_js("index")}</script>
+{chrome.SITE_FOOTER_HTML}<script>{page_js(INDEX_ANALYTICS_KEY)}</script>
 {chrome.cf_beacon_html(WNBA.cf_analytics_token)}</body>
 </html>
 """
@@ -622,10 +636,11 @@ def main():
     assert not dupes, f"slug collision: {dupes}"
 
     # Same posture for the analytics keys: every "player:<slug>" must fit the
-    # worker's slice (ANALYTICS_KEY_MAX) or two players' expand events merge
-    # into one key with no signal — we'd read the number and believe it.
-    over = [(s, len(f"player:{s}") - ANALYTICS_KEY_MAX)
-            for s in slugs if len(f"player:{s}") > ANALYTICS_KEY_MAX]
+    # worker's slice (ANALYTICS_KEY_MAX) or two players' pageview and expand
+    # events merge into one key with no signal — we'd read the number and
+    # believe it.
+    over = [(s, len(analytics_key(s)) - ANALYTICS_KEY_MAX)
+            for s in slugs if len(analytics_key(s)) > ANALYTICS_KEY_MAX]
     assert not over, (
         "analytics key overflow — silent collision risk, widen the worker "
         "slice and ANALYTICS_KEY_MAX together: "

@@ -58,7 +58,9 @@ TIMEOUT = (5, 30)          # (connect, read)
 RETRY_SLEEP = 2
 
 # Beacon schema, from workers/analytics/worker.js:
-#   blob1 = event (pageview | tab | box)   blob2 = tab id / game:<id>
+#   blob1 = event (pageview | tab | box | expand)
+#   blob2 = tab id / game:<id> / page key on a pageview or expand
+#           ('' = the tab site, 'players', 'player:<slug>'), added 2026-08-17
 #   blob3 = source (utm_source, session-cached, else 'none')
 #   blob4 = returning ('1' | '0')          double1 = 1
 #   blob8 = referring hostname ('direct' | 'self' | host | ''), added 2026-08-11
@@ -192,7 +194,7 @@ def _site_clause(site: str | None) -> str:
 
 def collect(sql, start: dt.date, end: dt.date | None,
             site: str | None = DEFAULT_SITE) -> dict:
-    """Run the five queries backing the report. Returns raw aggregates."""
+    """Run the queries backing the report. Returns raw aggregates."""
     w = f"{_window_clause(start, end)} AND {_site_clause(site)}"
     s = _site_clause(site)
 
@@ -208,6 +210,13 @@ def collect(sql, start: dt.date, end: dt.date | None,
                       f"WHERE blob1 = 'pageview' AND {s} GROUP BY source")
     referrers = sql(f"SELECT blob8 AS ref, {COUNT} AS n FROM {DATASET} "
                     f"WHERE blob1 = 'pageview' AND {w} GROUP BY ref ORDER BY n DESC")
+    # Which PAGE the pageview came from (blob2), added 2026-08-17 with the
+    # player pages. Empty = the single-file tab site, which is every row
+    # written before that date — so the split reads correctly backwards.
+    pages = sql(f"SELECT blob2 AS page, {COUNT} AS n FROM {DATASET} "
+                f"WHERE blob1 = 'pageview' AND {w} GROUP BY page ORDER BY n DESC")
+    expands = sql(f"SELECT blob2 AS page, {COUNT} AS n FROM {DATASET} "
+                  f"WHERE blob1 = 'expand' AND {w} GROUP BY page ORDER BY n DESC")
 
     return {
         "daily": [(r["d"], _n(r)) for r in daily],
@@ -216,6 +225,8 @@ def collect(sql, start: dt.date, end: dt.date | None,
         "returning": {r["r"]: _n(r) for r in returning},
         "alltime_source": {r["source"]: _n(r) for r in alltime_src},
         "referrers": [(r["ref"], _n(r)) for r in referrers],
+        "pages": [(r["page"], _n(r)) for r in pages],
+        "expands": [(r["page"], _n(r)) for r in expands],
     }
 
 
@@ -227,9 +238,26 @@ def _source_order(sources) -> list[str]:
     return [s for s in KNOWN_SOURCES if s in sources] + extra
 
 
+# blob2 on a pageview, as emitted by sag.render.chrome.usage_js:
+#   ''                the single-file tab site (and EVERY row before
+#                     2026-08-17, which is why empty must keep meaning this)
+#   'players'         the /players/ index
+#   'player:<slug>'   one player page
+PLAYERS_INDEX_KEY = "players"
+PLAYER_PREFIX = "player:"
+
+
+def _surface(page: str) -> str:
+    if page.startswith(PLAYER_PREFIX):
+        return "player_pages"
+    if page == PLAYERS_INDEX_KEY:
+        return "players_index"
+    return "main"
+
+
 def build_report(raw: dict, start: dt.date, end: dt.date | None) -> dict:
     per_source: dict[str, dict[str, int]] = {}
-    totals = {"pageview": 0, "tab": 0, "box": 0}
+    totals = {"pageview": 0, "tab": 0, "box": 0, "expand": 0}
     for event, source, n in raw["by_event_source"]:
         # GROUP BY event, source already yields one row per pair.
         per_source.setdefault(source, {})[event] = n
@@ -238,6 +266,29 @@ def build_report(raw: dict, start: dt.date, end: dt.date | None) -> dict:
 
     ret = raw["returning"]
     returning_n, new_n = ret.get("1", 0), ret.get("0", 0)
+
+    # Per-surface split, and per-page detail for the player pages. The
+    # question Phase 1 exists to answer is "do the SEO pages get traffic,
+    # and does an arrival read?" — that is pageviews per page against
+    # expands on the same key.
+    by_surface = {"main": 0, "players_index": 0, "player_pages": 0}
+    for page, n in raw["pages"]:
+        by_surface[_surface(page)] += n
+    expands_by_page = dict(raw["expands"])
+    views_by_page = dict(raw["pages"])
+    # Union of both keys, not just pages with pageviews: a page can carry an
+    # expand while showing zero views — every pageview sent before
+    # 2026-08-17 had an empty blob2, and a visitor whose beacon was blocked
+    # on load can still open the splits. Dropping those rows would hide real
+    # engagement behind a missing denominator.
+    player_pages = [
+        {"page": page,
+         "pageviews": views_by_page.get(page, 0),
+         "expands": expands_by_page.get(page, 0)}
+        for page in sorted(set(views_by_page) | set(expands_by_page))
+        if page.startswith(PLAYER_PREFIX)
+    ]
+    player_pages.sort(key=lambda r: (-r["pageviews"], -r["expands"], r["page"]))
 
     return {
         "window": {"start": start.isoformat(),
@@ -255,6 +306,9 @@ def build_report(raw: dict, start: dt.date, end: dt.date | None) -> dict:
         # invent direct traffic that was never measured.
         "referrers": [{"referrer": r or "(not collected)", "pageviews": n}
                       for r, n in raw["referrers"]],
+        "by_surface": by_surface,
+        "player_pages": player_pages,
+        "expands_total": totals["expand"],
     }
 
 
@@ -274,7 +328,8 @@ def print_report(rep: dict) -> None:
     pv = t["pageview"]
 
     print(f"WNBA usage — {w['start']} → {w['end']} ({w['days']}d, UTC)")
-    print(f"pageviews {pv}   tab events {t['tab']}   box opens {t['box']}")
+    print(f"pageviews {pv}   tab events {t['tab']}   box opens {t['box']}   "
+          f"expands {t['expand']}")
     print("counts use SUM(_sample_interval) — sampling-corrected")
 
     print("\n── Daily pageviews " + "─" * 42)
@@ -303,6 +358,27 @@ def print_report(rep: dict) -> None:
 
     print("\n── Box scores " + "─" * 47)
     print(f"  opens {t['box']}   {_rate(t['box'], pv)}/pageview")
+
+    print("\n── Pages " + "─" * 52)
+    print("  which surface did the pageview land on?")
+    surf = rep["by_surface"]
+    for label, key in (("main page", "main"),
+                       ("players index", "players_index"),
+                       ("player pages", "player_pages")):
+        print(f"  {label:<16} {surf[key]:>7} {_pct(surf[key], pv):>6}")
+    pp = rep["player_pages"]
+    if pp or surf["player_pages"] or surf["players_index"]:
+        exp = sum(r["expands"] for r in pp)
+        print(f"\n  {len(pp)} player page(s) with activity · {exp} expand(s) "
+              f"· {_rate(exp, surf['player_pages'])} expands/view")
+        print("  an expand is the signal an arrival actually READ the page")
+        print(f"  {'page':<26} {'views':>6} {'expands':>8}")
+        for r in pp[:10]:
+            print(f"  {r['page']:<26} {r['pageviews']:>6} {r['expands']:>8}")
+        if len(pp) > 10:
+            print(f"  … and {len(pp) - 10} more")
+    else:
+        print("  (no player-page traffic in window)")
 
     print("\n── Depth by source " + "─" * 42)
     print("  does a visitor from each surface explore, or bounce?")
@@ -357,6 +433,19 @@ def snapshot_row(rep: dict, day: dt.date) -> dict:
         # any reader must treat a missing "referrers" as "not collected"
         # rather than as zero referred traffic.
         "referrers": {x["referrer"]: x["pageviews"] for x in rep["referrers"]},
+        # Added 2026-08-17 with the player pages, and the reason this file
+        # exists: Analytics Engine keeps 90 days, so without these the whole
+        # Phase 1 traffic curve — the thing the SEO surface was built to
+        # produce — would age out unrecorded. A missing key on an older row
+        # means "not collected", never zero. Same rule as "referrers".
+        "by_surface": rep["by_surface"],
+        "expands": rep["expands_total"],
+        # Top 10 only: the full per-page detail lives in Analytics Engine for
+        # 90 days, and committing 227 counters every day would bloat this
+        # file for a long tail that is mostly zeros. The aggregate above is
+        # what the trend needs; this names the pages actually pulling.
+        "top_player_pages": {r["page"]: r["pageviews"]
+                             for r in rep["player_pages"][:10]},
     }
 
 
