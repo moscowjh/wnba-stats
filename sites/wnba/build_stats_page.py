@@ -3,8 +3,23 @@ build_stats_page.py
 Builds sites/wnba/wnba-2026-stats-explorer.html from wehoop box score CSVs.
 All stats -- including four factors -- are computed from the CSVs.
 
-Usage:
-    python3 /Users/jasonhhorowitz/projects/basketball-data/WNBA/build_stats_page.py
+WHAT THIS WRITES IS A BUILD ARTIFACT, NOT THE PAGE.
+`{slug}-{season}-stats-explorer.html` is gitignored (.gitignore: sites/*/*-stats-explorer.html).
+CI copies it to sites/wnba/public/index.html (build.yml) and commits *that* -- so
+public/index.html is the tracked, deployed page. To read today's live site locally,
+open sites/wnba/public/index.html. A local *-stats-explorer.html is only as fresh as
+your last local run and will silently render stale data as if it were current.
+
+This script deliberately does NOT write public/index.html: if it did, every local
+build would dirty a tracked file and race the daily CI commit.
+
+Usage -- runs from any working directory (Python puts this script's own directory on
+sys.path, which is how `from config import WNBA` resolves). Requires `pip install -e core/`:
+
+    python3 sites/wnba/fetch_data.py        # ALWAYS first: sites/*/data/ is gitignored,
+                                            # never syncs, and a build alone will happily
+                                            # render whatever CSVs you last fetched
+    python3 sites/wnba/build_stats_page.py
 """
 
 import json
