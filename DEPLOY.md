@@ -786,6 +786,56 @@ while direct row enumeration showed 28 rows, all with `_sample_interval` of 1
 available at this volume; treat aggregate totals as ±1 or so, and do not
 build an argument on a difference that small.
 
+### Backlog
+
+The P-numbers are referenced from comments in `workers/analytics/worker.js` and
+`usage_report.py`; this table is where they actually live. (Those comments also
+point at a `USAGE-TRACKER-HANDOFF.md` that was **never committed** — it is not
+in git history at all. Treat this section as its replacement rather than going
+looking for it.)
+
+| id | item | state |
+|---|---|---|
+| P2 | daily rollup into `usage_history.jsonl`, so data outlives Analytics Engine's 90-day retention | **done** |
+| P3 | recency bucket in `blob5` — `returning` is set on first visit and never expires, so its share can only ever climb. It is not a retention rate and the report says so every run. | open |
+| P4 | country / device / **session id** in `blob6` / `blob7` / `blob9` | open |
+| P5 | usage dashboard — see below | open, **low** |
+
+P4's session id is the interesting one: without it `--sessions` groups
+ACTIVITY, not people, and two visitors browsing at the same time merge into a
+single visit with nothing able to separate them. Everything `--sessions` says
+about visit counts carries that caveat until blob9 is filled.
+
+#### P5 — usage dashboard (low priority)
+
+A static HTML page rendering `usage_history.jsonl` as trend lines, opened
+locally instead of running the CLI. Deliberately parked, for two reasons.
+
+**Wait for clean data.** As of 2026-08-22 the history is mostly pre-instrument:
+no `owner`-tagged days, no posting log entries, and an expand count we know is
+substantially our own testing. A dashboard built now would draw confident lines
+through numbers we have already established are wrong. Mid-September, after a
+few weeks of the bookmark and `posts.csv` being used, is the earliest the
+charts would mean anything.
+
+**Backfilled zeros are not measurements.** The July rows were backfilled on
+2026-08-22 and therefore contain `expands: 0` and `by_surface: {main: ...}` for
+dates when those fields did not exist. A naive chart draws a flat zero line
+across July and makes it look like engagement grew from nothing. The dashboard
+MUST gray out each series before its field went live:
+
+| field | live since |
+|---|---|
+| `site` | 2026-08-05 |
+| `referrers` | 2026-08-11 |
+| `by_surface`, `expands`, `top_player_pages` | 2026-08-17 |
+
+Note also that the rollup stores aggregates only. The row-level view that
+`--rows` and `--sessions` read — visit shapes, expand timing, per-arrival
+referrers — ages out at 90 days and is preserved nowhere. If that detail turns
+out to matter for the dashboard, capturing it is a prerequisite, not a
+follow-up.
+
 ## Dependencies + repository security posture (documented 2026-08-05)
 
 ### Python dependencies
