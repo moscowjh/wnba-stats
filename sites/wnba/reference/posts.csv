@@ -1,0 +1,10 @@
+when_et,platform,what,utm_tag
+# One row per public post. This file is the only record of WHY traffic moved:
+# Analytics Engine can say 22 people arrived at 15:00 UTC, never that a post
+# went out at 14:47. Read by:  python usage_report.py --hourly
+#
+# when_et  LOCAL wall-clock (America/New_York), format YYYY-MM-DD HH:MM.
+#          An EVENING ET POST LANDS ON THE NEXT UTC DAY - 9pm ET is 01:00 UTC
+#          tomorrow, so look for it under the following --date, not this one.
+# utm_tag  the ?utm_source= value in the link you posted; blank if the post
+#          carried no tagged link (then proximity is the only evidence).

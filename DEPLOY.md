@@ -665,7 +665,8 @@ curl -s "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/analytics_en
 > with traffic. Sampling is not a future problem; it is already on.
 
 ### utm_source taxonomy
-Four stable values — they are the historical series, so don't rename them:
+Four stable published values — they are the historical series, so don't
+rename them — plus one we subtract rather than analyse:
 
 | Value | Surface |
 |---|---|
@@ -673,9 +674,117 @@ Four stable values — they are the historical series, so don't rename them:
 | `bluesky-bio` | the profile bio link — `wnba.statsataglance.com/bsky`, a **Cloudflare Redirect Rule** (dashboard → Rules → Redirect Rules) that 301s to `/?utm_source=bluesky-bio`. Configured only in the dashboard; this line is its only record. |
 | `x-bio` | the X profile's Website-field link — `wnba.statsataglance.com/x`, a **Cloudflare Redirect Rule** (dashboard → Rules → Overview → Create rule → Redirect Rule) that 301s to `/?utm_source=x-bio`. Configured only in the dashboard; this line is its only record. Added 2026-08-14, confirmed working. |
 | `none` | direct, bookmark, organic, or any untagged referrer |
+| `owner` | **our own testing traffic.** Not a surface we publish to — a surface we arrive from, tagged so the report can leave it out. Set by loading the site through the bookmarked `https://wnba.statsataglance.com/?utm_source=owner`; the page JS session-caches it, so entering through the bookmark tags the whole visit, player pages included. Excluded by default in `usage_report.py`; `--include-owner` keeps it. Added 2026-08-22. |
 
 The post card was untagged until 2026-08-04, so every click on it before that
 date is indistinguishable from direct traffic. Not recoverable retroactively.
+
+**Tagging a manual post.** Nothing is automatic. The tag lives in the URL you
+paste — the page reads `?utm_source=` on arrival and caches it for the session.
+`bluesky-post` is tagged only because `post_to_bluesky.py` hardcodes it in
+`SITE_URL`; a post written by hand carries whatever you put in the link, and
+nothing if you paste the bare URL. Do NOT reuse `bluesky-post` for hand-written
+posts — it would mix them into the bot's series, which is the one clean
+comparison this table exists to protect. New values need no code change:
+`usage_report.py`'s `KNOWN_SOURCES` controls presentation order only, and
+anything unrecognised is still reported.
+
+### The posting log — `sites/<slug>/reference/posts.csv`
+
+The only record of WHY traffic moved. Analytics Engine can say 22 people
+arrived at 15:00 UTC; it can never say a post went out at 14:47. One
+hand-typed row per public post: `when_et,platform,what,utm_tag`.
+
+It lives under `reference/` because .gitignore's rule is provenance, not
+extension — `*.csv` is ignored as a build artifact and `reference/` is the
+carve-out for human-typed files with no upstream. At the repo root it would be
+silently untracked, invisible even to `git status`.
+
+Times are **local wall-clock** (`America/New_York`), because that is when a
+human posts, converted to UTC on read. Consequence worth internalising: an
+evening ET post lands on the NEXT UTC day — 9pm ET is 01:00 UTC tomorrow — so
+look for it under the following `--date`.
+
+### Reading one day by the hour
+
+```
+python usage_report.py --hourly                    # today (UTC)
+python usage_report.py --hourly --date 2026-08-18
+python usage_report.py --days 30 --include-owner   # keep our own testing
+```
+
+Daily totals cannot answer "did my post cause that?" — a post at 18:47 and a
+game tipping at 19:00 land on the same date. `--hourly` separates them and
+draws `posts.csv` markers on the hours the posts landed in.
+
+The "views in HH:00–HH:59" figure under each post is **proximity, not proof**,
+and it leans generous: hour buckets mean the post's own hour is counted whole
+even though the post landed partway through it. A window running past midnight
+UTC is cut there and says so — this report queries one day only.
+
+### Reading rows instead of rates
+
+```
+python usage_report.py --rows --date 2026-08-18   # every row that day
+python usage_report.py --sessions --days 30       # visits, not pageviews
+python usage_report.py --sessions --days 30 --session-gap 15
+```
+
+**At 10–30 pageviews a day the aggregates are the wrong instrument.** A day
+fits on one screen, and reading it answers questions no rate can. This was
+learned the hard way on 2026-08-22: the 29-view "spike" of 2026-08-18 was
+really 28 rows, 11 of which were a single four-minute session walking the
+players index — our own testing, confirmed afterwards. Every engagement
+signal read off the aggregates that week (player pages "bouncing", seven
+"spike days", one player page "pulling") decomposed into our own activity
+once the rows were visible.
+
+`--rows` applies NO filter, owner traffic included, because the point is to
+see everything that happened.
+
+`--sessions` groups activity into visits. Two caveats that matter:
+
+- **It groups ACTIVITY, not people.** There is no visitor id in this schema
+  (blob9 is reserved for one, P4), so two visitors browsing at the same time
+  merge into one session and nothing can separate them.
+- **The 30-minute rule is a convention.** On 2026-08-18 a real gap of 29m55s
+  sits five seconds inside it. Over `--session-gap` 5→60 that day reports
+  anywhere from 11 to 6 sessions, so quote a session COUNT with a caveat.
+  The walk flag, by contrast, held at 1 across every setting.
+
+The **walk flag** guesses that a session is us rather than a visitor: ≥5
+pageviews, ≥3 distinct player pages, median gap under 60s. That is the shape
+of the labelled 2026-08-18 burst — a visitor arrives and looks at a thing or
+two, we walk a roster. It is a guess from behaviour, it is never subtracted
+from any total, and until `owner`-tagged sessions exist it is UNVALIDATED.
+The Shape-check block scores it against the tag once both are present.
+
+**Continuations are merged.** A run of activity whose first row has
+`ref=self` began with an in-site click, so the visitor was already here — it
+is the tail of an earlier visit, not a new one. Counting it as new inflates
+the visit count, which is why `--sessions` reports visits and says how many
+runs it glued back together. Bounded at `SELF_MERGE_MAX_HOURS` (4): `self`
+says the tab came from our own domain, not *when*, and a tab left open
+overnight would otherwise weld two unrelated sittings into one. On
+2026-08-18 this takes 7 runs down to 5 real visits.
+
+**Expand timing.** `--sessions` splits the expand count by how long after the
+pageview it fired. The four expands on 2026-08-18 came at 4s, 8s, 8s and 21s
+— that is someone who knows where the button is, not someone who read the
+page and wanted more. The main report's "an expand is the signal an arrival
+actually READ the page" was overclaiming, and now points here instead.
+`FAST_EXPAND_SECONDS` (10) is a judgement call and nothing is subtracted.
+
+### A count from Analytics Engine is not exact
+
+`SUM(_sample_interval)` fixes the large, systematic undercount that `count()`
+produces, and the warning above is right that it is mandatory. It does not
+make the number exact. On 2026-08-22 the same predicate over 2026-08-18
+returned 29 from one aggregate shape and 28 from another *in the same run*,
+while direct row enumeration showed 28 rows, all with `_sample_interval` of 1
+— i.e. sampling had not even engaged. Row enumeration is the ground truth
+available at this volume; treat aggregate totals as ±1 or so, and do not
+build an argument on a difference that small.
 
 ## Dependencies + repository security posture (documented 2026-08-05)
 
