@@ -1,0 +1,4338 @@
+{
+  "_schema": {
+    "version": "2.1.0",
+    "generated": "2026-08-19",
+    "note": "One record per team, 16 records. Field set frozen before profile writing. Source of truth for the WWC team pages; all views (spreadsheet, HTML table) are generated from this file and are disposable.",
+    "keys": "code is the primary key (FIBA three-letter). schedule_key joins to sites/wwc/reference/wwc_schedule_2026.csv, which uses UPPERCASE full names, not codes. Both are needed; neither alone is sufficient.",
+    "sources": "A LIST, not a single URL, following the hooks.json convention. Verbatim quotes are attached where the source stated a figure directly.",
+    "derived": "appearances_count and best_finish derive from the editions array wherever editions is non-null. Where editions is null the stored summary is the fallback.",
+    "confidence": "high = cross-validated across two independent sources. medium = single source. low = single source that conflicted with something else; re-check before publishing.",
+    "nulls": "null = exists, not researched. [] = researched, genuinely none. Never write a profile claim off a null.",
+    "roster_rule": "player_count > 12 means a pool regardless of how the source labels it. FIBA's own tracker mislabels several pools as final. Never write a squad claim off a pool roster without hedging.",
+    "wnba": "current / former / drafted_only counts derive from the players array and are validated. roster_basis says what list the block was built from — 'proxy' means no squad has been announced and membership is inference, not fact.",
+    "validator": "sites/wwc/validate_teams.py (to be written) - assert 16 records, unique codes, 4 per group, schedule_key matches the schedule CSV, roster.status in enum, editions ranks 1..16."
+  },
+  "tournament": {
+    "name": "FIBA Women's Basketball World Cup 2026",
+    "short": "WWC 2026",
+    "edition": 20,
+    "host_country": "Germany",
+    "host_cities": [
+      "Berlin"
+    ],
+    "venues": [
+      "Uber Arena",
+      "Max-Schmeling-Halle"
+    ],
+    "start_date": "2026-09-04",
+    "end_date": "2026-09-13",
+    "team_count": 16,
+    "qualification_summary": {
+      "host": 1,
+      "continental_cup_champions": 4,
+      "via_qualifying_tournaments": 11,
+      "qt_allocation": {
+        "Istanbul": 3,
+        "San Juan": 3,
+        "Wuhan": 3,
+        "Villeurbanne": 2
+      },
+      "note": "Villeurbanne sent two rather than three because its six-team field contained both the host (Germany) and a continental champion (Nigeria). The five directly-qualified teams all played a qualifying tournament anyway, so route and city answer different questions."
+    },
+    "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026"
+  },
+  "_context": {
+    "maiga_ba": {
+      "note": "Preserved because the playing record is solid and was nearly used as Mali's profile hook. Her coaching role is NOT established — see MLI.coach.note.",
+      "name": "Hamchétou Maïga-Ba",
+      "playing": "Old Dominion; 10th overall pick, 2002 WNBA Draft; Sacramento 2002-07, Houston, Minnesota. Captain and MVP of the 2007 AfroBasket team that took Mali to its only Olympics.",
+      "confidence": "high",
+      "source": "https://en.wikipedia.org/wiki/Hamchetou_Maiga"
+    },
+    "czechoslovakia": {
+      "note": "Recorded but NOT counted in Czechia's record, per FIBA. Kept so nobody re-opens the question.",
+      "wwc_appearances": 8,
+      "editions": [
+        {
+          "year": 1957,
+          "rank": 3
+        },
+        {
+          "year": 1959,
+          "rank": 3
+        },
+        {
+          "year": 1964,
+          "rank": 2
+        },
+        {
+          "year": 1967,
+          "rank": 3
+        },
+        {
+          "year": 1971,
+          "rank": 2
+        },
+        {
+          "year": 1975,
+          "rank": 3
+        },
+        {
+          "year": 1990,
+          "rank": 4
+        }
+      ],
+      "withdrew": [
+        1979
+      ],
+      "best_finish": "Runners-up (1964, 1971); six podiums",
+      "confidence": "medium",
+      "settled_by": "FIBA's Czechia History tab shows Played 3 (2006, 2010, 2014), confirming the post-1993 convention."
+    }
+  },
+  "_corrections": {
+    "note": "Facts that were wrong in v1.0.0 and are now fixed. Kept deliberately so they are not reintroduced.",
+    "AUS.coach": "Was 'Paul Goriss'. Correct: Sandy Brondello, Opals head coach since April 2017.",
+    "HUN.coach": "Was 'László Cziczás' (from a stale Wikipedia infobox). Correct: Péter Völgyi since 2025; Cziczás is an assistant.",
+    "USA.wwc_appearances_count": "Was 19, which counted 2026. Correct: 18 completed.",
+    "MLI.wwc_record": "The round-1 team page prototype shows 1 appearance and '15th - 2010'. Correct: 2 appearances, best 11th in 2022.",
+    "ITA.coach_confidence": "Was low. Capobianco confirmed by the Italian federation, contracted through June 2027.",
+    "HUN.wwc_editions": "Fourth appearance was listed as 1990 on a Wikipedia-derived grid. Correct: 1986, from FIBA's Hungary History tab.",
+    "BEL.coach.us_connection": "Called Thibault the WNBA's all-time coaching wins leader. Cheryl Reeve passed him in 2026. A decaying superlative should never have been stored in a data field — the falsifiability rule now applies to us_connection.summary as well.",
+    "MLI.coach": "Named Hamchétou Maïga-Ba as head coach on wiki sourcing. No evidence supports it; withdrawn to null. Mali's coach is currently unknown.",
+    "KOR.wwc_appearances_count": "Was 16 with a null editions array, on the basis of FIBA's prose article. Correct: 17, from FIBA's Korea History tab, which also supplied every placing. FIBA's article and FIBA's data disagree; the data is right."
+  },
+  "teams": [
+    {
+      "code": "ESP",
+      "name": "Spain",
+      "flag": "🇪🇸",
+      "schedule_key": "SPAIN",
+      "name_variants": [
+        "Spain",
+        "España",
+        "ESP"
+      ],
+      "group": "A",
+      "coach": {
+        "name": "Miguel Méndez",
+        "since": "2021-09-24",
+        "us_connection": {
+          "has": false,
+          "summary": "No known US, NCAA or WNBA role. Career is entirely European — Celta de Vigo, Rivas, Schio, UMMC Ekaterinburg 2018-25, Fenerbahçe since 2025. Searched specifically; treat as 'none known' rather than verified-absent.",
+          "confidence": "medium"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Miguel_M%C3%A9ndez_(basketball)",
+            "publisher": "Wikipedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/womenseurobasket-2023-qualifiers-news-ummc-ekaterinburgs-miguel-mendez-put-in-charge-of-spain-women",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "wwc_record": {
+        "appearances_count": 7,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            2014
+          ]
+        },
+        "editions": [
+          {
+            "year": 1994,
+            "rank": 8
+          },
+          {
+            "year": 1998,
+            "rank": 5
+          },
+          {
+            "year": 2002,
+            "rank": 5
+          },
+          {
+            "year": 2006,
+            "rank": 8
+          },
+          {
+            "year": 2010,
+            "rank": 3
+          },
+          {
+            "year": 2014,
+            "rank": 2
+          },
+          {
+            "year": 2018,
+            "rank": 3
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Spain_women%27s_national_basketball_team",
+            "publisher": "Wikipedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "Three podiums in four editions 2010-2018, then failed to qualify for 2022."
+      },
+      "olympic_record": {
+        "appearances_count": 6,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            2016
+          ]
+        },
+        "most_recent_year": 2024,
+        "editions": [
+          {
+            "year": 1992,
+            "rank": 5
+          },
+          {
+            "year": 2004,
+            "rank": 6
+          },
+          {
+            "year": 2008,
+            "rank": 5
+          },
+          {
+            "year": 2016,
+            "rank": 2
+          },
+          {
+            "year": 2020,
+            "rank": 6
+          },
+          {
+            "year": 2024,
+            "rank": 5
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/oqtwomen-hungary-2024-news-which-nations-have-olympic-pedigree-and-who-s-chasing-woqt-history",
+            "publisher": "FIBA",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/womens-olympic-basketball-tournament-paris-2024/standings",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - San Juan",
+        "city": "San Juan",
+        "country": "Puerto Rico",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": null,
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "pool",
+        "player_count": 21,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 5,
+        "former": 1,
+        "drafted_only": 5,
+        "total_connected": 11,
+        "roster_basis": "pool_21",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Awa Fam",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "SEA",
+            "wnba_team_full": "Seattle Storm",
+            "note": "Drafted 3rd overall 2026.",
+            "confidence": "high"
+          },
+          {
+            "name": "Raquel Carrera",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "María Conde",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "TOR",
+            "wnba_team_full": "Toronto Tempo",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Megan Gustafson",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "POR",
+            "wnba_team_full": "Portland Fire",
+            "note": "Naturalised Spaniard; seven-year WNBA veteran. Not 'Megan DiLeo'.",
+            "confidence": "high"
+          },
+          {
+            "name": "Alicia Flórez",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "WAS",
+            "wnba_team_full": "Washington Mystics",
+            "note": "Signed as a developmental player, converted to a standard contract in 2026.",
+            "confidence": "high"
+          },
+          {
+            "name": "Maite Cazorla",
+            "position": "G",
+            "status": "former",
+            "wnba_team": "ATL",
+            "wnba_team_full": "Atlanta Dream",
+            "note": "Drafted 23rd overall 2019.",
+            "confidence": "high"
+          },
+          {
+            "name": "Iyana Martín Carrión",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "POR",
+            "wnba_team_full": "Portland Fire",
+            "note": "7th overall 2026 — declined to join Portland in order to train with Spain for this World Cup.",
+            "confidence": "high"
+          },
+          {
+            "name": "Alba Torrens",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "CON",
+            "wnba_team_full": "Connecticut Sun",
+            "note": "36th overall 2009; has repeatedly declined, citing national-team commitments.",
+            "confidence": "high"
+          },
+          {
+            "name": "Aina Ayuso",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "LAS",
+            "wnba_team_full": "Los Angeles Sparks",
+            "note": "34th overall 2021.",
+            "confidence": "high"
+          },
+          {
+            "name": "Helena Pueyo",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "CON",
+            "wnba_team_full": "Connecticut Sun",
+            "note": "22nd overall 2024.",
+            "confidence": "high"
+          },
+          {
+            "name": "Txell Alarcón",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "WAS",
+            "wnba_team_full": "Washington Mystics",
+            "note": "32nd overall 2023.",
+            "confidence": "high"
+          }
+        ],
+        "note": "Pool of 21 to be cut to 16. Marta Suárez, drafted 16th overall in 2026, is NOT in the pool.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Spain medalled at three consecutive World Cups and then missed the next one entirely. Iyana Martín Carrión went seventh in the 2026 WNBA draft and turned the Portland Fire down to train with Spain for this tournament, one of several in the squad with WNBA ties.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "GER",
+      "name": "Germany",
+      "flag": "🇩🇪",
+      "schedule_key": "GERMANY",
+      "name_variants": [
+        "Germany",
+        "Deutschland",
+        "GER"
+      ],
+      "group": "A",
+      "coach": {
+        "name": "Olaf Lange",
+        "since": "2025-10",
+        "us_connection": {
+          "has": true,
+          "summary": "Career WNBA assistant: San Antonio Silver Stars 2007-09 and associate head coach 2010; Chicago Sky 2019-21; New York Liberty 2022-25, part of the 2024 championship staff. Married to Sandy Brondello, who coaches Australia in Group C.",
+          "confidence": "high"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.espn.com/wnba/story/_/id/46606261/ex-liberty-assistant-olaf-lange-coach-german-national-team",
+            "publisher": "ESPN",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Olaf_Lange_(basketball)",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "wwc_record": {
+        "appearances_count": 1,
+        "best_finish": {
+          "result": "11th place",
+          "rank": 11,
+          "years": [
+            1998
+          ]
+        },
+        "editions": [
+          {
+            "year": 1998,
+            "rank": 11
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-are-germany-standing-on-the-verge-of-history",
+            "publisher": "FIBA",
+            "quote": "Appearances: 2 including 2026"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "Only prior appearance was as hosts in 1998."
+      },
+      "olympic_record": {
+        "appearances_count": 1,
+        "best_finish": {
+          "result": "7th place",
+          "rank": 7,
+          "years": [
+            2024
+          ]
+        },
+        "most_recent_year": 2024,
+        "editions": [
+          {
+            "year": 2024,
+            "rank": 7
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/oqtwomen-hungary-2024-news-which-nations-have-olympic-pedigree-and-who-s-chasing-woqt-history",
+            "publisher": "FIBA",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/womens-olympic-basketball-tournament-paris-2024/standings",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": "Olympic debut was Paris 2024."
+      },
+      "qualification": {
+        "route": "host",
+        "route_short": "HOST",
+        "tournament": null,
+        "city": null,
+        "country": null,
+        "dates": null,
+        "placement": null,
+        "link": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026",
+        "note": "Qualified automatically as host. Also competed in the Villeurbanne qualifying tournament; its presence there, alongside continental champion Nigeria, is why only two teams advanced from Villeurbanne rather than three.",
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "not_announced",
+        "player_count": null,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 5,
+        "former": 0,
+        "drafted_only": 0,
+        "total_connected": 5,
+        "roster_basis": "proxy_wnba_rosters",
+        "as_of": "2026-08-19",
+        "confidence": "medium",
+        "players": [
+          {
+            "name": "Satou Sabally",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Leonie Fiebich",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Nyara Sabally",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "TOR",
+            "wnba_team_full": "Toronto Tempo",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Luisa Geiselsöder",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "POR",
+            "wnba_team_full": "Portland Fire",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Frieda Bühner",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "POR",
+            "wnba_team_full": "Portland Fire",
+            "note": "Drafted 17th overall 2026; played 32 games as a rookie.",
+            "confidence": "high"
+          }
+        ],
+        "note": "No squad announced. These are Germans currently in the WNBA and are likely but UNCONFIRMED call-ups — squad membership is inference, not fact.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Germany have hosted this tournament once before, in 1998, and went out before the quarter-finals. Olaf Lange coaches them now — four seasons on the New York Liberty staff, including the 2024 championship — and he is married to Sandy Brondello, who coaches Australia.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "JPN",
+      "name": "Japan",
+      "flag": "🇯🇵",
+      "schedule_key": "JAPAN",
+      "name_variants": [
+        "Japan",
+        "JPN"
+      ],
+      "group": "A",
+      "coach": {
+        "name": "Corey Gaines",
+        "since": "2025-02",
+        "us_connection": {
+          "has": true,
+          "summary": "American. Head coach of the Phoenix Mercury, winning the 2009 WNBA championship. Former NBA player; came to Japan in 1998 as a player and has been involved with the Japanese program since 2009.",
+          "confidence": "high"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/cory-aims-to-add-gaines-to-japanese-women-campaign",
+            "publisher": "FIBA",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://ground.news/article/gaines-becomes-new-head-coach-of-japan-womens-national-basketball-team-kyodo-news",
+            "publisher": "Kyodo News",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "wwc_record": {
+        "appearances_count": 14,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            1975
+          ]
+        },
+        "editions": [
+          {
+            "year": 1964,
+            "rank": 9
+          },
+          {
+            "year": 1967,
+            "rank": 5
+          },
+          {
+            "year": 1971,
+            "rank": 5
+          },
+          {
+            "year": 1975,
+            "rank": 2
+          },
+          {
+            "year": 1979,
+            "rank": 6
+          },
+          {
+            "year": 1983,
+            "rank": 12
+          },
+          {
+            "year": 1990,
+            "rank": 12
+          },
+          {
+            "year": 1994,
+            "rank": 12
+          },
+          {
+            "year": 1998,
+            "rank": 9
+          },
+          {
+            "year": 2002,
+            "rank": 13
+          },
+          {
+            "year": 2010,
+            "rank": 10
+          },
+          {
+            "year": 2014,
+            "rank": 14
+          },
+          {
+            "year": 2018,
+            "rank": 9
+          },
+          {
+            "year": 2022,
+            "rank": 9
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-can-japan-find-their-mojo-again",
+            "publisher": "FIBA",
+            "quote": "15 appearances including 2026, best 2nd in 1975"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "Count and best finish are high confidence; individual year placings are medium (single grid source)."
+      },
+      "olympic_record": {
+        "appearances_count": 6,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            2020
+          ]
+        },
+        "most_recent_year": 2024,
+        "editions": [
+          {
+            "year": 1976,
+            "rank": 5
+          },
+          {
+            "year": 1996,
+            "rank": 7
+          },
+          {
+            "year": 2004,
+            "rank": 10
+          },
+          {
+            "year": 2016,
+            "rank": 8
+          },
+          {
+            "year": 2020,
+            "rank": 2
+          },
+          {
+            "year": 2024,
+            "rank": 12
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/oqtwomen-hungary-2024-news-which-nations-have-olympic-pedigree-and-who-s-chasing-woqt-history",
+            "publisher": "FIBA",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/womens-olympic-basketball-tournament-paris-2024/standings",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": "Tokyo 2020 silver was Japan's first Olympic basketball medal, men's or women's."
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - Istanbul",
+        "city": "Istanbul",
+        "country": "Türkiye",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": null,
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "pool",
+        "player_count": 16,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 1,
+        "former": 2,
+        "drafted_only": 1,
+        "total_connected": 4,
+        "roster_basis": "pool_16",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Mai Yamamoto",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "LVA",
+            "wnba_team_full": "Las Vegas Aces",
+            "note": "Signed by Las Vegas mid-season, July 2026.",
+            "confidence": "high"
+          },
+          {
+            "name": "Ramu Tokashiki",
+            "position": "F",
+            "status": "former",
+            "wnba_team": "SEA",
+            "wnba_team_full": "Seattle Storm",
+            "note": "Seattle 2015-17.",
+            "confidence": "high"
+          },
+          {
+            "name": "Rui Machida",
+            "position": "G",
+            "status": "former",
+            "wnba_team": "WAS",
+            "wnba_team_full": "Washington Mystics",
+            "note": "Washington 2022, 36 games.",
+            "confidence": "high"
+          },
+          {
+            "name": "Kokoro Tanaka",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "GSV",
+            "wnba_team_full": "Golden State Valkyries",
+            "note": "38th overall 2026; rights held.",
+            "confidence": "high"
+          }
+        ],
+        "note": null,
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Japan won silver at the Tokyo Olympics, the first Olympic basketball medal in the country's history, men's or women's. Their coach is American: Corey Gaines won the 2009 WNBA championship with the Phoenix Mercury and has worked in Japanese basketball since 1998.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "MLI",
+      "name": "Mali",
+      "flag": "🇲🇱",
+      "schedule_key": "MALI",
+      "name_variants": [
+        "Mali",
+        "MLI"
+      ],
+      "group": "A",
+      "coach": {
+        "name": null,
+        "since": null,
+        "us_connection": {
+          "has": null,
+          "summary": null,
+          "confidence": null
+        },
+        "confidence": null,
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": "FIBA's own Mali team profile names no head coach",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-mali-not-daunted-by-underdog-status",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": "WITHDRAWN 2026-08-19. An earlier version named Hamchétou Maïga-Ba on the strength of a Wikipedia infobox and a 2025 AfroBasket squad page. Her FIBA player profile records no coaching role, and FIBA's Mali team profile names no coach at all. Nobody has been identified in her place — this is a genuine unknown, not a swap. Her playing record is real and is preserved in _context.maiga_ba, but nothing in this file should assert she coaches Mali."
+      },
+      "wwc_record": {
+        "appearances_count": 2,
+        "best_finish": {
+          "result": "11th place",
+          "rank": 11,
+          "years": [
+            2022
+          ]
+        },
+        "editions": [
+          {
+            "year": 2010,
+            "rank": 15
+          },
+          {
+            "year": 2022,
+            "rank": 11
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-mali-not-daunted-by-underdog-status",
+            "publisher": "FIBA",
+            "quote": "3 appearances including 2026... best 11th at 2022 Sydney"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "Corrects the round-1 prototype, which showed 1 appearance and a 15th in 2010. 2022 is a second appearance."
+      },
+      "olympic_record": {
+        "appearances_count": 1,
+        "best_finish": {
+          "result": "12th place",
+          "rank": 12,
+          "years": [
+            2008
+          ]
+        },
+        "most_recent_year": 2008,
+        "editions": [
+          {
+            "year": 2008,
+            "rank": 12
+          }
+        ],
+        "confidence": "medium",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/womensafrobasket-2021-news-womens-afrobasket-2021-team-profile-mali",
+            "publisher": "FIBA",
+            "quote": "their only Olympic appearance at the Beijing Games 2008"
+          },
+          {
+            "claim": null,
+            "url": "https://www.basketball-reference.com/international/womens-olympics/2008.html",
+            "publisher": "Basketball-Reference",
+            "quote": null
+          }
+        ],
+        "note": "That 2008 is the sole appearance is high confidence; the 12th-place figure is single-source."
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - Wuhan",
+        "city": "Wuhan",
+        "country": "China",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": null,
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "pool",
+        "player_count": 23,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 1,
+        "former": 0,
+        "drafted_only": 0,
+        "total_connected": 1,
+        "roster_basis": "pool_23",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Sika Koné",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "ATL",
+            "wnba_team_full": "Atlanta Dream",
+            "note": "Drafted 29th overall in 2022 by New York; Chicago 2023, Minnesota 2024, Washington 2024-25, Atlanta since August 2025. Around 95 career games.",
+            "confidence": "high"
+          }
+        ],
+        "note": "Mali's only WNBA player. Diaba Konaté has no WNBA connection.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Sika Koné is the reason for a WNBA audience to watch Mali. Drafted by the New York Liberty in 2022 and now a forward for the Atlanta Dream, she has played for four franchises in five seasons and is the only member of this squad to have played in the league.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "FRA",
+      "name": "France",
+      "flag": "🇫🇷",
+      "schedule_key": "FRANCE",
+      "name_variants": [
+        "France",
+        "FRA"
+      ],
+      "group": "B",
+      "coach": {
+        "name": "Jean-Aimé Toupane",
+        "since": null,
+        "us_connection": {
+          "has": false,
+          "summary": "No known US role. French coach, born in the Central African Republic; long-time INSEP and French youth coach. Led France to Olympic silver at Paris 2024.",
+          "confidence": "medium"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/France_women%27s_national_basketball_team",
+            "publisher": "Wikipedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.postup.fr/2026/07/07/une-premiere-liste-tres-elargie-en-vue-du-mondial-a-berlin/",
+            "publisher": "PostUp",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "wwc_record": {
+        "appearances_count": 11,
+        "best_finish": {
+          "result": "Third place",
+          "rank": 3,
+          "years": [
+            1953
+          ]
+        },
+        "editions": [
+          {
+            "year": 1953,
+            "rank": 3
+          },
+          {
+            "year": 1964,
+            "rank": 10
+          },
+          {
+            "year": 1971,
+            "rank": 6
+          },
+          {
+            "year": 1979,
+            "rank": 7
+          },
+          {
+            "year": 1994,
+            "rank": 9
+          },
+          {
+            "year": 2002,
+            "rank": 8
+          },
+          {
+            "year": 2006,
+            "rank": 5
+          },
+          {
+            "year": 2010,
+            "rank": 6
+          },
+          {
+            "year": 2014,
+            "rank": 7
+          },
+          {
+            "year": 2018,
+            "rank": 5
+          },
+          {
+            "year": 2022,
+            "rank": 7
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-will-france-finally-end-an-epic-drought",
+            "publisher": "FIBA",
+            "quote": "73 years since France won their one and only medal"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "The 1953 bronze remains France's only World Cup medal — 73 years old. Strong hook against their Olympic record."
+      },
+      "olympic_record": {
+        "appearances_count": 5,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            2012,
+            2024
+          ]
+        },
+        "most_recent_year": 2024,
+        "editions": [
+          {
+            "year": 2000,
+            "rank": 5
+          },
+          {
+            "year": 2012,
+            "rank": 2
+          },
+          {
+            "year": 2016,
+            "rank": 4
+          },
+          {
+            "year": 2020,
+            "rank": 3
+          },
+          {
+            "year": 2024,
+            "rank": 2
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/oqtwomen-hungary-2024-news-which-nations-have-olympic-pedigree-and-who-s-chasing-woqt-history",
+            "publisher": "FIBA",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/womens-olympic-basketball-tournament-paris-2024/standings",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": "Medals in four straight Olympics but only one World Cup medal ever, in 1953."
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - Villeurbanne",
+        "city": "Villeurbanne",
+        "country": "France",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": "Qualified on home soil. Villeurbanne sent only two teams rather than three.",
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "pool",
+        "player_count": 32,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 11,
+        "former": 2,
+        "drafted_only": 1,
+        "total_connected": 14,
+        "roster_basis": "pool_32",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Gabby Williams",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "GSV",
+            "wnba_team_full": "Golden State Valkyries",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Janelle Salaün",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "GSV",
+            "wnba_team_full": "Golden State Valkyries",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Dominique Malonga",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "SEA",
+            "wnba_team_full": "Seattle Storm",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Marine Johannès",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Pauline Astier",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Marine Fauthoux",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Leïla Lacan",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "CON",
+            "wnba_team_full": "Connecticut Sun",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Nell Angloma",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "CON",
+            "wnba_team_full": "Connecticut Sun",
+            "note": "Drafted 12th overall 2026.",
+            "confidence": "high"
+          },
+          {
+            "name": "Valériane Ayayi",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Noémie Brochant",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Carla Leite",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "POR",
+            "wnba_team_full": "Portland Fire",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Tima Pouye",
+            "position": "G",
+            "status": "former",
+            "wnba_team": "TOR",
+            "wnba_team_full": "Toronto Tempo",
+            "note": "Signed and released by Toronto in 2026.",
+            "confidence": "high"
+          },
+          {
+            "name": "Marième Badiane",
+            "position": "C",
+            "status": "former",
+            "wnba_team": "MIN",
+            "wnba_team_full": "Minnesota Lynx",
+            "note": "Three games in 2025.",
+            "confidence": "high"
+          },
+          {
+            "name": "Inès Pitarch-Granel",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
+            "note": "27th overall 2026; rights held.",
+            "confidence": "high"
+          }
+        ],
+        "note": "The deepest WNBA representation outside the United States. NOTE: Iliana Rupert is a current WNBA player but is NOT in France's 32-player pool — she withdrew injured. Do not assume she is in Berlin.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "France arrived in Berlin with medals from four consecutive Olympics and a single World Cup medal, a bronze won in 1953. Dominique Malonga of Seattle and Gabby Williams of Golden State head the deepest group of WNBA players outside the United States.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "HUN",
+      "name": "Hungary",
+      "flag": "🇭🇺",
+      "schedule_key": "HUNGARY",
+      "name_variants": [
+        "Hungary",
+        "Magyarország",
+        "HUN"
+      ],
+      "group": "B",
+      "coach": {
+        "name": "Péter Völgyi",
+        "since": "2025",
+        "us_connection": {
+          "has": false,
+          "summary": "No known US role; long domestic career, most recently DVTK Miskolc. Note that assistant coach Dalma Iványi does have a WNBA playing career — a possible hook, but she is not the head coach.",
+          "confidence": "medium"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://dvtk.eu/30701-Volgyi_Peter_a_noi_valogatott_uj_szovetsegi_kapitanya-cikk-kosarlabda",
+            "publisher": "DVTK",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.nemzetisport.hu/kosarlabda/2026/03/volgyi-peter-amikorra-kell-keszen-lesz-a-csapat",
+            "publisher": "Nemzeti Sport",
+            "quote": null
+          }
+        ],
+        "note": "English Wikipedia's infobox is stale and still lists László Cziczás, who is an assistant."
+      },
+      "wwc_record": {
+        "appearances_count": 5,
+        "best_finish": {
+          "result": "5th place",
+          "rank": 5,
+          "years": [
+            1957
+          ]
+        },
+        "editions": [
+          {
+            "year": 1957,
+            "rank": 5
+          },
+          {
+            "year": 1959,
+            "rank": 7
+          },
+          {
+            "year": 1975,
+            "rank": 9
+          },
+          {
+            "year": 1986,
+            "rank": 8
+          },
+          {
+            "year": 1998,
+            "rank": 10
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": "Hungary History tab shows PLAYED 5 with no podiums: 1998 10th, 1986 8th, 1975 9th, 1959 7th, 1957 5th",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": "1ST 0 / 2ND 0 / 3RD 0 / PLAYED 5"
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-go-time-for-hungary-after-28-year-wait",
+            "publisher": "FIBA",
+            "quote": "6 including 2026, best 5th in 1957, last appeared 1998"
+          }
+        ],
+        "note": "RESOLVED: the fourth appearance is 1986, not 1990 — confirmed from FIBA's Hungary History tab, which also confirms the 1959 seventh place. 2026 ends a 28-year absence, their first World Cup of the 21st century and the second-longest gap in the field behind Italy."
+      },
+      "olympic_record": {
+        "appearances_count": 1,
+        "best_finish": {
+          "result": "Fourth place",
+          "rank": 4,
+          "years": [
+            1980
+          ]
+        },
+        "most_recent_year": 1980,
+        "editions": [
+          {
+            "year": 1980,
+            "rank": 4
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/oqtwomen-hungary-2024-news-which-nations-have-olympic-pedigree-and-who-s-chasing-woqt-history",
+            "publisher": "FIBA",
+            "quote": "Appearances: 1 - 1980 (4th)"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Hungary_women%27s_national_basketball_team",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "Entered Moscow 1980 as a replacement after the US-led boycott; lost the bronze game to Yugoslavia."
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - Istanbul",
+        "city": "Istanbul",
+        "country": "Türkiye",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": null,
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "pool",
+        "player_count": 25,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 1,
+        "former": 1,
+        "drafted_only": 1,
+        "total_connected": 3,
+        "roster_basis": "pool_25",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Dorka Juhász",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "MIN",
+            "wnba_team_full": "Minnesota Lynx",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Yvonne Turner",
+            "position": "G",
+            "status": "former",
+            "wnba_team": "SEA",
+            "wnba_team_full": "Seattle Storm",
+            "note": "American-Hungarian. Phoenix 2017-19, Minnesota and Atlanta 2022, Seattle 2023.",
+            "confidence": "high"
+          },
+          {
+            "name": "Eszter Rátkai",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
+            "note": "42nd overall 2026; rights held.",
+            "confidence": "high"
+          }
+        ],
+        "note": null,
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Hungary have not played a World Cup since 1998, one of the longest absences in the field. Dorka Juhász of the Minnesota Lynx is the one familiar name for an American audience; Phoenix drafted Eszter Rátkai in 2026, though she has yet to play.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "KOR",
+      "name": "Korea",
+      "flag": "🇰🇷",
+      "schedule_key": "KOREA",
+      "name_variants": [
+        "Korea",
+        "South Korea",
+        "Republic of Korea",
+        "KOR"
+      ],
+      "group": "B",
+      "coach": {
+        "name": "Park Soo-ho",
+        "since": "2024-05",
+        "us_connection": {
+          "has": false,
+          "summary": "No known US role. Domestic WKBL and youth-development background; previously coached Korea's U18/U19 teams.",
+          "confidence": "medium"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.newsis.com/view/NISX20260311_0003543887",
+            "publisher": "Newsis",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://v.daum.net/v/20260204123923257",
+            "publisher": "Star News (Daum)",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "wwc_record": {
+        "appearances_count": 17,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            1967,
+            1979
+          ]
+        },
+        "editions": [
+          {
+            "year": 1959,
+            "rank": 8
+          },
+          {
+            "year": 1964,
+            "rank": 8
+          },
+          {
+            "year": 1967,
+            "rank": 2
+          },
+          {
+            "year": 1971,
+            "rank": 4
+          },
+          {
+            "year": 1975,
+            "rank": 5
+          },
+          {
+            "year": 1979,
+            "rank": 2
+          },
+          {
+            "year": 1983,
+            "rank": 4
+          },
+          {
+            "year": 1986,
+            "rank": 10
+          },
+          {
+            "year": 1990,
+            "rank": 11
+          },
+          {
+            "year": 1994,
+            "rank": 10
+          },
+          {
+            "year": 1998,
+            "rank": 13
+          },
+          {
+            "year": 2002,
+            "rank": 4
+          },
+          {
+            "year": 2006,
+            "rank": 13
+          },
+          {
+            "year": 2010,
+            "rank": 8
+          },
+          {
+            "year": 2014,
+            "rank": 13
+          },
+          {
+            "year": 2018,
+            "rank": 14
+          },
+          {
+            "year": 2022,
+            "rank": 10
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": "Korea History tab shows PLAYED 17 with 17 listed editions, 1959 through 2022, and 2ND = 2",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": "1ST 0 / 2ND 2 / 3RD 0 / PLAYED 17"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "RESOLVED: 17 completed appearances, confirmed from FIBA's Korea History tab. Note that FIBA's own team-profile article contradicts its own data - the article says Korea 'debuted in 1964' and calls 2026 their '17th edition in a row', but the History table lists 1959 and totals 17 played. The table is the source of record here; the 2ND = 2 tile matching the 1967 and 1979 silvers is an internal check on it. Korea have therefore appeared at every edition since 1959, an unbroken run of 17 that 2026 extends to 18 - the longest active streak in the field, shared with nobody."
+      },
+      "olympic_record": {
+        "appearances_count": 7,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            1984
+          ]
+        },
+        "most_recent_year": 2020,
+        "editions": null,
+        "confidence": "medium",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Basketball_at_the_1984_Summer_Olympics",
+            "publisher": "Wikipedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/South_Korea_women%27s_national_basketball_team",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "1984 silver is high confidence, as is 2020 being the most recent appearance. Appearance count is medium and several individual placings (1988, 1996, 2008) could not be resolved — three sources gave three different answers for 1988."
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - Villeurbanne",
+        "city": "Villeurbanne",
+        "country": "France",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": "Villeurbanne sent only two teams to the World Cup rather than three, because its field contained both the host, Germany, and a continental champion, Nigeria.",
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "pool",
+        "player_count": 13,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 1,
+        "former": 1,
+        "drafted_only": 0,
+        "total_connected": 2,
+        "roster_basis": "pool_13",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Jihyun Park",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "LAS",
+            "wnba_team_full": "Los Angeles Sparks",
+            "note": "Signed a training-camp contract and made the 2026 Sparks roster.",
+            "confidence": "high"
+          },
+          {
+            "name": "Jisu Park",
+            "position": "C",
+            "status": "former",
+            "wnba_team": "LVA",
+            "wnba_team_full": "Las Vegas Aces",
+            "note": "Las Vegas 2018-19; returned to Korea and did not come back. No relation to Jihyun Park.",
+            "confidence": "high"
+          }
+        ],
+        "note": "Two unrelated players surnamed Park — an easy and embarrassing conflation.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Korea have played every World Cup since 1959, a streak no other nation matches. Jihyun Park made the Los Angeles Sparks roster in 2026 — not to be confused with Park Ji-su, no relation, who spent 2018 and 2019 with Las Vegas.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "NGR",
+      "name": "Nigeria",
+      "flag": "🇳🇬",
+      "schedule_key": "NIGERIA",
+      "name_variants": [
+        "Nigeria",
+        "D'Tigress",
+        "NGR"
+      ],
+      "group": "B",
+      "coach": {
+        "name": "Rena Wakama",
+        "since": "2023",
+        "us_connection": {
+          "has": true,
+          "summary": "Born in Raleigh, North Carolina to Nigerian parents; played four years of NCAA Division I at Western Carolina. Coached at Manhattan College, Stony Brook and Tulane, and has been an assistant coach with the WNBA's Chicago Sky since 2025. First female head coach of D'Tigress; won AfroBasket 2023 and 2025.",
+          "confidence": "high"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Rena_Wakama",
+            "publisher": "Wikipedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-are-nigeria-knocking-on-the-door-of-history-again",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "wwc_record": {
+        "appearances_count": 2,
+        "best_finish": {
+          "result": "8th place",
+          "rank": 8,
+          "years": [
+            2018
+          ]
+        },
+        "editions": [
+          {
+            "year": 2006,
+            "rank": 16
+          },
+          {
+            "year": 2018,
+            "rank": 8
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-are-nigeria-knocking-on-the-door-of-history-again",
+            "publisher": "FIBA",
+            "quote": "3 including 2026, best 8th in 2018 at Tenerife"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "olympic_record": {
+        "appearances_count": 3,
+        "best_finish": {
+          "result": "8th place",
+          "rank": 8,
+          "years": [
+            2024
+          ]
+        },
+        "most_recent_year": 2024,
+        "editions": [
+          {
+            "year": 2004,
+            "rank": 11
+          },
+          {
+            "year": 2020,
+            "rank": 11
+          },
+          {
+            "year": 2024,
+            "rank": 8
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/oqtwomen-hungary-2024-news-which-nations-have-olympic-pedigree-and-who-s-chasing-woqt-history",
+            "publisher": "FIBA",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/womens-olympic-basketball-tournament-paris-2024/standings",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": "Paris 2024 made Nigeria the first African team to reach an Olympic women's basketball quarter-final."
+      },
+      "qualification": {
+        "route": "continental_cup_champion",
+        "route_short": "CC",
+        "tournament": "FIBA Women's AfroBasket 2025",
+        "city": null,
+        "country": null,
+        "dates": null,
+        "placement": 1,
+        "link": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/field-confirmed-fiba-womens-basketball-world-cup-2026",
+        "note": "Qualified directly as 2025 continental champion; also competed in the Villeurbanne qualifying tournament.",
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "not_announced",
+        "player_count": null,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 1,
+        "former": 2,
+        "drafted_only": 0,
+        "total_connected": 3,
+        "roster_basis": "proxy_qualifying_and_camp",
+        "as_of": "2026-08-19",
+        "confidence": "medium",
+        "players": [
+          {
+            "name": "Amy Okonkwo",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "ATL",
+            "wnba_team_full": "Atlanta Dream",
+            "note": "Developmental contract signed May 2026; has moved between Dallas and Atlanta and her status is fluid.",
+            "confidence": "medium"
+          },
+          {
+            "name": "Ezinne Kalu",
+            "position": "G",
+            "status": "former",
+            "wnba_team": "ATL",
+            "wnba_team_full": "Atlanta Dream",
+            "note": "One regular-season and one playoff game, 2024.",
+            "confidence": "high"
+          },
+          {
+            "name": "Victoria Macaulay",
+            "position": "C",
+            "status": "former",
+            "wnba_team": "CHI",
+            "wnba_team_full": "Chicago Sky",
+            "note": "Nine games across 2015 and 2019.",
+            "confidence": "high"
+          }
+        ],
+        "note": "No squad announced; based on the March 2026 qualifying twelve and an April camp roster. Elizabeth Balogun has been linked with Toronto in Nigerian press but no contract is confirmed — do NOT print a team for her.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Nigeria reached the quarter-finals in Paris, the first African team to do it at an Olympics. Rena Wakama was born in Raleigh, played college basketball at Western Carolina and has been an assistant with the Chicago Sky since 2025 — the first woman to coach D'Tigress.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "AUS",
+      "name": "Australia",
+      "flag": "🇦🇺",
+      "schedule_key": "AUSTRALIA",
+      "name_variants": [
+        "Australia",
+        "Opals",
+        "AUS"
+      ],
+      "group": "C",
+      "coach": {
+        "name": "Sandy Brondello",
+        "since": "2017-04",
+        "us_connection": {
+          "has": true,
+          "summary": "WNBA player 1998-2004 (Detroit Shock, Miami Sol, Seattle Storm; 1999 All-Star). WNBA head coach: San Antonio 2010; Phoenix Mercury 2014-21, winning the 2014 championship and Coach of the Year; New York Liberty 2022-25, winning the 2024 title. Named inaugural Toronto Tempo head coach in November 2025. Married to Olaf Lange, who coaches Germany in Group A.",
+          "confidence": "high"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Sandy_Brondello",
+            "publisher": "Wikipedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/team-profile-australia-eye-another-podium-finish",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": "Supersedes an earlier entry naming Paul Goriss, which was wrong."
+      },
+      "wwc_record": {
+        "appearances_count": 16,
+        "best_finish": {
+          "result": "Champions",
+          "rank": 1,
+          "years": [
+            2006
+          ]
+        },
+        "editions": [
+          {
+            "year": 1957,
+            "rank": 10
+          },
+          {
+            "year": 1967,
+            "rank": 10
+          },
+          {
+            "year": 1971,
+            "rank": 9
+          },
+          {
+            "year": 1975,
+            "rank": 10
+          },
+          {
+            "year": 1979,
+            "rank": 4
+          },
+          {
+            "year": 1983,
+            "rank": 11
+          },
+          {
+            "year": 1986,
+            "rank": 9
+          },
+          {
+            "year": 1990,
+            "rank": 6
+          },
+          {
+            "year": 1994,
+            "rank": 4
+          },
+          {
+            "year": 1998,
+            "rank": 3
+          },
+          {
+            "year": 2002,
+            "rank": 3
+          },
+          {
+            "year": 2006,
+            "rank": 1
+          },
+          {
+            "year": 2010,
+            "rank": 5
+          },
+          {
+            "year": 2014,
+            "rank": 3
+          },
+          {
+            "year": 2018,
+            "rank": 2
+          },
+          {
+            "year": 2022,
+            "rank": 3
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/team-profile-australia-eye-another-podium-finish",
+            "publisher": "FIBA",
+            "quote": "17 incl. 2026, best 1st (2006)"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "Seven podiums. Only one gold, in 2006."
+      },
+      "olympic_record": {
+        "appearances_count": 10,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            2000,
+            2004,
+            2008
+          ]
+        },
+        "most_recent_year": 2024,
+        "editions": [
+          {
+            "year": 1984,
+            "rank": 5
+          },
+          {
+            "year": 1988,
+            "rank": 4
+          },
+          {
+            "year": 1996,
+            "rank": 3
+          },
+          {
+            "year": 2000,
+            "rank": 2
+          },
+          {
+            "year": 2004,
+            "rank": 2
+          },
+          {
+            "year": 2008,
+            "rank": 2
+          },
+          {
+            "year": 2012,
+            "rank": 3
+          },
+          {
+            "year": 2016,
+            "rank": 5
+          },
+          {
+            "year": 2020,
+            "rank": 8
+          },
+          {
+            "year": 2024,
+            "rank": 3
+          }
+        ],
+        "confidence": "medium",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Australia_women%27s_national_basketball_team",
+            "publisher": "Wikipedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.olympedia.org/results/33067",
+            "publisher": "Olympedia",
+            "quote": null
+          }
+        ],
+        "note": "Three straight silvers 2000-2008, all behind the USA — the deepest never-won-gold Olympic record in the field."
+      },
+      "qualification": {
+        "route": "continental_cup_champion",
+        "route_short": "CC",
+        "tournament": "FIBA Women's Asia Cup 2025",
+        "city": null,
+        "country": null,
+        "dates": null,
+        "placement": 1,
+        "link": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/field-confirmed-fiba-womens-basketball-world-cup-2026",
+        "note": "Qualified directly as 2025 continental champion; also competed in the Istanbul qualifying tournament.",
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "final",
+        "player_count": 12,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": [
+          {
+            "number": null,
+            "name": "Zitina Aokuso",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Chloe Bibby",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Isobel Borlase",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Isabelle Bourne",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Alex Fowler",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Ezi Magbegor",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Jade Melbourne",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Steph Reid",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Alanna Smith",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Steph Talbot",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Sami Whitcomb",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Alex Wilson",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
+      },
+      "wnba": {
+        "current": 8,
+        "former": 1,
+        "drafted_only": 0,
+        "total_connected": 9,
+        "roster_basis": "final_12",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Ezi Magbegor",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "SEA",
+            "wnba_team_full": "Seattle Storm",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Jade Melbourne",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "SEA",
+            "wnba_team_full": "Seattle Storm",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Alanna Smith",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "DAL",
+            "wnba_team_full": "Dallas Wings",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Stephanie Talbot",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "LVA",
+            "wnba_team_full": "Las Vegas Aces",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Sami Whitcomb",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
+            "note": "One outlet said Toronto; Phoenix re-signed her in April 2026.",
+            "confidence": "high"
+          },
+          {
+            "name": "Isobel Borlase",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "ATL",
+            "wnba_team_full": "Atlanta Dream",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Chloe Bibby",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "MIN",
+            "wnba_team_full": "Minnesota Lynx",
+            "note": "Basketball Australia's release still says Chicago; she signed with Minnesota.",
+            "confidence": "high"
+          },
+          {
+            "name": "Alex Fowler",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": "Developmental contract signed May 2026; still-rostered status unconfirmed.",
+            "confidence": "medium"
+          },
+          {
+            "name": "Alex Wilson",
+            "position": "G",
+            "status": "former",
+            "wnba_team": "WAS",
+            "wnba_team_full": "Washington Mystics",
+            "note": "Made the Mystics' 2026 opening-day roster, waived June 2026.",
+            "confidence": "high"
+          }
+        ],
+        "note": "Zitina Aokuso, Isabelle Bourne and Steph Reid have no WNBA connection.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Australia lost three Olympic finals to the United States between 2000 and 2008. Sandy Brondello has coached the Opals since 2017 and won WNBA championships with Phoenix and New York along the way; she is married to Olaf Lange, who coaches Germany.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "BEL",
+      "name": "Belgium",
+      "flag": "🇧🇪",
+      "schedule_key": "BELGIUM",
+      "name_variants": [
+        "Belgium",
+        "Belgian Cats",
+        "BEL"
+      ],
+      "group": "C",
+      "coach": {
+        "name": "Mike Thibault",
+        "since": "2025-01",
+        "us_connection": {
+          "has": true,
+          "summary": "American, and a USA Basketball insider before he took this job: assistant coach for the United States at the 2008 and 2024 Olympics and at the 2006 and 2022 World Cups. Three-time WNBA Coach of the Year; won the 2019 WNBA title as Washington Mystics head coach, with Belgium's Emma Meesseman as Finals MVP. Left the WNBA after 2022, took the Belgium job in 2025, and won EuroBasket at the first attempt.",
+          "confidence": "high"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/belgian-cats-turn-to-thibault",
+            "publisher": "FIBA",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Mike_Thibault",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "The Thibault-Meesseman reunion is the strongest single WNBA hook in the field: he coached her to the 2019 WNBA title and she was Finals MVP. He is also an American coaching a rival by choice, three years after leaving the WNBA. NOTE: an earlier version of this record called him the WNBA's all-time coaching wins leader. Cheryl Reeve passed him in 2026. That claim was falsifiable by a game and should never have been stored — see the durability rule in the profile rules doc."
+      },
+      "wwc_record": {
+        "appearances_count": 2,
+        "best_finish": {
+          "result": "Fourth place",
+          "rank": 4,
+          "years": [
+            2018
+          ]
+        },
+        "editions": [
+          {
+            "year": 2018,
+            "rank": 4
+          },
+          {
+            "year": 2022,
+            "rank": 5
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/team-profile-can-the-belgian-cats-make-more-history",
+            "publisher": "FIBA",
+            "quote": "Number of participations (including 2026): 3"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "olympic_record": {
+        "appearances_count": 2,
+        "best_finish": {
+          "result": "Fourth place",
+          "rank": 4,
+          "years": [
+            2024
+          ]
+        },
+        "most_recent_year": 2024,
+        "editions": [
+          {
+            "year": 2020,
+            "rank": 7
+          },
+          {
+            "year": 2024,
+            "rank": 4
+          }
+        ],
+        "confidence": "medium",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/team-profile-can-the-belgian-cats-make-more-history",
+            "publisher": "FIBA",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Belgium_women%27s_national_basketball_team",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "Lost the Paris 2024 bronze game to Australia."
+      },
+      "qualification": {
+        "route": "continental_cup_champion",
+        "route_short": "CC",
+        "tournament": "EuroBasket Women 2025",
+        "city": null,
+        "country": null,
+        "dates": null,
+        "placement": 1,
+        "link": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/field-confirmed-fiba-womens-basketball-world-cup-2026",
+        "note": "Qualified directly as 2025 continental champion; also competed in the Wuhan qualifying tournament.",
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "pool",
+        "player_count": 19,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": [
+          {
+            "number": null,
+            "name": "Emma Meesseman",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Julie Vanloo",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Julie Allemand",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Kyara Linskens",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Antonia Delaere",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Nastja Claessens",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Maxuella Lisowa-Mbaka",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Elise Ramette",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Ine Joris",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Billie Massey",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Becky Massey",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Alicia Courthiau",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Laure Resimont",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Bethy Mununga",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Habibatou Bah",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Jade Masogayo",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Noor Devos",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Louann Battisson",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          },
+          {
+            "number": null,
+            "name": "Marie Vervaet",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": null
+          }
+        ]
+      },
+      "wnba": {
+        "current": 3,
+        "former": 2,
+        "drafted_only": 0,
+        "total_connected": 5,
+        "roster_basis": "pool_19",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Julie Allemand",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "TOR",
+            "wnba_team_full": "Toronto Tempo",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Kyara Linskens",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Antonia Delaere",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "MIN",
+            "wnba_team_full": "Minnesota Lynx",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Julie Vanloo",
+            "position": "G",
+            "status": "former",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": "Hardship contract May 2026, waived after five games; previously Washington and Golden State/Las Vegas.",
+            "confidence": "high"
+          },
+          {
+            "name": "Emma Meesseman",
+            "position": "F",
+            "status": "former",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": "Washington 2013-20, Chicago 2022, New York 2025. 2019 Finals MVP. Skipped the 2026 season by choice.",
+            "confidence": "high"
+          }
+        ],
+        "note": "Belgian media confirm exactly three Belgians in the WNBA as of August 2026.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Fourth at the 2018 World Cup, fourth in Paris: Belgium have twice finished one game short of a podium. Their coach is American. Mike Thibault won the 2019 WNBA title with Emma Meesseman as Finals MVP, then took this job in 2025 and won EuroBasket at the first attempt.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "PUR",
+      "name": "Puerto Rico",
+      "flag": "🇵🇷",
+      "schedule_key": "PUERTO RICO",
+      "name_variants": [
+        "Puerto Rico",
+        "PUR"
+      ],
+      "group": "C",
+      "coach": {
+        "name": "Jerry Batista",
+        "since": null,
+        "us_connection": {
+          "has": false,
+          "summary": "No direct NCAA or WNBA role found. His documented US connection is indirect: he pioneered recruiting Puerto Rican-heritage players out of US college programs for the national team. Athletic director and women's head coach at the University of Puerto Rico at Bayamón.",
+          "confidence": "low"
+        },
+        "confidence": "medium",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.elvocero.com/deportes/jerry-batista-hay-que-llegar-lo-m-s-preparado-posible-al-mundial-fiba-femenino/article_2b65a5fc-91aa-435d-af0c-0025b0f6e220.html",
+            "publisher": "El Vocero",
+            "quote": null
+          }
+        ],
+        "note": "Confirmed in charge for 2026. Start year conflicts across sources (2014 vs 2017) so 'since' is left null."
+      },
+      "wwc_record": {
+        "appearances_count": 2,
+        "best_finish": {
+          "result": "8th place",
+          "rank": 8,
+          "years": [
+            2022
+          ]
+        },
+        "editions": [
+          {
+            "year": 2018,
+            "rank": 16
+          },
+          {
+            "year": 2022,
+            "rank": 8
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/team-profile-can-puerto-rico-defy-the-odds-and-advance",
+            "publisher": "FIBA",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "2022 brought their first-ever World Cup win and a quarter-final."
+      },
+      "olympic_record": {
+        "appearances_count": 2,
+        "best_finish": {
+          "result": "10th place",
+          "rank": 10,
+          "years": [
+            2024
+          ]
+        },
+        "most_recent_year": 2024,
+        "editions": [
+          {
+            "year": 2020,
+            "rank": 12
+          },
+          {
+            "year": 2024,
+            "rank": 10
+          }
+        ],
+        "confidence": "medium",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/team-profile-can-puerto-rico-defy-the-odds-and-advance",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": "Tokyo 2020 was the program's first Olympics."
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - San Juan",
+        "city": "San Juan",
+        "country": "Puerto Rico",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": "Qualified on home soil.",
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "not_announced",
+        "player_count": null,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 0,
+        "former": 2,
+        "drafted_only": 0,
+        "total_connected": 2,
+        "roster_basis": "pool_14",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Arella Guirantes",
+            "position": "G",
+            "status": "former",
+            "wnba_team": "LAS",
+            "wnba_team_full": "Los Angeles Sparks",
+            "note": "Drafted 22nd overall 2021; Los Angeles 2021, Seattle 2023.",
+            "confidence": "high"
+          },
+          {
+            "name": "Imani McGee-Stafford",
+            "position": "C",
+            "status": "former",
+            "wnba_team": "CHI",
+            "wnba_team_full": "Chicago Sky",
+            "note": "Drafted 10th overall 2016; All-Rookie team. Last WNBA season 2019.",
+            "confidence": "high"
+          }
+        ],
+        "note": "The only team in the field with no current WNBA player.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Puerto Rico won their first World Cup game in 2022 and reached the quarter-finals the same week. Nobody in the current pool plays in the WNBA, though Imani McGee-Stafford went tenth in the 2016 draft and Arella Guirantes twenty-second in 2021.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "TUR",
+      "name": "Türkiye",
+      "flag": "🇹🇷",
+      "schedule_key": "TÜRKIYE",
+      "name_variants": [
+        "Türkiye",
+        "Turkey",
+        "TUR"
+      ],
+      "group": "C",
+      "coach": {
+        "name": "Andrea Mazzon",
+        "since": "2025-10-28",
+        "us_connection": {
+          "has": false,
+          "summary": "Italian. His only US basketball role was assistant coach of the Delaware 87ers in the NBA G League from October 2015. No WNBA or NCAA connection.",
+          "confidence": "medium"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.tbf.org.tr/haber/a-kadin-milli-takimimizda-basantrenorluk-gorevine-andrea-mazzon-getirildi-2025-10-28",
+            "publisher": "Turkish Basketball Federation",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.aa.com.tr/tr/basketbol/a-milli-kadin-basketbol-takiminda-basantrenor-ekrem-memnun-donemi-sona-erdi/3624756",
+            "publisher": "Anadolu Ajansı",
+            "quote": null
+          }
+        ],
+        "note": "Ekrem Memnun, still listed on many pages, is out. Do not use him."
+      },
+      "wwc_record": {
+        "appearances_count": 2,
+        "best_finish": {
+          "result": "Fourth place",
+          "rank": 4,
+          "years": [
+            2014
+          ]
+        },
+        "editions": [
+          {
+            "year": 2014,
+            "rank": 4
+          },
+          {
+            "year": 2018,
+            "rank": 10
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-tuerkiye",
+            "publisher": "FIBA",
+            "quote": "Best finish: 4th (2014)"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "The 2014 fourth place came as hosts."
+      },
+      "olympic_record": {
+        "appearances_count": 2,
+        "best_finish": {
+          "result": "5th place",
+          "rank": 5,
+          "years": [
+            2012
+          ]
+        },
+        "most_recent_year": 2016,
+        "editions": [
+          {
+            "year": 2012,
+            "rank": 5
+          },
+          {
+            "year": 2016,
+            "rank": 6
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.olympedia.org/countries/TUR/sports/BKB",
+            "publisher": "Olympedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.olympedia.org/results/303046",
+            "publisher": "Olympedia",
+            "quote": null
+          }
+        ],
+        "note": "Did not qualify for 2020 or 2024."
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - Istanbul",
+        "city": "Istanbul",
+        "country": "Türkiye",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": "Qualified on home soil.",
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "pool",
+        "player_count": 20,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 1,
+        "former": 1,
+        "drafted_only": 0,
+        "total_connected": 2,
+        "roster_basis": "pool_20",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Kennedy Burke",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "CON",
+            "wnba_team_full": "Connecticut Sun",
+            "note": "American-born, holds Türkiye's naturalised slot; 2024 WNBA champion with New York. She took the naturalised place over Teaira McCowan, who is not in this pool.",
+            "confidence": "high"
+          },
+          {
+            "name": "Sevgi Uzun",
+            "position": "G",
+            "status": "former",
+            "wnba_team": "CHI",
+            "wnba_team_full": "Chicago Sky",
+            "note": "Dallas 2024, Phoenix and Chicago 2025.",
+            "confidence": "high"
+          }
+        ],
+        "note": null,
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Türkiye finished fourth as hosts in 2014 and have not been to an Olympics since 2016. Kennedy Burke fills their naturalised place — an American who won a WNBA title with New York in 2024 and now plays for the Connecticut Sun.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "CHN",
+      "name": "China",
+      "flag": "🇨🇳",
+      "schedule_key": "CHINA",
+      "name_variants": [
+        "China",
+        "PR China",
+        "CHN"
+      ],
+      "group": "D",
+      "coach": {
+        "name": "Gong Luming",
+        "since": "2025-02-11",
+        "us_connection": {
+          "has": false,
+          "summary": "No US role. A roughly 50-year career entirely in China: coached China's women 1999-2005 and China's men (8th at the 1996 Olympics, 2015 FIBA Asia title).",
+          "confidence": "high"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://english.news.cn/20250211/a5f91f5b59b447738a825510f0f47c24/c.html",
+            "publisher": "Xinhua",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://english.news.cn/20260414/34403a1523b64786afe1935dc7a4be71/c.html",
+            "publisher": "Xinhua",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "wwc_record": {
+        "appearances_count": 11,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            1994,
+            2022
+          ]
+        },
+        "editions": [
+          {
+            "year": 1983,
+            "rank": 3
+          },
+          {
+            "year": 1986,
+            "rank": 5
+          },
+          {
+            "year": 1990,
+            "rank": 9
+          },
+          {
+            "year": 1994,
+            "rank": 2
+          },
+          {
+            "year": 1998,
+            "rank": 12
+          },
+          {
+            "year": 2002,
+            "rank": 6
+          },
+          {
+            "year": 2006,
+            "rank": 12
+          },
+          {
+            "year": 2010,
+            "rank": 13
+          },
+          {
+            "year": 2014,
+            "rank": 6
+          },
+          {
+            "year": 2018,
+            "rank": 6
+          },
+          {
+            "year": 2022,
+            "rank": 2
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/team-profile-can-china-repeat-their-sydney-success",
+            "publisher": "FIBA",
+            "quote": "Best finish: 2nd (1994, 2022)"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "Also bronze in 1983. Reigning runners-up."
+      },
+      "olympic_record": {
+        "appearances_count": 10,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            1992
+          ]
+        },
+        "most_recent_year": 2024,
+        "editions": [
+          {
+            "year": 1984,
+            "rank": 3
+          },
+          {
+            "year": 1988,
+            "rank": 6
+          },
+          {
+            "year": 1992,
+            "rank": 2
+          },
+          {
+            "year": 1996,
+            "rank": 9
+          },
+          {
+            "year": 2004,
+            "rank": 9
+          },
+          {
+            "year": 2008,
+            "rank": 4
+          },
+          {
+            "year": 2012,
+            "rank": 6
+          },
+          {
+            "year": 2016,
+            "rank": 10
+          },
+          {
+            "year": 2020,
+            "rank": 5
+          },
+          {
+            "year": 2024,
+            "rank": 9
+          }
+        ],
+        "confidence": "medium",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.olympedia.org/countries/CHN/sports/BKB",
+            "publisher": "Olympedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/womens-olympic-basketball-tournament-paris-2024/standings",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": "Did not qualify for Sydney 2000."
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - Wuhan",
+        "city": "Wuhan",
+        "country": "China",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": "Qualified on home soil.",
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "not_announced",
+        "player_count": null,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 2,
+        "former": 0,
+        "drafted_only": 1,
+        "total_connected": 3,
+        "roster_basis": "proxy_training_camp",
+        "as_of": "2026-08-19",
+        "confidence": "medium",
+        "players": [
+          {
+            "name": "Li Yueru",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "DAL",
+            "wnba_team_full": "Dallas Wings",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Han Xu",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": "Returned on a camp contract April 2026 after two years away.",
+            "confidence": "high"
+          },
+          {
+            "name": "Kejia Ran",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "ATL",
+            "wnba_team_full": "Atlanta Dream",
+            "note": "Drafted 43rd overall 2026; rights held, never played. Presence in China's WWC pool unconfirmed.",
+            "confidence": "medium"
+          }
+        ],
+        "note": "No squad announced. Based on China's April 2026 national training-camp roster.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "China lost the 2022 final to the United States, twenty-eight years after losing the 1994 final to Brazil. Li Yueru plays for the Dallas Wings, and Han Xu returned to the New York Liberty in 2026 after two seasons away from the league.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "CZE",
+      "name": "Czechia",
+      "flag": "🇨🇿",
+      "schedule_key": "CZECHIA",
+      "name_variants": [
+        "Czechia",
+        "Czech Republic",
+        "CZE"
+      ],
+      "group": "D",
+      "coach": {
+        "name": "Romana Ptáčková",
+        "since": "2022-05-17",
+        "us_connection": {
+          "has": false,
+          "summary": "No known US role. Entirely Czech background — head coach at Sokol Hradec Králové since 2011 and Czech youth national teams since 2006.",
+          "confidence": "medium"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://zbl.basketball/reprezentaci-zen-prebira-zkusena-trenerka-romana-ptackova/13739",
+            "publisher": "Czech Basketball Federation",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.ceskenoviny.cz/zpravy/ceske-basketbalistky-se-na-ms-utkaji-s-usa-italii-a-cinou/2815304",
+            "publisher": "České noviny",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "wwc_record": {
+        "appearances_count": 3,
+        "best_finish": {
+          "result": "Runners-up",
+          "rank": 2,
+          "years": [
+            2010
+          ]
+        },
+        "editions": [
+          {
+            "year": 2006,
+            "rank": 7
+          },
+          {
+            "year": 2010,
+            "rank": 2
+          },
+          {
+            "year": 2014,
+            "rank": 9
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/news/team-profile-will-czechia-make-the-most-of-their-return",
+            "publisher": "FIBA",
+            "quote": "Number of participations (including 2026): 4"
+          },
+          {
+            "claim": "Czechia History tab shows Played 3, one 2nd place (2014 9th, 2010 2nd, 2006 7th)",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": "1ST 0 / 2ND 1 / 3RD 0 / PLAYED 3"
+          }
+        ],
+        "note": "CONVENTION SETTLED: FIBA does not count the Czechoslovakia era in Czechia's record. Confirmed directly from FIBA's Czechia History tab, which shows Played 3. The 2010 silver came as hosts. 2026 ends a 12-year absence. Czechoslovakia's separate record (8 appearances, six podiums, silver in 1964 and 1971) is recorded in _context, not counted here."
+      },
+      "olympic_record": {
+        "appearances_count": 3,
+        "best_finish": {
+          "result": "5th place",
+          "rank": 5,
+          "years": [
+            2004
+          ]
+        },
+        "most_recent_year": 2012,
+        "editions": [
+          {
+            "year": 2004,
+            "rank": 5
+          },
+          {
+            "year": 2008,
+            "rank": 7
+          },
+          {
+            "year": 2012,
+            "rank": 7
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.olympedia.org/countries/CZE/sports/BKB",
+            "publisher": "Olympedia",
+            "quote": null
+          }
+        ],
+        "note": "Post-1993 only, consistent with the World Cup convention. Failed to qualify 2016, 2020, 2024."
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - Wuhan",
+        "city": "Wuhan",
+        "country": "China",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": null,
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "pool",
+        "player_count": 16,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 2,
+        "former": 0,
+        "drafted_only": 0,
+        "total_connected": 2,
+        "roster_basis": "pool_16",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Eliška Joklová",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "MIN",
+            "wnba_team_full": "Minnesota Lynx",
+            "note": "FIBA still lists her married name's predecessor, Hamzová. Same player.",
+            "confidence": "high"
+          },
+          {
+            "name": "Emma Čechová",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "MIN",
+            "wnba_team_full": "Minnesota Lynx",
+            "note": null,
+            "confidence": "high"
+          }
+        ],
+        "note": "The first Czech players in the WNBA in sixteen years.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Czechia have not played a World Cup since 2014, and the last time they reached the podium, in 2010, they were hosting. Eliška Joklová and Emma Čechová joined the Minnesota Lynx in 2026, the first Czech players in the WNBA in sixteen years.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "ITA",
+      "name": "Italy",
+      "flag": "🇮🇹",
+      "schedule_key": "ITALY",
+      "name_variants": [
+        "Italy",
+        "Italia",
+        "ITA"
+      ],
+      "group": "D",
+      "coach": {
+        "name": "Andrea Capobianco",
+        "since": "2023-09",
+        "us_connection": {
+          "has": false,
+          "summary": "No known US role; career entirely Italian. Named Best Coach of FIBA Women's EuroBasket 2025, leading Italy to bronze — their first EuroBasket podium in 30 years.",
+          "confidence": "medium"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://fip.it/andrea-capobianco-coach-della-nazionale-femminile-fino-a-giugno-2027/",
+            "publisher": "Italian Basketball Federation",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-eurobasket-2025/news/ebw-2025-best-coach-award",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": "Third stint (2015-17, 2019-20, and from September 2023); extended in July 2025 through June 2027."
+      },
+      "wwc_record": {
+        "appearances_count": 5,
+        "best_finish": {
+          "result": "Fourth place",
+          "rank": 4,
+          "years": [
+            1975
+          ]
+        },
+        "editions": [
+          {
+            "year": 1967,
+            "rank": 9
+          },
+          {
+            "year": 1975,
+            "rank": 4
+          },
+          {
+            "year": 1979,
+            "rank": 5
+          },
+          {
+            "year": 1990,
+            "rank": 13
+          },
+          {
+            "year": 1994,
+            "rank": 11
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-can-italy-light-it-up-after-32-years-away",
+            "publisher": "FIBA",
+            "quote": "Best finish: 4th (1975), Last participation: 1994 (11th), Podiums: None"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/National_team_appearances_in_the_FIBA_Women%27s_Basketball_World_Cup",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "2026 ends a 32-year absence — the longest gap in the field. No podium ever. Count, best finish and last appearance are high confidence; the 1967, 1979 and 1990 placings are medium."
+      },
+      "olympic_record": {
+        "appearances_count": 2,
+        "best_finish": {
+          "result": "6th place",
+          "rank": 6,
+          "years": [
+            1980
+          ]
+        },
+        "most_recent_year": 1996,
+        "editions": [
+          {
+            "year": 1980,
+            "rank": 6
+          },
+          {
+            "year": 1996,
+            "rank": 8
+          }
+        ],
+        "confidence": "medium",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.olympedia.org/results/32549",
+            "publisher": "Olympedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.olympedia.org/countries/ITA/editions/24",
+            "publisher": "Olympedia",
+            "quote": null
+          }
+        ],
+        "note": "Most recent Olympics was 1996 — a 30-year absence, longer than their World Cup gap."
+      },
+      "qualification": {
+        "route": "qualifying_tournament",
+        "route_short": "QT",
+        "tournament": "FIBA Women's Basketball World Cup 2026 Qualifying Tournament - San Juan",
+        "city": "San Juan",
+        "country": "Puerto Rico",
+        "dates": "2026-03-11/2026-03-17",
+        "placement": null,
+        "link": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_Qualifying_Tournaments",
+        "note": null,
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "pool",
+        "player_count": 19,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": []
+      },
+      "wnba": {
+        "current": 2,
+        "former": 1,
+        "drafted_only": 0,
+        "total_connected": 3,
+        "roster_basis": "pool_19",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Cecilia Zandalasini",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "GSV",
+            "wnba_team_full": "Golden State Valkyries",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Costanza Verona",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "DAL",
+            "wnba_team_full": "Dallas Wings",
+            "note": "The Wings suspended her contract so she could join Italy for the World Cup.",
+            "confidence": "high"
+          },
+          {
+            "name": "Lorela Cubaj",
+            "position": "F",
+            "status": "former",
+            "wnba_team": "ATL",
+            "wnba_team_full": "Atlanta Dream",
+            "note": "Drafted 18th overall 2022; New York 2022, Atlanta 2023-24.",
+            "confidence": "high"
+          }
+        ],
+        "note": null,
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "Italy have been away from this tournament for thirty-two years, the longest absence in the field. The Dallas Wings suspended Costanza Verona's contract so she could play in it, and Cecilia Zandalasini of the Golden State Valkyries is the squad's most familiar name.",
+      "profile_status": "draft"
+    },
+    {
+      "code": "USA",
+      "name": "USA",
+      "flag": "🇺🇸",
+      "schedule_key": "USA",
+      "name_variants": [
+        "USA",
+        "United States",
+        "United States of America"
+      ],
+      "group": "D",
+      "coach": {
+        "name": "Kara Lawson",
+        "since": "2025-09",
+        "us_connection": {
+          "has": true,
+          "summary": "Played at Tennessee under Pat Summitt; drafted 5th overall in 2003; 2005 WNBA champion with the Sacramento Monarchs; 2007 All-Star; Olympic gold as a player at Beijing 2008. Assistant coach, Boston Celtics 2019-20. Head coach at Duke since 2020. Coached the USA 3x3 team to gold at Tokyo 2020.",
+          "confidence": "high"
+        },
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/Kara_Lawson",
+            "publisher": "Wikipedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://goduke.com/news/2026/8/6/womens-basketball-gray-lawson-set-for-2026-fiba-world-cup",
+            "publisher": "Duke Athletics",
+            "quote": null
+          }
+        ],
+        "note": null
+      },
+      "wwc_record": {
+        "appearances_count": 18,
+        "best_finish": {
+          "result": "Champions",
+          "rank": 1,
+          "years": [
+            1953,
+            1957,
+            1979,
+            1986,
+            1990,
+            1998,
+            2002,
+            2010,
+            2014,
+            2018,
+            2022
+          ]
+        },
+        "editions": [
+          {
+            "year": 1953,
+            "rank": 1
+          },
+          {
+            "year": 1957,
+            "rank": 1
+          },
+          {
+            "year": 1964,
+            "rank": 4
+          },
+          {
+            "year": 1967,
+            "rank": 11
+          },
+          {
+            "year": 1971,
+            "rank": 8
+          },
+          {
+            "year": 1975,
+            "rank": 8
+          },
+          {
+            "year": 1979,
+            "rank": 1
+          },
+          {
+            "year": 1983,
+            "rank": 2
+          },
+          {
+            "year": 1986,
+            "rank": 1
+          },
+          {
+            "year": 1990,
+            "rank": 1
+          },
+          {
+            "year": 1994,
+            "rank": 3
+          },
+          {
+            "year": 1998,
+            "rank": 1
+          },
+          {
+            "year": 2002,
+            "rank": 1
+          },
+          {
+            "year": 2006,
+            "rank": 3
+          },
+          {
+            "year": 2010,
+            "rank": 1
+          },
+          {
+            "year": 2014,
+            "rank": 1
+          },
+          {
+            "year": 2018,
+            "rank": 1
+          },
+          {
+            "year": 2022,
+            "rank": 1
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-will-usa-be-unstoppable-again",
+            "publisher": "FIBA",
+            "quote": "19 incl. 2026"
+          },
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/United_States_women%27s_national_basketball_team",
+            "publisher": "Wikipedia",
+            "quote": null
+          }
+        ],
+        "note": "18 completed appearances, 11 titles. Withdrew in 1959. Corrects an earlier count of 19, which included 2026."
+      },
+      "olympic_record": {
+        "appearances_count": 12,
+        "best_finish": {
+          "result": "Champions",
+          "rank": 1,
+          "years": [
+            1984,
+            1988,
+            1996,
+            2000,
+            2004,
+            2008,
+            2012,
+            2016,
+            2020,
+            2024
+          ]
+        },
+        "most_recent_year": 2024,
+        "editions": [
+          {
+            "year": 1976,
+            "rank": 2
+          },
+          {
+            "year": 1984,
+            "rank": 1
+          },
+          {
+            "year": 1988,
+            "rank": 1
+          },
+          {
+            "year": 1992,
+            "rank": 3
+          },
+          {
+            "year": 1996,
+            "rank": 1
+          },
+          {
+            "year": 2000,
+            "rank": 1
+          },
+          {
+            "year": 2004,
+            "rank": 1
+          },
+          {
+            "year": 2008,
+            "rank": 1
+          },
+          {
+            "year": 2012,
+            "rank": 1
+          },
+          {
+            "year": 2016,
+            "rank": 1
+          },
+          {
+            "year": 2020,
+            "rank": 1
+          },
+          {
+            "year": 2024,
+            "rank": 1
+          }
+        ],
+        "confidence": "high",
+        "verified_on": "2026-08-18",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://en.wikipedia.org/wiki/United_States_women%27s_national_basketball_team",
+            "publisher": "Wikipedia",
+            "quote": null
+          },
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/womens-olympic-basketball-tournament-paris-2024/standings",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ],
+        "note": "Eight consecutive golds. Boycotted 1980."
+      },
+      "qualification": {
+        "route": "continental_cup_champion",
+        "route_short": "CC",
+        "tournament": "FIBA Women's AmeriCup 2025",
+        "city": null,
+        "country": null,
+        "dates": null,
+        "placement": 1,
+        "link": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/field-confirmed-fiba-womens-basketball-world-cup-2026",
+        "note": "Qualified directly as 2025 continental champion; also competed in the San Juan qualifying tournament.",
+        "confidence": "high"
+      },
+      "roster": {
+        "status": "final",
+        "player_count": 12,
+        "as_of": "2026-08-18",
+        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "players": [
+          {
+            "number": null,
+            "name": "Aliyah Boston",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Paige Bueckers",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Caitlin Clark",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Napheesa Collier",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Kahleah Copper",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Chelsea Gray",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Rhyne Howard",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Kelsey Plum",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Angel Reese",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Breanna Stewart",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "A'ja Wilson",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Jackie Young",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          }
+        ]
+      },
+      "wnba": {
+        "current": 12,
+        "former": 0,
+        "drafted_only": 0,
+        "total_connected": 12,
+        "roster_basis": "final_12",
+        "as_of": "2026-08-19",
+        "confidence": "high",
+        "players": [
+          {
+            "name": "Aliyah Boston",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "IND",
+            "wnba_team_full": "Indiana Fever",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Caitlin Clark",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "IND",
+            "wnba_team_full": "Indiana Fever",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "A'ja Wilson",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "LVA",
+            "wnba_team_full": "Las Vegas Aces",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Jackie Young",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "LVA",
+            "wnba_team_full": "Las Vegas Aces",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Chelsea Gray",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "LVA",
+            "wnba_team_full": "Las Vegas Aces",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Paige Bueckers",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "DAL",
+            "wnba_team_full": "Dallas Wings",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Napheesa Collier",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "MIN",
+            "wnba_team_full": "Minnesota Lynx",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Breanna Stewart",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Kelsey Plum",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Kahleah Copper",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Rhyne Howard",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "ATL",
+            "wnba_team_full": "Atlanta Dream",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Angel Reese",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "ATL",
+            "wnba_team_full": "Atlanta Dream",
+            "note": null,
+            "confidence": "high"
+          }
+        ],
+        "note": "All twelve play in the WNBA. Plum moved to Phoenix and Reese to Atlanta in 2026 — do not print Sparks or Sky.",
+        "sources": [
+          {
+            "claim": null,
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+            "publisher": "FIBA",
+            "quote": null
+          }
+        ]
+      },
+      "profile": "All twelve players on the United States roster play in the WNBA. Kara Lawson coaches them: fifth pick of the 2003 draft, a champion with Sacramento in 2005, Olympic gold as a player in Beijing, and head coach at Duke since 2020.",
+      "profile_status": "draft"
+    }
+  ]
+}
