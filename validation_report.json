@@ -1,18 +1,18 @@
 {
-  "run_at_utc": "2026-08-23T11:17:26+00:00",
-  "data_through": "2026-08-22",
+  "run_at_utc": "2026-08-24T11:17:47+00:00",
+  "data_through": "2026-08-23",
   "cutoff": null,
-  "broadcast_category": "3PT%",
+  "broadcast_category": "eFG%",
   "gate_mode": true,
   "categories": [
     {
-      "category": "3PT%",
+      "category": "eFG%",
       "status": "PASS",
       "checks": [
         {
           "check": "top5_order",
           "status": "PASS",
-          "detail": "Kelsey Mitchell / Antonia Delaere / Leonie Fiebich / Sophie Cunningham / Julie Allemand"
+          "detail": "NaLyssa Smith / Sophie Cunningham / Megan DiLeo / Natasha Mack / Kelsey Plum"
         },
         {
           "check": "top5_values",
@@ -33,8 +33,8 @@
     }
   ],
   "alignment": {
-    "ours_total": 554,
-    "theirs_total": 554,
+    "ours_total": 562,
+    "theirs_total": 562,
     "source_behind": [],
     "we_are_behind": []
   },
