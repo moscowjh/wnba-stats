@@ -1,18 +1,18 @@
 {
-  "run_at_utc": "2026-08-24T11:17:47+00:00",
-  "data_through": "2026-08-23",
+  "run_at_utc": "2026-08-25T11:17:39+00:00",
+  "data_through": "2026-08-24",
   "cutoff": null,
-  "broadcast_category": "eFG%",
+  "broadcast_category": "Assists",
   "gate_mode": true,
   "categories": [
     {
-      "category": "eFG%",
-      "status": "PASS",
+      "category": "Assists",
+      "status": "FAIL",
       "checks": [
         {
           "check": "top5_order",
-          "status": "PASS",
-          "detail": "NaLyssa Smith / Sophie Cunningham / Megan DiLeo / Natasha Mack / Kelsey Plum"
+          "status": "FAIL",
+          "detail": "ours=['Caitlin Clark', 'Alyssa Thomas', 'Jordin Canada', 'Chelsea Gray', 'Jackie Young'] theirs=['Alyssa Thomas', 'Caitlin Clark', 'Jordin Canada', 'Chelsea Gray', 'Jackie Young']"
         },
         {
           "check": "top5_values",
@@ -33,10 +33,10 @@
     }
   ],
   "alignment": {
-    "ours_total": 562,
-    "theirs_total": 562,
+    "ours_total": 566,
+    "theirs_total": 566,
     "source_behind": [],
     "we_are_behind": []
   },
-  "leaders_ok": true
+  "leaders_ok": false
 }
