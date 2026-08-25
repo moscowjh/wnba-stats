@@ -642,6 +642,30 @@ def compute_four_factors(team_raw, player_raw):
     return ff_df, team_list
 
 
+def _competition_ranks(vals):
+    """Places for a ranked list of values, ties sharing the higher place:
+    1, 1, 3 — not 1, 2, 3.
+
+    Two players the league calls tied get one number on our board, the way
+    stats.wnba.com publishes a duplicated RANK and the way the player-page
+    badges have always read (build_player_pages.compute_card_ranks uses
+    rank(method="min")). Before this, a dead tie rendered 1 and 2 on the leader
+    card while both players' own pages said "1st", and it tripped the morning
+    leaders validation, whose FAIL then gated the daily post — 2026-08-25,
+    Clark and Thomas, 290 assists in 35 games apiece.
+
+    Equality is exact on the unrounded value, matching compute_card_ranks and
+    the build-time assertion that ties the two together. Players who merely
+    display the same tenth are NOT tied and keep separate places.
+    """
+    places, prev_val, prev_place = [], None, 0
+    for pos, v in enumerate(vals, start=1):
+        place = prev_place if (prev_val is not None and v == prev_val) else pos
+        places.append(place)
+        prev_val, prev_place = v, place
+    return places
+
+
 def compute_leaders(p_base, full=False):
     """Top-10 category leaders using the WNBA's official League Leaders
     qualification (deliberately not ESPN's 70%-of-games-only rule). Counting
@@ -690,8 +714,13 @@ def compute_leaders(p_base, full=False):
         if full:
             cols += ['athlete_id', raw]
             names += ['athlete_id', '_raw']
-        top = sub.nlargest(10, raw)[cols].copy()
+        sel = sub.nlargest(10, raw)
+        top = sel[cols].copy()
         top.columns = names
+        # The board's published place rides on the INDEX, so the column shape
+        # the renderers and emit_social_payload depend on (value last) is
+        # untouched. Ties share a place — see _competition_ranks.
+        top.index = pd.Index(_competition_ranks(sel[raw].tolist()), name='rank')
         return top
 
     # Games-played branch: 70% of team games, the league's alternative route to
@@ -755,13 +784,21 @@ def emit_social_payload(player_raw, leaders, display_date, data_through_iso,
 
     cats = {}
     for cat in BROADCAST_CATS:
-        df = leaders[cat].head(5)
+        # Top 5 plus anyone sharing 5th place. A straight head(5) drops a tied
+        # player for no reason other than how she sorted inside her own place
+        # — on 2026-08-25 that was Leila Lacan, exactly level with Natasha
+        # Howard at 1.667 SPG. Whether they all FIT is post_to_bluesky's call.
+        board = leaders[cat]
+        df = (board if len(board) <= 5
+              else board[board.index <= board.index[4]])
         val_col = df.columns[-1]
         rows = []
-        for rank, (_, r) in enumerate(df.iterrows(), start=1):
+        # Places come from the board itself, so the post repeats a tie rather
+        # than inventing an order for it (1. / 1. / 3.).
+        for rank, r in df.iterrows():
             v = r[val_col]
             vs = f"{v:.1f}%" if cat in _PCT_CATS else f"{v:.1f}"
-            rows.append({'rank': rank, 'player': r['Player'],
+            rows.append({'rank': int(rank), 'player': r['Player'],
                          'team': r['Team'], 'value': vs})
         cats[cat] = rows
 
@@ -1017,8 +1054,9 @@ def build_leaders_section(leaders, team_abbrevs):
         stat_col = ldr_df.columns[-1]
         safe_id = 'ldr_' + label.replace(' ','_').replace('%','pct').replace('/','_')
         rows = ''
-        for i, (_, r) in enumerate(ldr_df.iterrows()):
-            rank_cls = ' rank-1' if i == 0 else ''
+        for rank, r in ldr_df.iterrows():
+            # Every share of first place gets the highlight, not just row 0.
+            rank_cls = ' rank-1' if rank == 1 else ''
             name = str(r['Player'])
             team = str(r['Team'])
             sn = short_name(name)
@@ -1026,7 +1064,7 @@ def build_leaders_section(leaders, team_abbrevs):
             val_str = f'{val:.1f}' if isinstance(val, float) else str(val)
             rows += (
                 f'<tr class="ldr-row{rank_cls}" data-team="{esc(team)}">'
-                f'<td>{i+1}. <span class="ldr-name" data-player="{esc(name)}" onclick="goToPlayer(this.dataset.player)">'
+                f'<td>{rank}. <span class="ldr-name" data-player="{esc(name)}" onclick="goToPlayer(this.dataset.player)">'
                 f'{esc(sn)}</span> <span class="tm">{esc(team)}</span></td>'
                 f'<td>{val_str}</td></tr>\n'
             )

@@ -91,6 +91,35 @@ def category_for_today():
     return BROADCAST_ORDER[ordinal % len(BROADCAST_ORDER)]
 
 
+def tie_safe_counts(rows, wanted=(5, 4, 3)):
+    """Row counts to try, in order, none of which splits a shared place.
+
+    The payload carries the top 5 plus anyone tied for 5th, so a board can
+    arrive 6 or more rows long. Cutting at 5 would then show one half of a tie
+    as if it outranked the other — the thing shared places exist to prevent.
+    So a tie straddling a wanted count is offered WHOLE first and, failing
+    that, dropped whole. Nothing here caps the length: the caller tries these
+    in order and MAX_CHARS decides, so a two-way tie for 5th posts six rows
+    while a five-way tie quietly falls back to four.
+    """
+    ok = {i for i in range(1, len(rows) + 1)
+          if i == len(rows) or rows[i]['rank'] != rows[i - 1]['rank']}
+    out = []
+    for n in wanted:
+        if n in ok:
+            out.append(n)
+            continue
+        up = next((i for i in sorted(ok) if i > n), None)
+        down = max((i for i in ok if i < n), default=None)
+        out += [i for i in (up, down) if i]
+    seen, counts = set(), []
+    for n in out:
+        if n not in seen:
+            seen.add(n)
+            counts.append(n)
+    return counts or [len(rows)]
+
+
 def build_text(payload, cat):
     """Assemble post text, trimming to stay within the Bluesky char limit."""
     through = payload['through']
@@ -107,16 +136,18 @@ def build_text(payload, cat):
         return "\n".join(lines)
 
     # The factoid is the freshness driver, so keep it and shed a leader row
-    # before dropping it. Fall back to no-factoid only if even 3 rows won't fit.
+    # before dropping it. Fall back to no-factoid only if the shortest
+    # tie-safe board still won't fit.
+    counts = tie_safe_counts(rows)
     if factoid:
-        candidates = [(5, True), (4, True), (3, True), (5, False)]
+        candidates = [(n, True) for n in counts] + [(counts[0], False)]
     else:
-        candidates = [(5, False), (4, False), (3, False)]
+        candidates = [(n, False) for n in counts]
     for n, wf in candidates:
         text = assemble(rows[:n], wf)
         if len(text) <= MAX_CHARS:
             return text
-    return assemble(rows[:3], bool(factoid))[:MAX_CHARS]
+    return assemble(rows[:counts[-1]], bool(factoid))[:MAX_CHARS]
 
 
 def post(text):

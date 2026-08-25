@@ -235,6 +235,36 @@ available to her (her old team's games before the move plus her new team's after
 more principled but is not what any source documents. This only bites when the two teams' game
 counts differ *and* she sits near a cutoff; no multi-team player is currently close to one.
 
+### 4c. Ties _(2026-08-25)_
+
+Qualification decides who is *on* a board; ties decide what a board can honestly say about the
+players on it. Two players with the same unrounded value have no order between them, and neither
+side of the morning diff pretends otherwise once you look at what it actually publishes:
+stats.wnba.com repeats the RANK (`leagueleaders` returned **RANK 1 twice** on 2026-08-25, with the
+next player at 3), and our own `nlargest` just falls through to the frame's sort — season points, as
+it happens.
+
+Three consequences, all handled as of 2026-08-25:
+
+- **The boards render shared places** — 1, 1, 3 rather than 1, 2, 3 (`_competition_ranks` in
+  `build_stats_page.py`; the place is carried on the board frame's index). The player-page badges
+  already did this — `compute_card_ranks` uses `rank(method="min")` — so before this change Clark's
+  and Thomas's own pages each said "1st in APG" while the leader card ranked one above the other.
+- **The daily Bluesky post repeats the tie**, because `emit_social_payload` reads the same
+  places. It also emits the top 5 **plus anyone sharing 5th place**, and `build_text` cuts only
+  at a place boundary — otherwise the post would drop one half of a tie and imply the other
+  half outranked her, which is the whole thing shared places exist to prevent.
+- **`validate_stats.py` compares order tie-aware.** Two boards that disagree only *inside* a tie
+  group disagree about nothing, so that is a PASS with the tie named in the detail. It used to be a
+  FAIL, and because the leaders check gates the post, a dead tie in the day's broadcast category
+  silently killed the post — which is exactly what happened on 2026-08-25, when Caitlin Clark and
+  Alyssa Thomas each had 290 assists in 35 games. A tie *spanning the 5th/6th slot* is different:
+  there the top-5 set itself is ambiguous, so it WARNs rather than passing quietly.
+
+Equality is exact on the unrounded value, in all three places. Two players who merely display the
+same tenth are **not** tied and keep separate places — on 2026-08-12, Thomas (8.2121) and Clark
+(8.2069) both showed 8.2 and were correctly ranked 1 and 2.
+
 ---
 
 ## 5. Why our boards differ from ESPN

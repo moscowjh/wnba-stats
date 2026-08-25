@@ -221,19 +221,18 @@ def assert_ranks_match_leaders(season, ranks):
     by_id = season.reset_index().set_index("athlete_id")["index"]
     for cat, stat in (("Scoring", "PPG"), ("Rebounds", "RPG"),
                       ("Assists", "APG")):
-        prev_raw, prev_rank = None, 0
-        for pos, (_, row) in enumerate(leaders[cat].iterrows(), start=1):
-            # method="min" semantics: a tie shares the higher (lower-numbered)
-            # rank, so expected rank only advances when the raw value drops.
-            exp = prev_rank if row["_raw"] == prev_raw else pos
+        # The board publishes its own place on the index, ties already shared
+        # (compute_leaders._competition_ranks) — the same method="min"
+        # semantics compute_card_ranks produces, so the two must agree
+        # outright.
+        for place, row in leaders[cat].iterrows():
             got = ranks[stat].loc[by_id[row["athlete_id"]]]
-            assert pd.notna(got) and int(got) == exp, (
-                f"rank drift vs compute_leaders: {row['Player']} is #{pos} "
-                f"on the {cat} board but card rank for {stat} is {got!r} "
-                f"(expected {exp}). compute_card_ranks and compute_leaders "
-                "no longer implement the same qualification rule."
+            assert pd.notna(got) and int(got) == place, (
+                f"rank drift vs compute_leaders: {row['Player']} is #{place} "
+                f"on the {cat} board but card rank for {stat} is {got!r}. "
+                "compute_card_ranks and compute_leaders no longer implement "
+                "the same qualification rule."
             )
-            prev_raw, prev_rank = row["_raw"], exp
 
 
 def league_ts_avg(season):

@@ -291,6 +291,47 @@ def check_alignment(team_raw: pd.DataFrame, totals: pd.DataFrame) -> dict:
     }
 
 
+def tie_groups(keys: list, vals: list, tol: float = VALUE_TOL):
+    """Collapse a ranked list into ordered groups of players whose values are
+    equal within `tol`.
+
+    Neither board publishes a meaningful order *inside* a tie: ours falls out
+    of the stable sort behind `nlargest` (so it lands on season points),
+    theirs out of a duplicated RANK (so it lands on the API's row order). Two
+    boards that disagree only inside a group disagree about nothing.
+
+    Each value is compared against its group's FIRST value, not its
+    predecessor, so a long run of near-neighbours can't chain into one group.
+    Returns None if any value is missing — the caller then falls back to a
+    strict positional compare rather than guessing.
+    """
+    if any(v is None or pd.isna(v) for v in vals):
+        return None
+    groups, cur, anchor = [], [], None
+    for k, v in zip(keys, map(float, vals)):
+        if anchor is None or abs(v - anchor) > tol:
+            if cur:
+                groups.append(frozenset(cur))
+            cur, anchor = [k], v
+        else:
+            cur.append(k)
+    if cur:
+        groups.append(frozenset(cur))
+    return groups
+
+
+def straddles_cut(vals: list, n: int = 5, tol: float = VALUE_TOL) -> bool:
+    """True if a tie spans the nth/(n+1)th slot — the one case where a tie
+    changes the top-5 *set* and not just its order, so the boards can differ
+    for a reason we can't adjudicate."""
+    if len(vals) <= n:
+        return False
+    a, b = vals[n - 1], vals[n]
+    if a is None or b is None or pd.isna(a) or pd.isna(b):
+        return False
+    return abs(float(a) - float(b)) <= tol
+
+
 def compare_category(cat: str, ours: pd.DataFrame, theirs: pd.DataFrame,
                      xw: dict) -> dict:
     """Run the four checks for one category. `ours` is a full-mode board from
@@ -304,20 +345,40 @@ def compare_category(cat: str, ours: pd.DataFrame, theirs: pd.DataFrame,
     their5 = theirs.head(5)
 
     # Top-5 set AND order (by matched identity; normalized name as fallback).
+    # Order is compared TIE-AWARE: see tie_groups() above. A dead tie at the
+    # top of a broadcast category (Clark and Thomas, both 290 AST in 35 GP on
+    # 2026-08-25) used to FAIL here and gate the day's post, on a difference
+    # that existed only between two arbitrary tiebreaks.
     our_ids = [xw.get(str(a)) for a in our5["athlete_id"]]
     their_ids = list(their5["PLAYER_ID"])
     if None in our_ids:
         unmatched = [n for n, i in zip(our5["Player"], our_ids) if i is None]
         add("top5_order", "WARN", f"unmatched player(s), name-compare only: {unmatched}")
-        ok = [norm_name(n) for n in our5["Player"]] == \
-             [norm_name(n) for n in their5["PLAYER"]]
+        our_keys = [norm_name(n) for n in our5["Player"]]
+        their_keys = [norm_name(n) for n in their5["PLAYER"]]
     else:
-        ok = our_ids == their_ids
-    if ok:
-        add("top5_order", "PASS", " / ".join(our5["Player"]))
+        our_keys, their_keys = our_ids, their_ids
+
+    board = " / ".join(our5["Player"])
+    if our_keys == their_keys:
+        add("top5_order", "PASS", board)
     else:
-        add("top5_order", "FAIL",
-            f"ours={list(our5['Player'])} theirs={list(their5['PLAYER'])}")
+        our_vals = list(ours["_raw"])
+        their_vals = list(theirs["value"])
+        og = tie_groups(our_keys, our_vals[:5])
+        tg = tie_groups(their_keys, their_vals[:5])
+        tied = [sorted(n for n, k in zip(our5["Player"], our_keys) if k in g)
+                for g in (og or []) if len(g) > 1]
+        if og is not None and og == tg:
+            add("top5_order", "PASS",
+                f"{board} (differs only inside a tie: {tied})")
+        elif straddles_cut(our_vals) or straddles_cut(their_vals):
+            add("top5_order", "WARN",
+                f"tie spans the 5th/6th slot — the top-5 set is ambiguous: "
+                f"ours={list(our5['Player'])} theirs={list(their5['PLAYER'])}")
+        else:
+            add("top5_order", "FAIL",
+                f"ours={list(our5['Player'])} theirs={list(their5['PLAYER'])}")
 
     # Values within tolerance + GP exact, per our top 5.
     their_by_id = theirs.set_index("PLAYER_ID")
