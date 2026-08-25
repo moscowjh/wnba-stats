@@ -25,12 +25,14 @@ Env:
                           main account password.
 """
 
+import argparse
 import datetime as dt
 import json
 import os
 import sys
 import urllib.error
 import urllib.request
+from zoneinfo import ZoneInfo
 
 from config import WNBA
 
@@ -44,6 +46,7 @@ CARD_DESC   = ("Fast, ad-free WNBA stats — leaders, standings, four factors, "
                "updated every morning.")
 CTA         = "Full season stats, ad-free ↓"
 MAX_CHARS   = 300  # Bluesky post limit
+ET          = ZoneInfo("America/New_York")
 
 PAYLOAD  = str(WNBA.social_payload)
 OG_IMAGE = str(WNBA.og_image)
@@ -84,6 +87,40 @@ def _api(path, data=None, token=None, raw_image=False):
     req = urllib.request.Request(f"{PDS}{path}", data=body, headers=headers, method='POST')
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode('utf-8'))
+
+
+def today_et():
+    """ET calendar date of 'today'. SAG_TODAY (YYYY-MM-DD) overrides it, the
+    same escape hatch build_stats_page.today_et offers, so the skip rule below
+    can be exercised against any date without waiting for the calendar."""
+    ov = os.environ.get('SAG_TODAY')
+    if ov:
+        return dt.datetime.strptime(ov, '%Y-%m-%d').date()
+    return dt.datetime.now(ET).date()
+
+
+def has_new_games(payload, today=None):
+    """True when the payload covers games played since yesterday (ET).
+
+    The build runs every morning whether or not anyone played, so without this
+    the account posts an unchanged leader board every day of a schedule gap —
+    17 straight days over the 2026 FIBA break, and the factoid line vanishes
+    for all of them (emit_social_payload attaches it only for games played
+    yesterday). Nothing was pausing that: build.yml gates the post on
+    `leaders_ok` alone, and the cron Worker's off-day awareness only relaxes
+    its own freshness alarm.
+
+    The comparison is >= rather than ==, so an afternoon slate already in the
+    data still posts. Deliberately stateless: if a morning's build fails and
+    the next day is gameless, that day's post is simply missed rather than
+    replayed — the same trade the Worker makes, where a missed post is
+    recoverable and a duplicate one is not.
+    """
+    through = payload.get('through_iso')
+    if not through:
+        return True          # older payload without the field — don't gate on it
+    yesterday = (today or today_et()) - dt.timedelta(days=1)
+    return dt.date.fromisoformat(through) >= yesterday
 
 
 def category_for_today():
@@ -183,11 +220,22 @@ def post(text):
 
 
 def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--force", action="store_true",
+                    help="post even when no games have been played since the "
+                         "last build (normally a schedule gap skips the post)")
+    args = ap.parse_args()
+
     if not os.path.exists(PAYLOAD):
         print(f"No {PAYLOAD} — nothing to post (build may not have run).")
         return 0
     with open(PAYLOAD, encoding='utf-8') as fh:
         payload = json.load(fh)
+    if not args.force and not has_new_games(payload):
+        print(f"No games since {payload.get('through_iso')} — the board is "
+              f"unchanged and there is no last-night line. Skipping today's "
+              f"post (--force overrides).")
+        return 0
     cat = category_for_today()
     text = build_text(payload, cat)
     print(f"--- category: {cat} ({len(text)} chars) ---\n{text}\n---")

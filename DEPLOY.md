@@ -514,6 +514,24 @@ The contract:
   crash blocks the post; the source being unreachable or behind us
   (`SKIPPED — source not caught up`) does NOT, since our own data already
   passed the Layer-1 guards.
+
+`leaders_ok` is not the only thing standing between a build and a post.
+`post_to_bluesky.py` skips a day on which **nobody played**: it posts only when
+`social_payload.json`'s `through_iso` is yesterday (ET) or later. The build runs
+every morning regardless of the schedule, so without that rule a gap in the
+calendar becomes a run of identical posts — 17 of them over the 2026 FIBA break
+(Aug 31 – Sep 17), each carrying an unchanged board and, because
+`emit_social_payload` attaches the "last night" line only for games played
+yesterday, no fresh line at all. Nothing else was pausing it: the cron Worker's
+off-day awareness only relaxes its own freshness alarm, and `build.yml`'s post
+step gates on `leaders_ok` alone. The rule is stateless and date-free, so it
+also covers the postseason gap and next May's opener with no edit. `--force`
+overrides it for a deliberate manual post, and `SAG_TODAY=YYYY-MM-DD` moves
+"today" for testing, exactly as it does in `build_stats_page.py`.
+
+Note that a gameless day is **not** a no-op for the site itself: the Games tab
+renders `Today · <date>` and today's slate, so `index.html` changes every
+morning and the deploy is doing real work even when no basketball was played.
 - **By hand:** `python sites/wnba/validate_stats.py` checks all 11 boards and prints a
   readable report; `--date YYYY-MM-DD` cuts our side off at a date (only
   meaningful while the source is frozen there too, e.g. over a break).
