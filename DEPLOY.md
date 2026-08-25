@@ -830,6 +830,34 @@ MUST gray out each series before its field went live:
 | `referrers` | 2026-08-11 |
 | `by_surface`, `expands`, `top_player_pages` | 2026-08-17 |
 
+**The file is mixed-shape, and that is deliberate.** Backfilled rows run
+today's code, so they carry keys their live-written contemporaries lack —
+counterintuitively the OLDEST rows are the richest:
+
+| days | `referrers` | `by_surface` / `expands` |
+|---|---|---|
+| Jul 12 – Aug 1 (backfilled 2026-08-22) | yes | yes |
+| Aug 2 – Aug 10 (written live) | no | no |
+| Aug 11 – Aug 16 (written live) | yes | no |
+| Aug 17 – (written live) | yes | yes |
+
+So charting player-pages over time shows July at zero, a HOLE through Aug
+2–16, then real numbers. The hole is older-format rows, not missing traffic.
+
+Aug 2–16 is still inside retention and could be re-snapshotted to make the
+file uniform. **Do not.** Two reasons. It rewrites records written at the
+time, and a contemporaneous log whose rows get retroactively regenerated is
+no longer evidence of anything. And re-running would re-query Analytics
+Engine, whose aggregates are NOT stable to the row (see the section above —
+the same predicate returned 28 and 29 for 2026-08-18 in the same minute), so
+flattening could silently shift historical counts by a view or two in
+exchange for cosmetic tidiness.
+
+The dashboard must therefore distinguish three states, not two: a present
+zero (measured, genuinely nothing), a missing key (the field did not exist
+yet), and `"(not collected)"` inside `referrers` (the field existed but this
+row predates it). Treating any of those as a plain zero draws a lie.
+
 Note also that the rollup stores aggregates only. The row-level view that
 `--rows` and `--sessions` read — visit shapes, expand timing, per-arrival
 referrers — ages out at 90 days and is preserved nowhere. If that detail turns
