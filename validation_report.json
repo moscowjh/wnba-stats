@@ -1,41 +1,28 @@
 {
-  "run_at_utc": "2026-08-25T14:55:46+00:00",
-  "data_through": "2026-08-24",
+  "run_at_utc": "2026-08-26T11:17:32+00:00",
+  "data_through": "2026-08-25",
   "cutoff": null,
-  "broadcast_category": "Assists",
+  "broadcast_category": "FT%",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Assists",
-      "status": "PASS",
+      "category": "FT%",
+      "status": "SKIPPED",
       "checks": [
         {
-          "check": "top5_order",
-          "status": "PASS",
-          "detail": "Caitlin Clark / Alyssa Thomas / Jordin Canada / Chelsea Gray / Jackie Young (differs only inside a tie: [['Alyssa Thomas', 'Caitlin Clark']])"
-        },
-        {
-          "check": "top5_values",
-          "status": "PASS",
-          "detail": ""
-        },
-        {
-          "check": "top5_gp",
-          "status": "PASS",
-          "detail": ""
-        },
-        {
-          "check": "top10_set",
-          "status": "PASS",
-          "detail": ""
+          "check": "alignment",
+          "status": "SKIPPED",
+          "detail": "source not caught up: PHX 37<38"
         }
       ]
     }
   ],
   "alignment": {
-    "ours_total": 566,
-    "theirs_total": 566,
-    "source_behind": [],
+    "ours_total": 572,
+    "theirs_total": 571,
+    "source_behind": [
+      "PHX 37<38"
+    ],
     "we_are_behind": []
   },
   "leaders_ok": true
