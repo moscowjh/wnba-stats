@@ -1,12 +1,12 @@
 {
-  "run_at_utc": "2026-08-26T11:17:32+00:00",
-  "data_through": "2026-08-25",
+  "run_at_utc": "2026-08-27T11:17:29+00:00",
+  "data_through": "2026-08-26",
   "cutoff": null,
-  "broadcast_category": "FT%",
+  "broadcast_category": "TS%",
   "gate_mode": true,
   "categories": [
     {
-      "category": "FT%",
+      "category": "TS%",
       "status": "SKIPPED",
       "checks": [
         {
@@ -18,8 +18,8 @@
     }
   ],
   "alignment": {
-    "ours_total": 572,
-    "theirs_total": 571,
+    "ours_total": 576,
+    "theirs_total": 575,
     "source_behind": [
       "PHX 37<38"
     ],
