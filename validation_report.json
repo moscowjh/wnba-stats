@@ -1,27 +1,27 @@
 {
-  "run_at_utc": "2026-08-27T11:17:29+00:00",
-  "data_through": "2026-08-26",
+  "run_at_utc": "2026-08-28T11:17:35+00:00",
+  "data_through": "2026-08-27",
   "cutoff": null,
-  "broadcast_category": "TS%",
+  "broadcast_category": "Rebounds",
   "gate_mode": true,
   "categories": [
     {
-      "category": "TS%",
+      "category": "Rebounds",
       "status": "SKIPPED",
       "checks": [
         {
           "check": "alignment",
           "status": "SKIPPED",
-          "detail": "source not caught up: PHX 37<38"
+          "detail": "source not caught up: PHX 38<39"
         }
       ]
     }
   ],
   "alignment": {
-    "ours_total": 576,
-    "theirs_total": 575,
+    "ours_total": 580,
+    "theirs_total": 579,
     "source_behind": [
-      "PHX 37<38"
+      "PHX 38<39"
     ],
     "we_are_behind": []
   },
