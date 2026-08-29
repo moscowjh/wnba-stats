@@ -25,12 +25,33 @@
   .num,.big,.tla,.grp,.wn{font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
   table{font-variant-numeric:tabular-nums}
   .mast{border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px}
-  .mast h1{font-size:18px;letter-spacing:-.2px;font-weight:700}
+  /* The title is now the tournament's full name in caps, not "WWC 2026" —
+     28 characters where there were 8 (Jason, 2026-08-29). At a fixed 18px
+     that wraps on a 375px iPhone (SE 3rd gen), leaving ~343px of usable
+     width after the body's 16px padding. clamp() scales it instead of
+     picking one size and hoping: ~17.6px at 375, full 19px on a Max. */
+  .mast h1{font-size:clamp(15px,4.7vw,19px);letter-spacing:.2px;
+    font-weight:700;text-transform:uppercase;line-height:1.2}
   .mast h1 a{color:var(--accent);text-decoration:none}
-  .mast .sub{color:var(--muted);font-size:12px;margin-top:3px}
-  nav{display:flex;gap:18px;font-size:13px;margin:12px 0 18px;flex-wrap:wrap}
-  nav a{text-decoration:none;padding-bottom:4px;font-weight:500}
-  nav a.on{color:var(--accent);border-bottom:2px solid var(--accent)}
+  /* Three steps of hierarchy from the existing tokens, no second accent:
+     accent title, near-white brand, muted date. `stats at a glance` is the
+     BRAND (Jason, 2026-08-29) and outranks the dateline, so it takes --text
+     and the larger size; the tournament dates are reference, not identity. */
+  .mast .brand{color:var(--text);font-size:14.5px;margin-top:5px;
+    font-weight:500}
+  .mast .strap{color:var(--muted);font-size:11.5px;margin-top:2px}
+  /* Tap targets, 2026-08-29. Was 13px text with 4px of bottom padding — a
+     ~24px target against Apple's 44px guidance, and coloured var(--muted) by
+     the generic `a` rule, so the nav read as ordinary body links rather than
+     as navigation. Now: full --text colour, 11px vertical padding for a ~44px
+     target, and the strip sits on a rule so the active tab's underline joins
+     it. Still purely typographic — no pills, no cards. */
+  nav{display:flex;gap:20px;font-size:14px;margin:10px 0 20px;flex-wrap:wrap;
+    border-bottom:1px solid var(--border)}
+  nav a{text-decoration:none;padding:11px 2px;font-weight:600;
+    color:var(--text);margin-bottom:-1px;border-bottom:2px solid transparent}
+  nav a:hover{color:var(--accent)}
+  nav a.on{color:var(--accent);border-bottom-color:var(--accent)}
   h2.sec{color:var(--accent);font-size:11.5px;letter-spacing:.9px;
     text-transform:uppercase;border-bottom:1px solid var(--border);
     padding-bottom:5px;margin:22px 0 9px;font-weight:700}
@@ -64,7 +85,6 @@
   .ed{font-size:14.5px;line-height:1.65;margin:14px 0}
   .prose{font-size:14.5px;line-height:1.7}
   .prose+.prose{margin-top:14px}
-  .dek{color:var(--muted);font-size:12.5px;margin:-4px 0 12px}
   .cnote{color:var(--muted);font-size:11.5px;line-height:1.6;margin-top:4px}
   .cnote b{color:var(--text)}
   .wn{color:var(--accent);font-size:10px;border:1px solid var(--accent);
@@ -72,6 +92,15 @@
   .tag{color:var(--muted);font-size:10px;border:1px solid var(--border);padding:0 4px}
   .pend{color:var(--muted);font-size:11.5px;line-height:1.6;
     border-left:2px solid var(--border);padding-left:9px;margin-top:9px}
+  /* End-of-page handoff. The Guide is the only page that dead-ends — Games
+     and Groups are already grids of links to team pages — so this exists
+     there and nowhere else. Accent left rule rather than a box: it reads as
+     "onward" without adding furniture to a site whose look is its absence. */
+  .next{border-left:2px solid var(--accent);padding-left:11px;margin-top:22px;
+    font-size:12.5px;line-height:1.75;color:var(--muted)}
+  .next b{color:var(--text)}
+  .next a{color:var(--accent);text-decoration:none}
+  .next a:hover{text-decoration:underline}
   .path{background:var(--surface);padding:12px;font-size:12.5px;line-height:2;
     margin:8px 0;border:1px solid var(--border)}
   .path b{color:var(--accent)}
@@ -117,6 +146,15 @@
   table.bx td,table.bx th{padding:5px 6px;font-size:11.5px;white-space:nowrap}
   table.bx td:first-child,table.bx th:first-child{text-align:left;
     white-space:normal;min-width:132px}
+  /* The 132px above is a PLAYER-name measure — "Breanna Stewart" plus a
+     position span. The team-comparison table reuses `table.bx` but its first
+     cell is only a flag and a three-letter code, so that min-width became
+     ~80px of dead air between the country and FG, and pushed the last column
+     off a phone screen (Jason, 2026-08-29). Scoped down here rather than
+     lowering the shared value, which would start wrapping player names.
+     Must stay AFTER the rule above: equal specificity, so source order wins. */
+  table.ts td:first-child,table.ts th:first-child{min-width:0;
+    white-space:nowrap}
   table.bx td:not(:first-child){text-align:right;font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace}
   table.bx th:not(:first-child){text-align:right}
   table.bx tr.sec td{color:var(--accent);font-size:9.5px;letter-spacing:.8px;
@@ -142,8 +180,9 @@
 </head>
 <body>
 <div class="mast">
-  <h1><a href="/">WWC 2026 <span class="mu">· stats at a glance</span></a></h1>
-  <div class="sub">FIBA Women&#x27;s Basketball World Cup · Berlin · 4–13 September 2026</div>
+  <h1><a href="/">Women’s Basketball World Cup</a></h1>
+  <div class="brand">stats at a glance</div>
+  <div class="strap">Berlin · September 4–13, 2026</div>
 </div>
 <nav><a href="/">Guide</a><a href="/games/">Games</a><a href="/teams/">Teams</a><a href="/groups/" class="on">Groups</a></nav>
 <h2 class="sec">How a team reaches the quarter-finals</h2>

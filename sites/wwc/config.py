@@ -61,4 +61,4 @@ GUIDE_IS_LANDING = True
 
 #: The tournament's own identity, as it appears in the masthead and titles.
 TOURNAMENT_NAME = "FIBA Women's Basketball World Cup"
-TOURNAMENT_STRAP = "Berlin · 4–13 September 2026"
+TOURNAMENT_STRAP = "Berlin · September 4–13, 2026"

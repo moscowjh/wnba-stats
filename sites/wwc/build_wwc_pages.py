@@ -205,12 +205,33 @@ SITE_CSS = f"""\
   .num,.big,.tla,.grp,.wn{{font-family:{MONO};font-variant-numeric:tabular-nums}}
   table{{font-variant-numeric:tabular-nums}}
   .mast{{border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px}}
-  .mast h1{{font-size:18px;letter-spacing:-.2px;font-weight:700}}
+  /* The title is now the tournament's full name in caps, not "WWC 2026" —
+     28 characters where there were 8 (Jason, 2026-08-29). At a fixed 18px
+     that wraps on a 375px iPhone (SE 3rd gen), leaving ~343px of usable
+     width after the body's 16px padding. clamp() scales it instead of
+     picking one size and hoping: ~17.6px at 375, full 19px on a Max. */
+  .mast h1{{font-size:clamp(15px,4.7vw,19px);letter-spacing:.2px;
+    font-weight:700;text-transform:uppercase;line-height:1.2}}
   .mast h1 a{{color:var(--accent);text-decoration:none}}
-  .mast .sub{{color:var(--muted);font-size:12px;margin-top:3px}}
-  nav{{display:flex;gap:18px;font-size:13px;margin:12px 0 18px;flex-wrap:wrap}}
-  nav a{{text-decoration:none;padding-bottom:4px;font-weight:500}}
-  nav a.on{{color:var(--accent);border-bottom:2px solid var(--accent)}}
+  /* Three steps of hierarchy from the existing tokens, no second accent:
+     accent title, near-white brand, muted date. `stats at a glance` is the
+     BRAND (Jason, 2026-08-29) and outranks the dateline, so it takes --text
+     and the larger size; the tournament dates are reference, not identity. */
+  .mast .brand{{color:var(--text);font-size:14.5px;margin-top:5px;
+    font-weight:500}}
+  .mast .strap{{color:var(--muted);font-size:11.5px;margin-top:2px}}
+  /* Tap targets, 2026-08-29. Was 13px text with 4px of bottom padding — a
+     ~24px target against Apple's 44px guidance, and coloured var(--muted) by
+     the generic `a` rule, so the nav read as ordinary body links rather than
+     as navigation. Now: full --text colour, 11px vertical padding for a ~44px
+     target, and the strip sits on a rule so the active tab's underline joins
+     it. Still purely typographic — no pills, no cards. */
+  nav{{display:flex;gap:20px;font-size:14px;margin:10px 0 20px;flex-wrap:wrap;
+    border-bottom:1px solid var(--border)}}
+  nav a{{text-decoration:none;padding:11px 2px;font-weight:600;
+    color:var(--text);margin-bottom:-1px;border-bottom:2px solid transparent}}
+  nav a:hover{{color:var(--accent)}}
+  nav a.on{{color:var(--accent);border-bottom-color:var(--accent)}}
   h2.sec{{color:var(--accent);font-size:11.5px;letter-spacing:.9px;
     text-transform:uppercase;border-bottom:1px solid var(--border);
     padding-bottom:5px;margin:22px 0 9px;font-weight:700}}
@@ -244,7 +265,6 @@ SITE_CSS = f"""\
   .ed{{font-size:14.5px;line-height:1.65;margin:14px 0}}
   .prose{{font-size:14.5px;line-height:1.7}}
   .prose+.prose{{margin-top:14px}}
-  .dek{{color:var(--muted);font-size:12.5px;margin:-4px 0 12px}}
   .cnote{{color:var(--muted);font-size:11.5px;line-height:1.6;margin-top:4px}}
   .cnote b{{color:var(--text)}}
   .wn{{color:var(--accent);font-size:10px;border:1px solid var(--accent);
@@ -252,6 +272,15 @@ SITE_CSS = f"""\
   .tag{{color:var(--muted);font-size:10px;border:1px solid var(--border);padding:0 4px}}
   .pend{{color:var(--muted);font-size:11.5px;line-height:1.6;
     border-left:2px solid var(--border);padding-left:9px;margin-top:9px}}
+  /* End-of-page handoff. The Guide is the only page that dead-ends — Games
+     and Groups are already grids of links to team pages — so this exists
+     there and nowhere else. Accent left rule rather than a box: it reads as
+     "onward" without adding furniture to a site whose look is its absence. */
+  .next{{border-left:2px solid var(--accent);padding-left:11px;margin-top:22px;
+    font-size:12.5px;line-height:1.75;color:var(--muted)}}
+  .next b{{color:var(--text)}}
+  .next a{{color:var(--accent);text-decoration:none}}
+  .next a:hover{{text-decoration:underline}}
   .path{{background:var(--surface);padding:12px;font-size:12.5px;line-height:2;
     margin:8px 0;border:1px solid var(--border)}}
   .path b{{color:var(--accent)}}
@@ -297,6 +326,15 @@ SITE_CSS = f"""\
   table.bx td,table.bx th{{padding:5px 6px;font-size:11.5px;white-space:nowrap}}
   table.bx td:first-child,table.bx th:first-child{{text-align:left;
     white-space:normal;min-width:132px}}
+  /* The 132px above is a PLAYER-name measure — "Breanna Stewart" plus a
+     position span. The team-comparison table reuses `table.bx` but its first
+     cell is only a flag and a three-letter code, so that min-width became
+     ~80px of dead air between the country and FG, and pushed the last column
+     off a phone screen (Jason, 2026-08-29). Scoped down here rather than
+     lowering the shared value, which would start wrapping player names.
+     Must stay AFTER the rule above: equal specificity, so source order wins. */
+  table.ts td:first-child,table.ts th:first-child{{min-width:0;
+    white-space:nowrap}}
   table.bx td:not(:first-child){{text-align:right;font-family:{MONO}}}
   table.bx th:not(:first-child){{text-align:right}}
   table.bx tr.sec td{{color:var(--accent);font-size:9.5px;letter-spacing:.8px;
@@ -356,8 +394,9 @@ def shell(path, title, body, description, extra_head=""):
 </head>
 <body>
 <div class="mast">
-  <h1><a href="/">WWC 2026 <span class="mu">· stats at a glance</span></a></h1>
-  <div class="sub">{esc(TOURNAMENT_NAME)} · {TOURNAMENT_STRAP}</div>
+  <h1><a href="/">Women\u2019s Basketball World Cup</a></h1>
+  <div class="brand">stats at a glance</div>
+  <div class="strap">{TOURNAMENT_STRAP}</div>
 </div>
 <nav>{nav}</nav>
 {body}
@@ -468,7 +507,14 @@ def page_games(rows, teams, results, box_ids):
                 f'{game_cell(r, results, box_ids)}</td></tr>')
         body.append("</table>")
         out.append(table_scroll("".join(body)))
-    return shell("/", f"Schedule — {TOURNAMENT_NAME} 2026", "".join(out),
+    # GAMES_PATH, never a literal "/". This was hardcoded when Games WAS the
+    # landing page; flipping GUIDE_IS_LANDING on 2026-08-26 moved Games to
+    # /games/ and left this behind, which meant the page shipped a canonical
+    # pointing at the HOME PAGE (telling Google to drop /games/ and fold it
+    # into /), reported its pageviews under the "guide" analytics key, and
+    # never lit its own nav tab. Found 2026-08-29 by Jason noticing the tab
+    # would not underline — the smallest visible symptom of the three.
+    return shell(GAMES_PATH, f"Schedule — {TOURNAMENT_NAME} 2026", "".join(out),
                  "Every game of the 2026 FIBA Women's Basketball World Cup "
                  "in Berlin, with tip times in US Eastern and Berlin local.")
 
@@ -1202,7 +1248,7 @@ def _runs_by(overall, keyfn):
 
 # ══ Key ═══════════════════════════════════════════════════════════════════
 
-def page_guide(doc):
+def page_guide(doc, teams):
     """What a WNBA fan needs to know to read a FIBA game.
 
     Rules content from `wwc-rules-audit-2026-08-17.md`. The glossary is far
@@ -1245,13 +1291,36 @@ def page_guide(doc):
     start_day = int(t["start_date"][-2:])
     end_day = int(t["end_date"][-2:])
 
-    brief = f'''<h2 class="sec">{esc(TOURNAMENT_NAME)}</h2>
-<div class="dek">Sep {start_day}–{end_day}, 2026 &nbsp;|&nbsp; Berlin, Germany</div>
+    rows = load_schedule()
+    results = load_results()
+
+    # The onward block. The Guide is prose and genuinely ends; Games and
+    # Groups are already grids of links to team pages and need nothing.
+    # Lifecycle-aware so it never needs a dated edit: results on disk flip it
+    # from "tips off" to "played", exactly as every other state on this site
+    # is derived from data rather than from a clock.
+    if results:
+        nxt = (f'<b>{len(results)} of {len(rows)} games played.</b> '
+               f'<br><a href="{GAMES_PATH}">Results and box scores →</a> · '
+               f'<a href="/teams/">The {t["team_count"]} teams →</a>')
+    else:
+        opener = next((r for r in rows
+                       if "USA" in (r["team_1"], r["team_2"])), rows[0])
+        a, b = teams[opener["team_1"]], teams[opener["team_2"]]
+        other = b if opener["team_1"] == "USA" else a
+        year = final_rematch_year(usa, other)
+        rematch = f', a rematch of the {year} final' if year else ''
+        nxt = (f'<b>Berlin tips off September {start_day}.</b> The USA open '
+               f'against {other["flag"]} {esc(other["name"])}{rematch}.'
+               f'<br><a href="{GAMES_PATH}">All {len(rows)} games, day by day →</a>'
+               f' · <a href="/teams/">The {t["team_count"]} teams →</a>')
+
+    brief = f'''<h2 class="sec">World Cup overview</h2>
 <p class="prose"><b>The {esc(TOURNAMENT_NAME)}</b> is the world championship of
 women\u2019s basketball and the sport\u2019s biggest event outside the Olympics,
 held every four years. Berlin 2026 is the <b>{ordinal(t["edition"])} edition</b>.</p>
 <p class="prose"><b>{t["team_count"]} national teams</b> play
-{len(load_schedule())} games over ten days, September {start_day}–{end_day}. The
+{len(rows)} games over ten days, September {start_day}–{end_day}. The
 format is short and unforgiving. The teams are divided into four groups, and in
 the first round every team plays the other three in its group. Win your group
 and you skip straight to the quarter-finals; finish second or third and you play
@@ -1261,7 +1330,8 @@ an extra knockout game to reach them.</p>
 contenders are France (silver medalists at the 2024 Paris Olympics), Australia
 (Asia Cup champions), China (2022 World Cup runners-up) and Belgium (EuroBasket
 champions). All of them return experienced lineups that have played together
-internationally.</p>
+internationally. Every team\u2019s full record is on its own page — see
+<a href="/teams/">Teams</a>.</p>
 <p class="prose"><b>{wnba_total} current WNBA players are in this field</b>,
 spread across {with_wnba} of the {t["team_count"]} teams. The US roster is the
 most star-studded, with A\u2019ja Wilson, Breanna Stewart, Caitlin Clark and
@@ -1269,12 +1339,9 @@ Paige Bueckers among its names. France, which nearly beat the US in Paris in
 2024, returns a strong team headlined by Gabby Williams. Even the host nation,
 <b>Germany</b>, which has qualified only {NUM_WORD.get(len(ger["wwc_record"]["editions"]), len(ger["wwc_record"]["editions"]))}
 before, carries {ger["wnba"]["current"]} WNBA players on its roster.</p>
-<div class="pend">Every team\u2019s full record is on its own page — see
-<a href="/teams/">Teams</a>.</div>
 
 '''
-    body = brief + f'''<h2 class="sec">International rules: differences and similarities</h2>
-<div class="dek">Six differences worth knowing</div>
+    body = brief + f'''<h2 class="sec">Rules: differences to know</h2>
 {table_scroll("""<table>
 <tr><th style="width:32%">Difference</th><th>What changes</th></tr>
 <tr><td><b>Five fouls, not six</b></td><td>Players foul out a full personal earlier, so foul rates and minutes lost to foul trouble are not like-for-like with WNBA numbers.</td></tr>
@@ -1284,30 +1351,11 @@ before, carries {ger["wnba"]["current"]} WNBA players on its roster.</p>
 <tr><td><b>Timeouts</b></td><td>Coach-only, dead-ball-only, one minute, and no mandatory TV timeouts. A trapped ballhandler has no bailout.</td></tr>
 <tr><td><b>Court size and the three-point line</b></td><td>FIBA\u2019s court is 3.9% smaller than the WNBA\u2019s. The three-point arc is identical at the top, 6.75 m, but in the corners FIBA\u2019s line sits closer to the basket — 6.60 m against 6.71 m, about four inches. That gap stems from FIBA\u2019s narrower court, which means the sideline cuts into the arc sooner.</td></tr>
 </table>""")}
-
-<h2 class="sec">Not differences, despite what you may read</h2>
-<p class="prose">The WNBA and FIBA play the <b>same 40 minutes</b> — four
-ten-minute quarters — with the <b>same 24/14 second shot clock</b>, and use the
-same standard size-6 women\u2019s basketball, twelve-woman rosters and five on
-court.</p>
-{table_scroll("""<table>
-<tr><td>Game length</td><td class="mu">40 minutes in both. The NBA plays 48; that is where the confusion comes from.</td></tr>
-<tr><td>Three-point distance</td><td class="mu">6.75 m at the top in both. 22\u20321¾\u2033 <i>is</i> 6.75 m. The corners differ by about four inches.</td></tr>
-<tr><td>Shot clock</td><td class="mu">24 seconds, resetting to 14 on an offensive rebound. Both.</td></tr>
-<tr><td>Bonus</td><td class="mu">Fifth team foul of the period → two free throws. Both.</td></tr>
-<tr><td>Advancing the ball after a late timeout</td><td class="mu">A real difference until 2024 — FIBA added it in OBR 2024. Any article older than that gets it wrong.</td></tr>
-</table>""")}
-<div class="pend">The widely-repeated claim that FIBA scoring runs about 17%
-lower is 40÷48 — the <b>NBA</b>-to-FIBA gap, mislabeled as the WNBA\u2019s. Both
-anchors here were checked against our own box scores before any external
-source: team minutes cluster on exactly 200 across 496 team-games, and across
-5,970 player-games the foul distribution stops hard at six.</div>
-<div class="pend">Berlin is played under <b>OBR 2024</b>. FIBA\u2019s next rulebook,
-OBR 2026, takes effect on 1 October — after this tournament.</div>'''
+<div class="next">{nxt}</div>'''
     return shell(GUIDE_PATH, f"{TOURNAMENT_NAME} 2026 — a guide", body,
-                 "What the FIBA Women\u2019s Basketball World Cup is, and how the "
-                 "FIBA game differs from the WNBA\u2019s — six differences that "
-                 "matter and the ones that are myths.")
+                 "What the Women\u2019s Basketball World Cup is, who is playing, "
+                 "and the six rules differences that matter if you follow the "
+                 "WNBA.")
 
 
 #: "qualified only ONCE before" reads as English; "only 1 before" reads as a
@@ -1323,6 +1371,21 @@ NUM_WORD = {1: "once", 2: "twice", 3: "three times"}
 CARDINAL = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
             7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven",
             12: "twelve"}
+
+
+def final_rematch_year(a, b):
+    """The most recent edition where these two finished 1-2, or None.
+
+    The Guide's onward block says "a rematch of the 2022 final" — a claim a
+    schedule change or a data correction could falsify, so it is derived from
+    both teams' `editions` rather than written down. No qualifying edition
+    means the clause is simply not emitted, which is the same posture as the
+    empty coach slot: silence beats a confident wrong sentence.
+    """
+    ra = {e["year"]: e["rank"] for e in a["wwc_record"]["editions"]}
+    rb = {e["year"]: e["rank"] for e in b["wwc_record"]["editions"]}
+    shared = [y for y in ra if y in rb and {ra[y], rb[y]} == {1, 2}]
+    return max(shared) if shared else None
 
 
 def ordinal(n):
@@ -1469,7 +1532,7 @@ def team_stats_block(sides, names):
                  + "</tr><tr class=\"pct\"><td></td>"
                  + "".join(f'<td class="r num">{v}</td>' for v in pcts)
                  + "</tr>")
-    return table_scroll(f'<table class="bx pct">{head}{body}</table>')
+    return table_scroll(f'<table class="bx pct ts">{head}{body}</table>')
 
 
 def team_box_table(side, t, published):
@@ -1674,7 +1737,7 @@ def main():
             pub / url.strip("/") / "index.html"
 
     paths = [GUIDE_PATH, GAMES_PATH]
-    write(out_path(GUIDE_PATH), page_guide(doc))
+    write(out_path(GUIDE_PATH), page_guide(doc, teams))
     write(out_path(GAMES_PATH), page_games(rows, teams, results, box_ids))
     write(pub / "teams" / "index.html", page_teams_index(doc))
     paths.append("/teams/")
