@@ -161,6 +161,91 @@ Setup steps:
 No `wrangler.toml` change is needed for steps 1–4 — the custom domain is wired in
 the dashboard.
 
+## The WWC site — second hostname, second workflow (added 2026-08-25)
+
+`wwc.statsataglance.com` serves `sites/wwc/public/`, built by
+`.github/workflows/wwc.yml`. Engineering detail is in
+`docs/wwc-site-internals.md`; this section is the infrastructure only.
+
+**It is a separate workflow on purpose.** `build.yml` is the WNBA daily
+pipeline — it fetches box scores, gates on a validator, posts to Bluesky, and
+its filename is hardcoded in `workers/cron/worker.js`. The WWC site rebuilds
+when its hand-maintained reference data changes, has no data fetch at all
+until 4 September, and must not be able to block (or be blocked by) a WNBA
+fetch failure.
+
+Triggers: `workflow_dispatch`, plus `push` to `main` filtered to
+`sites/wwc/**`, `core/**` and the workflow file. The filter is what keeps it
+off the WNBA bot's daily commits, which touch `sites/wnba/public`,
+`validation_report.json`, `player_id_crosswalk.json` and
+`usage_history.jsonl` — none of which match. A `core/` change re-renders both
+sites, which is correct.
+
+### One-time setup, and it must happen before the first run
+
+1. **Create the Worker + attach the hostname.** `npx wrangler deploy` creates
+   the `wwc-stats` Worker itself on first run, but the custom domain is a
+   dashboard step, exactly as it was for `wnba.statsataglance.com`:
+   Workers & Pages → `wwc-stats` → Settings → Domains & Routes → Add →
+   Custom Domain → `wwc.statsataglance.com`. Cloudflare provisions the DNS
+   record and SSL.
+
+   > Wrangler *can* declare this in config
+   > (`routes = [{ pattern = "…", custom_domain = true }]`), and
+   > `sites/wwc/wrangler.toml` says why it doesn't: that needs a token with
+   > Zone/DNS + Workers Routes edit, while the shared
+   > `CLOUDFLARE_API_TOKEN` is scoped to Account / Workers Scripts / Edit
+   > only (one-time setup step 3 above). Declaring the route with the
+   > current token fails the whole deploy, not just the domain step.
+
+2. **No new secrets.** It reuses `CLOUDFLARE_API_TOKEN` and
+   `CLOUDFLARE_ACCOUNT_ID`.
+
+3. **No Web Analytics token, deliberately.** `WWC.cf_analytics_token` is
+   `None` — a league is allowed to launch unmeasured. The cookie-free usage
+   beacon still reports with `site=wwc` in `blob10`, so cross-site questions
+   ("does the Cup site hand readers back to WNBA?") are answerable from day
+   one without a second Web Analytics property. **The analytics Worker needs
+   no change** — it slices `e`/`t` without a whitelist, so the new page keys
+   (`games`, `teams`, `team:<slug>`, `groups`, `key`, `game:<id>`) land
+   without a manual redeploy. All of them fit the 32-char `blob2` slice and
+   the emitter asserts it.
+
+### ⚠️ robots.txt on a second hostname — MEASURE IT, DO NOT ASSUME
+
+The 2026-08-17 player-pages cutover found that on this zone an origin
+`robots.txt` **replaces** Cloudflare's managed block rather than merging with
+it — the opposite of Cloudflare's documented behaviour, and the opposite of
+what planning had assumed. That finding was measured on
+`wnba.statsataglance.com`. **It has not been measured on a second hostname in
+the same zone, and it does not carry by assumption.**
+
+`sites/wwc/public/robots.txt` is emitted by `sag.seo.write_robots` (allow-all
+plus the absolute `Sitemap:` line). After the first deploy, capture what is
+actually served:
+
+```bash
+curl -s https://wwc.statsataglance.com/robots.txt \
+  > sites/wnba/reference/robots-txt-observed/wwc-$(date -u +%F).txt
+```
+
+Keep the capture beside the WNBA ones in
+`sites/wnba/reference/robots-txt-observed/` — they are the same investigation
+and splitting them across directories would hide the comparison. Then compare
+against `2026-08-17.txt` (77 B, ours alone) and `2026-08-16.txt` (1248 B,
+Cloudflare's block):
+
+| Served | Means |
+|---|---|
+| ~77 B, our three lines only | same behaviour as the WNBA host — replace, not merge |
+| ~1248 B + our lines | it really does merge here, and the WNBA finding is host-specific |
+| ~1248 B alone | the origin file is not being served at all — investigate before submitting the sitemap |
+
+**Do not submit `sitemap.xml` to Search Console until this is captured**, and
+record the result in the backlog either way. The whole point of standing the
+site up empty was to convert this unknown into a known one while there was
+still slack.
+
 ## Adjusting the schedule
 The schedule is controlled by the Cloudflare cron Worker (`workers/cron/`), which
 calls GitHub's `workflow_dispatch` API at 11:17 UTC (7:17am ET in summer). Later

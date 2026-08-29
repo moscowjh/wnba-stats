@@ -1,0 +1,25 @@
+name = "wwc-stats"
+compatibility_date = "2025-06-01"
+# Same posture as the WNBA site: the public URL is a Custom Domain
+# (wwc.statsataglance.com), so the name-bearing *.workers.dev URL is disabled.
+workers_dev = false
+
+# Serve the built static site — no Worker code, no build step. `[assets]
+# directory` resolves RELATIVE TO THIS FILE, not the working directory, which
+# is why the Action passes `-c sites/wwc/wrangler.toml` and still uploads
+# sites/wwc/public/.
+[assets]
+directory = "./public"
+
+# ── The custom domain is wired in the DASHBOARD, not here ────────────────
+# Wrangler can provision a Custom Domain declaratively:
+#
+#   routes = [{ pattern = "wwc.statsataglance.com", custom_domain = true }]
+#
+# but that needs a token with Zone/DNS + Workers Routes edit, and the shared
+# CLOUDFLARE_API_TOKEN is scoped to Account / Workers Scripts / Edit only
+# (DEPLOY.md, one-time setup step 3). Adding the route here with the current
+# token fails the deploy rather than the domain step, so the hostname is added
+# once by hand — Workers & Pages → wwc-stats → Domains & Routes → Add → Custom
+# Domain — exactly as wnba.statsataglance.com was. Same reason no wrangler.toml
+# change was needed for the WNBA custom domain.

@@ -1433,7 +1433,7 @@ def build_games_section(player_raw, team_raw):
 # styles, in the order the monolithic block always had — golden_check.py
 # holds the rendered page byte-identical through this split.
 PAGE_CSS = (
-    chrome.TOKENS_CSS
+    chrome.tokens_css(WNBA.accent)
     + """\
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);

@@ -337,7 +337,7 @@ details.inl .body{position:absolute;width:215px;background:#000;border:1px solid
 """
 
 PAGE_CSS = (
-    chrome.TOKENS_CSS
+    chrome.tokens_css(WNBA.accent)
     + "*{box-sizing:border-box;margin:0;padding:0}\n"
     + _CARD_CSS
     + chrome.SUBPAGE_HEADER_CSS

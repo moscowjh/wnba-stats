@@ -1,0 +1,170 @@
+name: WWC site build
+
+# The WWC 2026 programme site (wwc.statsataglance.com).
+#
+# Deliberately NOT folded into build.yml. That workflow is the WNBA daily
+# pipeline: it fetches box scores, gates on a validator, posts to Bluesky,
+# and its filename is hardcoded in workers/cron/worker.js. This site has a
+# different cadence (content-driven until the tournament, then daily),
+# a different upstream (fiba.basketball, not ESPN), and the opposite failure
+# posture: the WNBA fetch fails the job on purpose because that site IS its
+# data, while this one is a programme that stands on its own without a single
+# game played. Sharing a workflow would mean a WNBA fetch failure blocking a
+# WWC content fix, and vice versa.
+#
+# ⚠️ SCHEDULING IS NOT WIRED YET. There is no cron here. From 4 September this
+# needs a daily run after the last Berlin game (~18:45 UTC). GitHub's native
+# `schedule:` is unreliable on this repo — it silently dropped three mornings
+# in June 2026, which is why the WNBA build is dispatched by a Cloudflare cron
+# Worker instead. Adding WWC means editing `workers/cron/worker.js` (which
+# hardcodes `const WORKFLOW = "build.yml"`) and redeploying it BY HAND, since
+# no Worker is deployed by CI. See DEPLOY.md.
+#
+# ⚠️ YAML gotcha, learned expensively on 2026-06-16 — never put a bare
+# colon-space (": ") inside an UNQUOTED scalar (a `run:` line, a commit
+# message). YAML reads it as a key/value separator and silently mis-parses
+# the whole file: no error, the workflow just stops registering, and
+# workflow_dispatch starts returning 422. Quote the value if it must contain
+# one.
+on:
+  workflow_dispatch:
+    inputs:
+      fetch:
+        description: "Pull results + box scores from fiba.basketball"
+        type: boolean
+        default: true
+      force_fetch:
+        description: "Re-fetch box scores already on disk"
+        type: boolean
+        default: false
+  # Content-driven, not time-driven. Jason's profile proofread lands as edits
+  # to wwc2026_teams.json, and a `core/` change re-renders every page on both
+  # sites — either should publish without anyone remembering to push a button.
+  #
+  # The path filter is what keeps this off the WNBA bot's daily commits: those
+  # touch sites/wnba/public, validation_report.json, player_id_crosswalk.json
+  # and usage_history.jsonl, none of which match.
+  push:
+    branches: [main]
+    paths:
+      - 'sites/wwc/**'
+      - 'core/**'
+      - '.github/workflows/wwc.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wwc-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: core/pyproject.toml
+
+      # One dependency declaration, in core/pyproject.toml (D9). The editable
+      # install is also what puts `sag` on the path.
+      - name: Install dependencies
+        run: pip install -e core/
+
+      # Results and box scores accumulate across runs, exactly as the WNBA
+      # CSVs do, so the fetch stays incremental (a daily run costs two or
+      # three page fetches, not thirty-six). The key names the league's data
+      # DIRECTORY rather than a file list (D12), so a data file added later
+      # is cached without anyone remembering to update this.
+      # ALWAYS restored, never conditional. `inputs.*` is empty on a push
+      # trigger, so gating this on inputs.fetch would mean a content edit
+      # during the tournament rebuilt with an empty data/ and republished the
+      # whole site in its pre-tournament state — every score gone, and it
+      # would look like a data outage rather than a workflow bug.
+      - name: Restore fetched-data cache
+        uses: actions/cache@v4
+        with:
+          path: sites/wwc/data
+          key: wwc-data-v1-${{ github.run_id }}
+          restore-keys: |
+            wwc-data-v1-
+
+      # Deliberately continue-on-error, which is the OPPOSITE of the WNBA
+      # fetch's fail-loud stance, and the difference is the point.
+      #
+      # The WNBA site is nothing but its data — a build that cannot fetch has
+      # no reason to run, so fetch_data.py exits non-zero and blocks the
+      # deploy. This site is a PROGRAMME first: 20 pages of schedule, teams,
+      # groups and rules that are correct whether or not a game has been
+      # played. Blocking the deploy on a FIBA outage would take down a working
+      # site to protect data it does not yet depend on.
+      #
+      # The fetch is also self-limiting on failure: a game it cannot parse is
+      # skipped per-game and retried next run, and `results.json` is only
+      # rewritten at the end, so a mid-run failure leaves yesterday's results
+      # intact rather than truncating them.
+      # Runs by default. The condition reads "unless a manual run explicitly
+      # unticked it" — `inputs.fetch` is empty on push and schedule triggers,
+      # which must still fetch.
+      - name: Fetch results and box scores
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.fetch }}
+        continue-on-error: true
+        run: |
+          python sites/wwc/fetch_data.py ${{ inputs.force_fetch && '--force' || '' }}
+
+      # Gate on the reference data before rendering 20 pages from it. An
+      # invalid hand-edited wwc2026_teams.json should fail loudly here, not
+      # ship quietly across every team page — same posture as validate_hooks.py
+      # in the WNBA build. Runs AFTER the fetch so a FIBA outage cannot mask a
+      # genuine data error, and BEFORE the build so neither can reach public/.
+      - name: Validate reference data
+        run: python sites/wwc/validate_teams.py
+
+      # The group-table ranking, checked against FIBA's own worked examples
+      # (Appendix D). Separate from the data validator because it gates the
+      # CODE, not the JSON: a wrong tie-break renders a table that looks
+      # entirely normal — right records, right totals, wrong order — so
+      # nothing downstream would catch it.
+      - name: Validate standings ranking
+        run: python sites/wwc/validate_standings.py
+
+      - name: Build WWC pages
+        run: python sites/wwc/build_wwc_pages.py
+
+      - name: Commit built site
+        run: |
+          git config user.name  "wnba-stats-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sites/wwc/public
+          if git diff --staged --quiet; then
+            echo "No WWC changes to publish."
+          else
+            git commit -m "WWC site rebuild $(date -u +'%Y-%m-%d')"
+            # The WNBA daily build pushes to this same branch every morning,
+            # so the remote is routinely ahead. Rebase before pushing or the
+            # push is rejected.
+            git pull --rebase
+            git push
+          fi
+
+      # The ONLY deploy path for this site, exactly as build.yml is for the
+      # WNBA one — Cloudflare's Connect-to-Git is disconnected repo-wide, so a
+      # commit to main publishes nothing on its own. Never run this locally.
+      #
+      # ⚠️ FIRST RUN: the wwc-stats Worker must exist and the custom domain
+      # wwc.statsataglance.com must be attached to it in the Cloudflare
+      # dashboard (Workers & Pages → wwc-stats → Domains & Routes). Wrangler
+      # creates the Worker itself on first deploy, but the hostname is a
+      # dashboard step — see sites/wwc/wrangler.toml for why it is not
+      # declared in config.
+      - name: Deploy to Cloudflare
+        run: npx wrangler deploy -c sites/wwc/wrangler.toml --message "WWC site rebuild $(date -u +'%Y-%m-%d')"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -52,6 +52,12 @@ class LeagueConfig:
     cf_analytics_token: str | None = None
     #: Jersey-number prefix as this league renders it ("#"; WWC uses "No.").
     jersey_prefix: str = "#"
+    #: The one design token a site is allowed to diverge on (Option C,
+    #: 2026-08-23). WNBA amber; WWC overrides to cyan "#35D0FF". The other
+    #: six tokens in `sag.render.chrome` stay literally shared, so a second
+    #: site reads as the same publication with a different accent rather than
+    #: as a fork. Passed to `chrome.tokens_css()`; never hand-write a :root.
+    accent: str = "#f5a623"
     #: Player pages show an "Nth in <league>" badge only inside this cutoff.
     #: Anchored to the size of the league's honour pool, not a bare integer —
     #: NCAAW's will differ from a 15-team league's.

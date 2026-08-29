@@ -16,13 +16,37 @@ changed nothing. Keep it that way: edits here re-render every page.
 # ── Design tokens ─────────────────────────────────────────────────────────
 # --avg is only used by the tab site's league-average rows, but it ships in
 # the shared block anyway: one token block, no per-page subsets to drift.
-TOKENS_CSS = """\
+#
+# `--accent` is the ONE token a site may diverge on (Option C, 2026-08-23):
+# WWC is cyan where WNBA is amber, on the same near-black ground. Everything
+# else stays literally shared — a second site is a different accent, not a
+# different design system. The value is carried on LeagueConfig.accent, the
+# same shape as jersey_prefix, so a site declares it in its config and never
+# hand-writes a :root block.
+#
+# ⚠️ SCROLL_FADE_CSS below hardcodes `rgba(15,15,15,0)` — that is --bg written
+# out by hand, and it is duplicated at build_stats_page.py's .gm-tscroll rule.
+# Option C does not move --bg, so the literal stays correct and dormant. Any
+# future site that DOES diverge on --bg must fix both copies first; fading to
+# bare `transparent` is not the fix (transparent is transparent *black*, which
+# smears grey). Tracked in the backlog under Dev → WNBA known issues.
+_TOKENS_CSS_TMPL = """\
   :root {
     --bg:#0f0f0f; --surface:#1a1a1a; --border:#2e2e2e;
-    --text:#e8e8e8; --muted:#888; --accent:#f5a623;
+    --text:#e8e8e8; --muted:#888; --accent:%s;
     --avg:#aaa;
   }
 """
+
+
+def tokens_css(accent):
+    """The shared :root token block, with this site's accent substituted.
+
+    `tokens_css("#f5a623")` is byte-identical to the constant this replaced;
+    golden_check.py is the proof, and that is the only reason the split was
+    safe to make under a deadline.
+    """
+    return _TOKENS_CSS_TMPL % accent
 
 # ── Site footer ───────────────────────────────────────────────────────────
 SITE_FOOTER_CSS = """\

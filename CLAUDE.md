@@ -47,7 +47,8 @@ tool needs a fully absolute path):
 They are read while writing code, not while deciding what to build, so they live
 in the repo they govern (`workspace-architecture.md` D4):
 
-- `docs/build-internals.md` — build-script internals, stat formulas, UI decisions, known issues, code structure.
+- `docs/build-internals.md` — WNBA build-script internals, stat formulas, UI decisions, known issues, code structure.
+- `docs/wwc-site-internals.md` — the WWC programme site: why it isn't a fork, the three lifecycle states, the WNBA cross-link, the box-score format, and what is deliberately not published.
 - `docs/data-sources.md` — per-league feed capability matrix. **Every ESPN caller must go through the adapter's origin handling; nothing else may construct an ESPN URL.**
 - `docs/wnba-leader-qualification-rules.md` — the qualification rules as implemented; cited from `compute_leaders()`.
 - `DEPLOY.md` — infrastructure, domain, cron/health-check details.
@@ -99,10 +100,19 @@ letting the validators (`validate_stats.py`, and the one-off
 
 ```
 core/       shared library, installed with `pip install -e core/`, imported as `sag`
-sites/      one directory per site; wnba/ has its own config.py, wrangler.toml, data/, public/
+sites/      one directory per site; each has its own config.py, wrangler.toml, data/, public/
+              wnba/  the daily stats site      (build.yml)
+              wwc/   the WWC 2026 programme    (wwc.yml) — added 2026-08-25
 workers/    cron/ analytics/ espn-proxy/ — shared infra, NOT deployed by CI
 docs/       engineering docs, shipped with the code they govern
 ```
+
+**Two sites, two workflows, one shared `core/`.** `build.yml` deploys
+`sites/wnba/`; `wwc.yml` deploys `sites/wwc/`. Neither can block the other,
+and a `core/` change re-renders both — which is exactly why
+`golden_check.py` exists. Run it after ANY `core/` edit: WNBA's bytes must
+not move unless you meant them to, and if it reports a diff the change is
+wrong. Do not re-freeze the goldens to make it pass.
 
 Reasoning lives in `statsataglance-docs/workspace-architecture.md` §9 (D7–D13) —
 don't re-derive it here. Three things are load-bearing and easy to break:
