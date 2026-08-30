@@ -265,6 +265,12 @@ SITE_CSS = f"""\
   .ed{{font-size:14.5px;line-height:1.65;margin:14px 0}}
   .prose{{font-size:14.5px;line-height:1.7}}
   .prose+.prose{{margin-top:14px}}
+  /* Links inside prose take the accent. The generic `a` rule paints
+     links --muted, which is DIMMER than the --text they sit in — an
+     inline link would have been less visible than the sentence around
+     it, which is backwards for the one affordance meant to be found. */
+  .prose a{{color:var(--accent);text-decoration:none}}
+  .prose a:hover{{text-decoration:underline}}
   .cnote{{color:var(--muted);font-size:11.5px;line-height:1.6;margin-top:4px}}
   .cnote b{{color:var(--text)}}
   .wn{{color:var(--accent);font-size:10px;border:1px solid var(--accent);
@@ -1293,6 +1299,32 @@ def page_guide(doc, teams):
 
     rows = load_schedule()
     results = load_results()
+    pub = wnba_player_pages()
+
+    # Inline links, FIRST MENTION ONLY (Jason, 2026-08-29). Measured that day:
+    # the Guide carried 4 internal links against Groups' 64 and Games' 48,
+    # because those pages are tables of team links and this one is prose. It
+    # named six countries and five players, all with pages one directory away,
+    # and linked none of them. Linking every occurrence instead would turn the
+    # paragraph into a link farm and read as SEO spam.
+    def tlink(key):
+        t = teams[key]
+        return f'<a href="/teams/{team_slug(t)}/">{esc(t["name"])}</a>'
+
+    def plink(name):
+        """Cross-site, to our own WNBA player page — the retention bridge.
+
+        Correct-or-blank: `player_href` returns None unless the page really
+        exists on disk, and an unmatched name degrades to plain text rather
+        than a 404. The straight apostrophe is what slugifies; the curly one
+        is what reads.
+        """
+        # Swap the apostrophe BEFORE escaping: esc() turns \u0027 into
+        # &#x27; and there is nothing left to replace afterwards. The
+        # curly form passes through esc() untouched.
+        disp = esc(name.replace("\u0027", "\u2019"))
+        href = player_href(name, pub)
+        return f'<a href="{href}">{disp}</a>' if href else disp
 
     # The onward block. The Guide is prose and genuinely ends; Games and
     # Groups are already grids of links to team pages and need nothing.
@@ -1327,17 +1359,18 @@ and you skip straight to the quarter-finals; finish second or third and you play
 an extra knockout game to reach them.</p>
 <p class="prose"><b>The United States</b> have won {titles} of the
 {t["edition"] - 1} World Cups, including the past {CARDINAL.get(title_run, title_run)}. The other
-contenders are France (silver medalists at the 2024 Paris Olympics), Australia
-(Asia Cup champions), China (2022 World Cup runners-up) and Belgium (EuroBasket
-champions). All of them return experienced lineups that have played together
+contenders are {tlink("FRANCE")} (silver medalists at the 2024 Paris
+Olympics), {tlink("AUSTRALIA")} (Asia Cup champions), {tlink("CHINA")} (2022
+World Cup runners-up) and {tlink("BELGIUM")} (EuroBasket champions). All of them return experienced lineups that have played together
 internationally. Every team\u2019s full record is on its own page — see
 <a href="/teams/">Teams</a>.</p>
 <p class="prose"><b>{wnba_total} current WNBA players are in this field</b>,
 spread across {with_wnba} of the {t["team_count"]} teams. The US roster is the
-most star-studded, with A\u2019ja Wilson, Breanna Stewart, Caitlin Clark and
-Paige Bueckers among its names. France, which nearly beat the US in Paris in
-2024, returns a strong team headlined by Gabby Williams. Even the host nation,
-<b>Germany</b>, which has qualified only {NUM_WORD.get(len(ger["wwc_record"]["editions"]), len(ger["wwc_record"]["editions"]))}
+most star-studded, with {plink("A\u0027ja Wilson")}, {plink("Breanna Stewart")},
+{plink("Caitlin Clark")} and {plink("Paige Bueckers")} among its names. France,
+which nearly beat the US in Paris in 2024, returns a strong team headlined by
+{plink("Gabby Williams")}. Even the host nation, <b>{tlink("GERMANY")}</b>,
+which has qualified only {NUM_WORD.get(len(ger["wwc_record"]["editions"]), len(ger["wwc_record"]["editions"]))}
 before, carries {ger["wnba"]["current"]} WNBA players on its roster.</p>
 
 '''
