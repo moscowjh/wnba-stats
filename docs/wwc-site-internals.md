@@ -61,7 +61,14 @@ writes a path literal for those two surfaces**, so flipping it cannot leave a
 stale link, canonical or sitemap entry behind. Set True 2026-08-26 on the
 strongest user feedback we have — *"I didn't know there was a women's
 basketball world cup"* — which says a schedule is the wrong thing to open
-with. **Decide before the site is indexed**; after that it is a redirect.
+with.
+
+**Now permanent (2026-08-30).** The provisional note said *decide before the
+site is indexed*; the sitemap was submitted 08-29 and accepted 08-30, so that
+window has closed and the decision was taken rather than left to lapse. The
+switch stays — it is what keeps every path derived instead of typed — but
+**changing the front door from here is a redirect, not a boolean.** Treat
+`GUIDE_IS_LANDING` as a settled fact the emitter reads, not an open question.
 
 **Leaders is deliberately absent** and ships 4 September, not 31 August. It is
 counting stats (PPG/RPG/APG) over games that have not been played; a tab
