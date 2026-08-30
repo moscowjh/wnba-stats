@@ -150,9 +150,13 @@ Setup steps:
    Registration → Register Domains (~$10–11/yr, at-cost, free WHOIS privacy so
    the owner name is redacted). This is a purchase — done manually.
 2. The domain's DNS zone is created on Cloudflare automatically.
-3. **Point the subdomain at the Worker:** Workers & Pages → `wnba-stats` →
-   Settings → Domains & Routes → Add → Custom Domain → `wnba.statsataglance.com`.
+3. **Point the subdomain at the Worker:** Workers & Pages (**Compute** in newer
+   dashboards) → `wnba-stats` → the **Domains** tab → **+ Add Domain** → enter
+   the subdomain **`wnba`** only; the dialog appends `.statsataglance.com`.
    Cloudflare provisions the DNS record + SSL automatically.
+   *(Path corrected 2026-08-30 — this used to read "Settings → Domains & Routes",
+   which no longer exists. See the WWC section below for the full walk-through
+   and the two traps in that dialog.)*
 4. **Apex redirect:** Rules → Redirect Rules → `statsataglance.com` →
    `wnba.statsataglance.com`.
 5. **(Optional) retire the workers.dev URL:** set `workers_dev = false` in
@@ -181,27 +185,83 @@ off the WNBA bot's daily commits, which touch `sites/wnba/public`,
 `usage_history.jsonl` — none of which match. A `core/` change re-renders both
 sites, which is correct.
 
-### One-time setup, and it must happen before the first run
+### One-time setup — and the ORDER is the point
 
-1. **Create the Worker + attach the hostname.** `npx wrangler deploy` creates
-   the `wwc-stats` Worker itself on first run, but the custom domain is a
-   dashboard step, exactly as it was for `wnba.statsataglance.com`:
-   Workers & Pages → `wwc-stats` → Settings → Domains & Routes → Add →
-   Custom Domain → `wwc.statsataglance.com`. Cloudflare provisions the DNS
-   record and SSL.
+Walked end to end on 2026-08-29 when `wwc.statsataglance.com` went live. The
+dashboard wording below is what was actually on screen that day; Cloudflare has
+renamed these controls at least once, so trust the shape of the flow over the
+exact labels.
 
-   > Wrangler *can* declare this in config
+**Deploy first, attach the hostname second — they are separate days' work if
+you want them to be.** `npx wrangler deploy` creates the Worker; attaching the
+hostname is what makes it public. Keeping them apart is deliberate and it
+earned its keep the first time it was used: with `workers_dev = false` a
+deployed Worker has **no address at all**, so the WWC site sat built and
+unreachable for a full day of editing, and a `/games/` canonical bug that
+would have told Google to de-index the page was found and fixed inside that
+window. Attached at deploy time it would have been a redirect cleanup on a
+live site. **Use this order for `ncaaw.` and anything after it.**
+
+1. **Create the Worker.** Push anything matching the site's path filter; the
+   Action's `wrangler deploy` step creates it. Confirm in the deploy log:
+
+   ```
+   Uploaded wwc-stats (4.75 sec)
+   No targets deployed for wwc-stats     ← no hostname yet, as intended
+   Current Version ID: e6ed91f1-…
+   ```
+
+2. **Attach the hostname, in the dashboard.** Workers & Pages (newer
+   dashboards call this **Compute**) → `wwc-stats` → the **Domains** tab.
+
+   > ⚠️ **The tab is `Domains`, not "Domains & Routes"** — that older wording
+   > sent Jason hunting for a control that no longer exists (2026-08-29). It
+   > sits in the Worker's own tab row, between Observability and Access. Make
+   > sure you are on the **Worker's** Domains tab and not the account- or
+   > zone-level Domains page, which cannot bind a Worker at all.
+
+   Under **Custom Domains and Routes**, click **+ Add Domain** (*not* **Add
+   Route** — a Route matches URL patterns on a zone and is not what this
+   needs). Pick the zone, then:
+
+   > ⚠️ **The dialog asks for the SUBDOMAIN ONLY.** The field appends
+   > `.statsataglance.com` on the right, so type `wwc` — not the full
+   > hostname. Its hint reads *"Leave empty for root domain"*, and leaving it
+   > empty binds the Worker to the bare apex `statsataglance.com`, which
+   > currently redirects to `wnba.` — i.e. it points the apex at the wrong
+   > site and breaks the WNBA entry path. Reversible, but it is the one
+   > mistake this dialog makes easy.
+
+   Cloudflare provisions the DNS record and the SSL certificate itself — do
+   **not** add a CNAME by hand. On 2026-08-29 the cert was live immediately;
+   budget a few minutes and expect 5xx or an SSL warning until it issues.
+
+   > **Why this is a hand step and not config.** Wrangler *can* declare it
    > (`routes = [{ pattern = "…", custom_domain = true }]`), and
-   > `sites/wwc/wrangler.toml` says why it doesn't: that needs a token with
-   > Zone/DNS + Workers Routes edit, while the shared
-   > `CLOUDFLARE_API_TOKEN` is scoped to Account / Workers Scripts / Edit
-   > only (one-time setup step 3 above). Declaring the route with the
-   > current token fails the whole deploy, not just the domain step.
+   > `sites/wwc/wrangler.toml` records why it doesn't: that needs a token with
+   > Zone/DNS + Workers Routes edit, while the shared `CLOUDFLARE_API_TOKEN` is
+   > scoped to **Account / Workers Scripts / Edit** only — see "Create an API
+   > token" in the one-time setup at the top of this file. Declaring the route
+   > with the current token fails the **whole deploy**, not just the domain
+   > step, so the site would stop publishing rather than merely lack a name.
 
-2. **No new secrets.** It reuses `CLOUDFLARE_API_TOKEN` and
+3. **Verify from outside**, not from the dashboard:
+
+   ```bash
+   for p in / /games/ /teams/ /groups/ /sitemap.xml /robots.txt; do
+     printf "%-14s %s\n" "$p" \
+       "$(curl -s -o /dev/null -w '%{http_code}' https://wwc.statsataglance.com$p)"
+   done
+   ```
+
+   Then check every canonical is self-referential. A page claiming a canonical
+   it should not is the failure this step exists to catch, and it is invisible
+   from the dashboard.
+
+4. **No new secrets.** It reuses `CLOUDFLARE_API_TOKEN` and
    `CLOUDFLARE_ACCOUNT_ID`.
 
-3. **No Web Analytics token, deliberately.** `WWC.cf_analytics_token` is
+5. **No Web Analytics token, deliberately.** `WWC.cf_analytics_token` is
    `None` — a league is allowed to launch unmeasured. The cookie-free usage
    beacon still reports with `site=wwc` in `blob10`, so cross-site questions
    ("does the Cup site hand readers back to WNBA?") are answerable from day
