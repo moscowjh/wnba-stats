@@ -1307,9 +1307,11 @@ def page_guide(doc, teams):
     # named six countries and five players, all with pages one directory away,
     # and linked none of them. Linking every occurrence instead would turn the
     # paragraph into a link farm and read as SEO spam.
-    def tlink(key):
+    def tlink(key, label=None):
+        """`label` overrides the team's own name — paragraph 3 opens on "The
+        United States", which is the same page as the reference data's "USA"."""
         t = teams[key]
-        return f'<a href="/teams/{team_slug(t)}/">{esc(t["name"])}</a>'
+        return f'<a href="/teams/{team_slug(t)}/">{esc(label or t["name"])}</a>'
 
     def plink(name):
         """Cross-site, to our own WNBA player page — the retention bridge.
@@ -1357,7 +1359,7 @@ format is short and unforgiving. The teams are divided into four groups, and in
 the first round every team plays the other three in its group. Win your group
 and you skip straight to the quarter-finals; finish second or third and you play
 an extra knockout game to reach them.</p>
-<p class="prose"><b>The United States</b> have won {titles} of the
+<p class="prose"><b>{tlink("USA", "The United States")}</b> have won {titles} of the
 {t["edition"] - 1} World Cups, including the past {CARDINAL.get(title_run, title_run)}. The other
 contenders are {tlink("FRANCE")} (silver medalists at the 2024 Paris
 Olympics), {tlink("AUSTRALIA")} (Asia Cup champions), {tlink("CHINA")} (2022
