@@ -132,7 +132,26 @@ Same posture as the 2026-07-03 line-score fix.
 `player_slug` is null for every player in the reference data, so the emitter
 derives the target and then **verifies it exists**: it lists
 `sites/wnba/public/players/` and links a name only when that directory is
-really there. 58 links land today.
+really there. 86 links land today, across the 16 team pages and the Guide.
+
+**They open in a new tab** — `CROSS_SITE` (`target="_blank" rel="noopener"`),
+carried by all four call sites: `wnba_block()`, `roster_name()`, `box_name()`
+and the Guide's `plink()`. The reason is specific and worth not undoing.
+
+A WNBA player page is **not** a dead end — it carries a masthead `/` link and
+an "← all players" link, and the Players tab on the WNBA site already links
+all 231 names — so a reader who follows one of these is not stranded. What
+they cannot do is get **back to the World Cup**, because the WNBA build knows
+nothing about this site. The new tab is the only return path that exists, so
+until the link is reciprocal it is load-bearing rather than decorative.
+
+The real fix is a *"playing at the World Cup"* line on the WNBA player page,
+which needs the WNBA build to read `wwc2026_teams.json` and therefore moves
+WNBA bytes; it is in the backlog under the player-page work, not here.
+
+`rel="noopener"` is stated explicitly rather than relying on the modern
+browser default for `target="_blank"` — it costs nothing and this is a link
+handed to readers on phones whose browser we do not choose.
 
 Guessing from the name alone would emit 404s. Two names need an explicit
 alias, and both are in `ALIASES` in the emitter:

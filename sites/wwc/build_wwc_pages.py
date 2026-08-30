@@ -164,6 +164,28 @@ ALIASES = {
 }
 
 
+#: Every WNBA player link leaves this site, so all three of them carry this.
+#:
+#: The bridge is ONE-WAY, and that is the problem this solves. A WNBA player
+#: page has a masthead link to `/` and an "all players" link, so a reader who
+#: arrives there is not stranded on the WNBA site — but nothing on it points
+#: back to the World Cup, because the WNBA build knows nothing about this one.
+#: Opening in a new tab keeps the Cup tab alive underneath, which is the only
+#: route back that exists today (Jason, 2026-08-30).
+#:
+#: `rel="noopener"` is explicit rather than leaning on the modern browser
+#: default for `target="_blank"`: the default is right in current browsers and
+#: costs nothing to state, and this is a link we hand to readers on phones
+#: whose browser we do not choose.
+#:
+#: The real fix is reciprocal — a "playing at the World Cup" link on the WNBA
+#: player page, which would make this a loop instead of a one-way street. It
+#: needs the WNBA build to read `wwc2026_teams.json` and it moves WNBA bytes,
+#: so it rides with the player-page work rather than ahead of it. Backlog,
+#: 2026-08-30.
+CROSS_SITE = 'target="_blank" rel="noopener"'
+
+
 def player_href(name, published):
     """A link to our WNBA player page, or None. Correct-or-blank."""
     slug = ALIASES.get(name) or seo.slugify(name)
@@ -664,7 +686,7 @@ def wnba_block(t, published):
                 '<th>WNBA team</th></tr>']
         for p in current:
             href = player_href(p["name"], published)
-            name = (f'<a href="{href}" style="font-weight:500;'
+            name = (f'<a href="{href}" {CROSS_SITE} style="font-weight:500;'
                     f'color:var(--text)">{esc(p["name"])}</a>' if href
                     else f'<span style="font-weight:500">{esc(p["name"])}</span>')
             team = (f'<span class="wn">{esc(p["wnba_team"])}</span> '
@@ -774,7 +796,7 @@ def roster_name(p, published):
               if p.get("number") is not None else "")
     href = player_href(p["name"], published)
     if href:
-        return (f'{number}<a href="{href}" style="font-weight:500;'
+        return (f'{number}<a href="{href}" {CROSS_SITE} style="font-weight:500;'
                 f'color:var(--text)">{esc(p["name"])}</a>')
     return f'{number}<span style="font-weight:500">{esc(p["name"])}</span>'
 
@@ -1326,7 +1348,11 @@ def page_guide(doc, teams):
         # curly form passes through esc() untouched.
         disp = esc(name.replace("\u0027", "\u2019"))
         href = player_href(name, pub)
-        return f'<a href="{href}">{disp}</a>' if href else disp
+        # CROSS_SITE for the same reason the three table call sites carry it:
+        # these five names are on the LANDING page, so they are the most
+        # likely cross-site departure on the whole site, and the Cup tab has
+        # to survive one.
+        return f'<a href="{href}" {CROSS_SITE}>{disp}</a>' if href else disp
 
     # The onward block. The Guide is prose and genuinely ends; Games and
     # Groups are already grids of links to team pages and need nothing.
@@ -1503,7 +1529,7 @@ def box_name(p, published):
     pos = (f'<span class="bx-pos">{esc(p["position"])}</span> '
            if p.get("position") else '<span class="bx-pos"></span> ')
     href = player_href(p["name"], published)
-    name = (f'<a href="{href}" style="color:var(--text);'
+    name = (f'<a href="{href}" {CROSS_SITE} style="color:var(--text);'
             f'text-decoration:none;font-weight:500">{esc(p["name"])}</a>'
             if href else f'<span style="font-weight:500">{esc(p["name"])}</span>')
     return pos + name
