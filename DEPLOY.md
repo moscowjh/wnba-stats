@@ -312,6 +312,68 @@ calls GitHub's `workflow_dispatch` API at 11:17 UTC (7:17am ET in summer). Later
 in the year, when ET shifts to EST (UTC-5), 11:17 UTC becomes 6:17am ET — adjust
 the cron trigger in `workers/cron/wrangler.toml` if you want to hold ~7am.
 
+### ⚠️ The trigger list is FULL — 5 of 5 (added 2026-08-30)
+
+**Cloudflare's Free plan allows 5 Cron Triggers per ACCOUNT, not per Worker**
+(Paid allows 250). `wnba-stats-cron` is the only Worker on this account with
+any, and it now owns all five. **A sixth trigger anywhere on the account will
+fail to deploy** — including on a different Worker.
+
+| UTC | Workflow | Job |
+|---|---|---|
+| 11:17 | `build.yml` **+ `wwc.yml`** | WNBA daily dispatch; also fires the WWC morning catch-up |
+| 11:45 | — | WNBA health check, pass 1 (auto-repairs) |
+| 13:15 | — | WNBA health check, pass 2 |
+| 14:45 | — | WNBA health check, FINAL (emails) **+ WWC report-only check** |
+| 22:00 | `wwc.yml` | WWC evening dispatch, after the last Berlin game |
+
+This ceiling is why the WWC catch-up **rides on the 11:17 trigger** instead of
+owning a ~06:30 one. If the account ever moves to Workers Paid, splitting it
+back out is strictly better — it halves the worst-case lag on a box score FIBA
+publishes late — but it is not worth a plan change on its own.
+
+### Why the WWC dispatch is at 22:00 and not 18:45
+
+The figure carried in the backlog was **18:45 UTC, "after the last Berlin
+game."** That is a **tip** time, not an end time, and building on it would have
+rebuilt the site mid-game and left it frozen overnight showing the day's last
+match in progress.
+
+```
+latest tip of the tournament   19:00 GMT   (Sep 4)
+four other days tip at         18:45 GMT
+a game runs                    ~1h45-2h wall clock, plus OT
+=> latest plausible final      ~21:15 GMT
+```
+
+22:00 UTC gives ~45 minutes past the worst case. Times come from
+`sites/wwc/reference/wwc_schedule_2026.csv` (`tip_gmt`).
+
+**Six games have no announced time yet** — Sep 8, 9 and 12 are all
+`time_tba=TRUE`. Nothing ingests times from FIBA (`fetch_data.py` writes
+results and box scores only; times come from that hand-maintained CSV), so
+those need a human edit when FIBA announces them.
+
+### Testing the WWC path without waiting for 22:00
+
+The Worker's `?key=` route gained two actions:
+
+```
+?key=CRON_KEY&action=wwc        # dispatch wwc.yml now
+?key=CRON_KEY&action=wwccheck   # run the WWC check, report-only, NO email
+```
+
+### Routing is explicit, and that was a deliberate inversion
+
+`scheduled()` used to end in a catch-all `else` that dispatched `build.yml`
+for any cron which was not a health check. Safe with one dispatch cron; unsafe
+the moment a second site arrived, because a WWC cron that failed to match
+would have fired the **WNBA build** at 22:00 — and `build.yml` posts to
+Bluesky, where `post_to_bluesky.py` has no dedupe guard. **A double post is
+unrecoverable; a missed build is not.** An unrecognised cron now does nothing
+and logs that the two files have drifted. The 11:45 health check repairs a
+missed WNBA build; the 11:17 catch-up covers a missed WWC one.
+
 ## RESOLVED ISSUE — scheduled run not firing (opened 2026-06-08, resolved 2026-06-09)
 **Resolution:** GitHub's native `schedule` missed three mornings straight (June 7,
 8, 9). Replaced it with a **Cloudflare Cron Trigger** Worker (`workers/cron/`) that

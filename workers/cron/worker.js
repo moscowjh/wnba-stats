@@ -6,7 +6,13 @@
 //                 live site is fresh. Emails an alert ONLY on failure —
 //                 silence means everything is fine.
 //      13:15 UTC  Same health check, second pass.
-//      14:45 UTC  Same health check, FINAL pass.
+//      14:45 UTC  Same health check, FINAL pass. Also reports on the WWC
+//                 site (report-only — the WWC path has no auto-repair).
+//   3. 22:00 UTC  Dispatch the WWC build ("wwc.yml") for
+//                 wwc.statsataglance.com, after the last Berlin game.
+//                 The 11:17 dispatch above ALSO fires a WWC catch-up run,
+//                 because the Free plan's 5-cron-per-ACCOUNT ceiling left
+//                 exactly one slot and the evening run needed it.
 //
 // ── Self-healing retries (added 2026-08-05) ────────────────────────────────
 // Most build failures are transient upstream blips, not bugs: ESPN's API goes
@@ -45,6 +51,54 @@ const CHECK_CRON = "45 11 * * *";
 const RETRY_CRON = "15 13 * * *";
 const FINAL_CRON = "45 14 * * *";
 const CHECK_CRONS = [CHECK_CRON, RETRY_CRON, FINAL_CRON];
+
+// ── WWC 2026 (added 2026-08-30) ────────────────────────────────────────────
+// The second site this Worker drives. It is a SEPARATE workflow on purpose
+// (statsataglance/CLAUDE.md: neither site may block the other), so everything
+// below is independent of the WNBA path above and shares only ghHeaders().
+const WWC_WORKFLOW = "wwc.yml";
+const WWC_REPO_PATH = "sites/wwc";
+
+// 22:00 UTC, and the arithmetic matters — the backlog's "~18:45 UTC, after
+// the last Berlin game" was TIP times misread as END times.
+//
+//   Latest tip of the tournament:  19:00 GMT, Sep 4 (2026-09-04, game 8)
+//   Four other days tip at         18:45 GMT
+//   A women's game runs            ~1h45-2h wall clock, plus OT
+//   => latest plausible final      ~21:15 GMT
+//
+// Dispatching at 18:45 would have fired while the day's last game was in the
+// FIRST QUARTER, then left the site frozen overnight showing the marquee game
+// as in-progress. 22:00 gives ~45 min of slack past the worst case.
+const WWC_DISPATCH_CRON = "0 22 * * *";
+
+// This is the ONLY new cron trigger, and that is a hard constraint rather
+// than a preference. **Cloudflare's Free plan allows 5 Cron Triggers PER
+// ACCOUNT** (Paid allows 250), and this Worker already owns 4 of them — it is
+// the only Worker on the account with any. So there was exactly one slot, and
+// adding it puts the account AT the ceiling with no headroom left.
+//
+// The morning catch-up therefore does NOT get its own trigger. It rides on
+// the existing 11:17 WNBA dispatch (see `scheduled()`), which costs nothing
+// and lands 13.3h after the evening run. That is late enough to be useless
+// for same-day results — which is why the 22:00 run is the one that got the
+// slot — and early enough to sweep up everything the evening run missed:
+//   1. FIBA published a box score after 22:00.
+//   2. The 22:00 run failed. Re-running is the whole repair.
+// It also keeps the Actions data cache warm; GitHub evicts after 7 days idle.
+//
+// If the account ever moves to Workers Paid, splitting this back out to a
+// dedicated ~06:30 trigger is a strictly better shape: it halves the worst
+// case lag on a straggling box score. Not worth $5/mo on its own.
+const WWC_CATCHUP_NOTE = "rides on the 11:17 WNBA dispatch — no free cron slot left";
+const WWC_CRONS = [WWC_DISPATCH_CRON];
+
+// How stale the newest wwc.yml run may be before the FINAL pass emails about
+// it. The two dispatches sit 10.7h and 13.3h apart, so 26h tolerates one
+// entirely missed dispatch and still catches a STOPPED cron. Catching a
+// silently-stopped schedule is the whole reason this Worker exists — GitHub's
+// native `schedule:` dropped three mornings in June 2026 and said nothing.
+const WWC_MAX_RUN_AGE_H = 26;
 const ALERT_FROM = "alerts@statsataglance.com";
 const ALERT_TO = "horowitz.jason@gmail.com";
 // Must match ESPN_ORIGIN in fetch_data.py. `site.api.espn.com` 403'd for ~4
@@ -89,6 +143,105 @@ async function dispatch(env, post = true) {
     : `failed ${res.status}: ${await res.text()}`;
   console.log(detail);
   return { ok, status: res.status, detail };
+}
+
+// The WWC equivalent. Deliberately its own function rather than a `workflow`
+// parameter on dispatch() above: that one carries the Bluesky `post` input,
+// which has no meaning here and whose default is the one thing in this file
+// that must never be flipped by accident (post_to_bluesky.py has no dedupe
+// guard, so a double post is unrecoverable). Keeping them separate means no
+// WWC change can ever reach that argument.
+//
+// A bare {ref} call, matching the WNBA dispatch: wwc.yml's `fetch` input
+// defaults to true and `force_fetch` to false, which is exactly what a
+// scheduled run wants, and sending no inputs stays robust even if those
+// inputs were renamed.
+async function dispatchWwc(env, label = "scheduled") {
+  const url = `https://api.github.com/repos/${REPO}/actions/workflows/${WWC_WORKFLOW}/dispatches`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: ghHeaders(env),
+    body: JSON.stringify({ ref: "main" }),
+  });
+  const ok = res.ok;
+  const detail = ok
+    ? `dispatched ${WWC_WORKFLOW} (${label})`
+    : `${WWC_WORKFLOW} dispatch failed ${res.status}: ${await res.text()}`;
+  console.log(detail);
+  return { ok, status: res.status, detail };
+}
+
+// Report-only, and separate from healthCheck() by design. The WNBA check
+// repairs; this one only tells you. The repair here is the 06:30 catch-up
+// dispatch, which has already run by the time this fires, so a problem that
+// survives to 14:45 has outlived one automatic retry and wants a human.
+//
+// Runs on the FINAL pass only. Two questions, both about the newest wwc.yml
+// run of any trigger — push-triggered content edits count, because a site that
+// rebuilt an hour ago for a profile fix is not stale whatever the cron did:
+//
+//   1. Did it FAIL?          -> the build is broken.
+//   2. Is it older than 26h? -> the cron stopped firing, the June 2026
+//                               silent-schedule failure all over again.
+//
+// Never throws into the caller: the WWC site must not be able to take down
+// the WNBA health check, which is the same rule that keeps the two workflows
+// apart in CI.
+async function wwcCheck(env) {
+  try {
+    const url = `https://api.github.com/repos/${REPO}/actions/workflows/${WWC_WORKFLOW}/runs?per_page=1`;
+    const res = await fetch(url, { headers: ghHeaders(env) });
+    if (!res.ok) throw new Error(`GitHub runs API ${res.status}`);
+    const { workflow_runs = [] } = await res.json();
+    const run = workflow_runs[0];
+
+    if (!run) {
+      return { ok: false, problems: [`no ${WWC_WORKFLOW} run has EVER been recorded`] };
+    }
+
+    const problems = [];
+    // `conclusion` is null while a run is still going; that is not a failure.
+    if (run.conclusion && run.conclusion !== "success") {
+      problems.push(
+        `newest ${WWC_WORKFLOW} run ${run.conclusion}: ${run.html_url}`
+      );
+    }
+    const ageH = (Date.now() - new Date(run.run_started_at).getTime()) / 3.6e6;
+    if (ageH > WWC_MAX_RUN_AGE_H) {
+      problems.push(
+        `newest ${WWC_WORKFLOW} run is ${ageH.toFixed(1)}h old ` +
+        `(limit ${WWC_MAX_RUN_AGE_H}h) — the cron may have stopped firing`
+      );
+    }
+    return { ok: problems.length === 0, problems, run: run.html_url };
+  } catch (e) {
+    // An unreachable GitHub API is not a WWC problem and rebuilding cannot fix
+    // it. Report it, but do not dress it up as a broken site.
+    return { ok: false, problems: [`WWC check could not run: ${e.message}`] };
+  }
+}
+
+// Runs wwcCheck() and emails if it found anything. Kept separate from the
+// check itself so a manual `?action=wwccheck` can report without mailing.
+async function reportWwc(env) {
+  const r = await wwcCheck(env);
+  if (r.ok) {
+    console.log("WWC check: OK");
+    return r;
+  }
+  console.log("WWC check FAILED:", r.problems.join("; "));
+  await sendAlert(
+    env,
+    "WWC site — build problem",
+    `The WWC site (${WWC_WORKFLOW}) needs attention.\n\n` +
+    r.problems.map((x) => `  - ${x}`).join("\n") +
+    `\n\nThe morning catch-up dispatch (${WWC_CATCHUP_NOTE}) has already run ` +
+    `and did not fix it, so this wants a human.\n\n` +
+    `Workflow: https://github.com/${REPO}/actions/workflows/${WWC_WORKFLOW}\n` +
+    `Site:     https://wwc.statsataglance.com/\n` +
+    `Source:   ${WWC_REPO_PATH}/\n`
+  );
+  return r;
 }
 
 async function todaysRun(env) {
@@ -482,6 +635,24 @@ async function sendAlert(env, subject, body) {
 // ── Entry points ───────────────────────────────────────────────────────────
 
 export default {
+  // Routing is EXPLICIT, and the final `else` deliberately does nothing.
+  //
+  // This used to end in a catch-all that dispatched build.yml for any cron
+  // which was not a health check. That was fine while there was exactly one
+  // dispatch cron; it stopped being fine the moment a second site arrived.
+  // A WWC cron that failed to match here — a typo, or wrangler.toml and this
+  // file drifting apart — would have fired the WNBA BUILD at 22:00 instead,
+  // and build.yml posts to Bluesky. post_to_bluesky.py has no dedupe guard,
+  // so a double post is UNRECOVERABLE while a missed post is merely missed.
+  //
+  // So the failure mode was inverted on purpose. An unrecognised cron now
+  // does nothing and logs why. That yields a MISSED build — which the 11:45
+  // health check already detects and repairs for WNBA, and which the 06:30
+  // catch-up covers for WWC. Both are recoverable; a double post is not.
+  //
+  // Exact string equality against the wrangler.toml entries is not a new
+  // risk: CHECK_CRONS has matched this way in production since the health
+  // checks shipped.
   async scheduled(event, env, ctx) {
     if (CHECK_CRONS.includes(event.cron)) {
       const pass = CHECK_CRONS.indexOf(event.cron) + 1;
@@ -489,8 +660,28 @@ export default {
         final: event.cron === FINAL_CRON,
         label: `pass ${pass}/${CHECK_CRONS.length}`,
       }));
-    } else {
+      // The FINAL pass also reports on the WWC site. A SEPARATE waitUntil,
+      // not folded into healthCheck(): the WWC site must never be able to
+      // break, delay or alter the WNBA check. Same rule that keeps the two
+      // workflows apart in CI — neither site may block the other.
+      if (event.cron === FINAL_CRON) ctx.waitUntil(reportWwc(env));
+    } else if (WWC_CRONS.includes(event.cron)) {
+      ctx.waitUntil(dispatchWwc(env, "evening — after the last Berlin game"));
+    } else if (event.cron === DISPATCH_CRON) {
       ctx.waitUntil(dispatch(env));
+      // The WWC morning catch-up, riding this trigger because the Free plan
+      // has no cron slot left (see WWC_CATCHUP_NOTE). A SEPARATE waitUntil,
+      // so a WWC dispatch failure cannot affect the WNBA one.
+      //
+      // ⚠️ If this cron is ever renamed, retimed or removed, the WWC catch-up
+      // goes with it silently. The 26h staleness check in wwcCheck() is what
+      // would eventually notice.
+      ctx.waitUntil(dispatchWwc(env, "morning catch-up"));
+    } else {
+      console.log(
+        `unrecognised cron "${event.cron}" — NO ACTION TAKEN. ` +
+        `wrangler.toml and worker.js have drifted apart; reconcile them.`
+      );
     }
   },
 
@@ -518,6 +709,15 @@ export default {
           (url.searchParams.get("repair") || "").toLowerCase()
         );
         r = await healthCheck(env, { final: !repair, label: "manual" });
+      } else if (action === "wwc") {
+        // Manual WWC build. The way to exercise the whole path before Sep 4
+        // without waiting for 22:00.
+        r = await dispatchWwc(env, "manual");
+      } else if (action === "wwccheck") {
+        // Report-only, and it does NOT email — unlike the scheduled FINAL
+        // pass, which does. Use this to see what the check sees.
+        const c = await wwcCheck(env);
+        r = { ok: c.ok, detail: c.ok ? "WWC OK" : c.problems.join("; ") };
       } else if (action === "testemail") {
         await sendAlert(env, "Test — WNBA stats alerts are working",
           "This is a test alert from wnba-stats-cron. If you can read this, " +
@@ -532,12 +732,18 @@ export default {
       });
     }
     return new Response(
-      "wnba-stats-cron is alive.\n" +
+      "wnba-stats-cron is alive. Drives TWO sites.\n" +
+      "\nWNBA (build.yml -> wnba.statsataglance.com)\n" +
       "11:17 UTC — dispatches the daily build (7:17am ET).\n" +
       "11:45 UTC — health check; auto-rebuilds on a fixable problem, else emails.\n" +
       "13:15 UTC — health check, pass 2 (same behaviour).\n" +
       "14:45 UTC — health check, FINAL pass; emails anything still broken.\n" +
-      "Manual: ?key=YOUR_CRON_KEY [&post=false] [&action=check[&repair=1]|testemail]\n",
+      "\nWWC (wwc.yml -> wwc.statsataglance.com)\n" +
+      "22:00 UTC — dispatches the build, after the last Berlin game.\n" +
+      "11:17 UTC — catch-up dispatch, riding the WNBA trigger (no free cron slot).\n" +
+      "14:45 UTC — report-only check; emails if the newest run failed or is >26h old.\n" +
+      "\nManual: ?key=YOUR_CRON_KEY [&post=false]\n" +
+      "        [&action=check[&repair=1]|testemail|wwc|wwccheck]\n",
       { headers: { "content-type": "text/plain; charset=utf-8" } }
     );
   },
