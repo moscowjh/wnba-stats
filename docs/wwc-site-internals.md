@@ -145,6 +145,11 @@ they cannot do is get **back to the World Cup**, because the WNBA build knows
 nothing about this site. The new tab is the only return path that exists, so
 until the link is reciprocal it is load-bearing rather than decorative.
 
+Confirmed on the live site 2026-08-30 (Jason): the transition does not read as
+abrupt, and the browser's back control closes the new tab and lands the reader
+back on the WWC page — which is the exact behaviour the decision assumed and
+the reason it is not merely a session trick.
+
 The real fix is a *"playing at the World Cup"* line on the WNBA player page,
 which needs the WNBA build to read `wwc2026_teams.json` and therefore moves
 WNBA bytes; it is in the backlog under the player-page work, not here.
