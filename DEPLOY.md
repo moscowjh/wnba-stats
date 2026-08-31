@@ -367,6 +367,38 @@ still means what it meant in September.
 results and box scores only; times come from that hand-maintained CSV), so
 those need a human edit when FIBA announces them.
 
+### Rebuilding the WNBA site on demand
+
+Rarely needed — the 11:17 dispatch plus three self-healing health checks cover
+the normal failure modes. When you do need it, three ways:
+
+| How | Use it when |
+|---|---|
+| `https://<worker-url>/?key=CRON_KEY&action=build&post=false` | **A rebuild later the same day.** `post=false` is the important half — see below. |
+| `gh workflow run build.yml -f post=false` | You are already in a terminal. |
+| Actions UI → `Daily WNBA stats build` → **Run workflow** | You want the `allow_partial` checkbox — the ESPN fetch came back short and you have decided to publish anyway. |
+
+**Always pass `post=false` on a same-day rebuild.** `build.yml` posts the daily
+leaders to Bluesky, and `post_to_bluesky.py` has NO dedupe guard: a second run
+on a day that already posted publishes a second post, and a post cannot be
+unpublished. A missed post is merely missed. The morning's scheduled run has
+already posted by the time you are reading this, so on any manual rebuild after
+~11:20 UTC, `post=false` is the default you want.
+
+**`&action=build` is REQUIRED, as of 2026-08-31.** The route used to treat "key
+with no action" as *dispatch a build and post* — so the single easiest URL to
+arrive at by accident, or by fumbling an `action` parameter, was the one
+irreversible thing this Worker can do. It now returns HTTP 400 and takes no
+action; the build has to name itself. Same inversion applied to `scheduled()`
+when the second site landed, for the same reason: a missed build is
+recoverable, a double post is not.
+
+Verified before deploying (`wrangler dev`, `CRON_KEY` set in `.dev.vars` and
+`GH_TOKEN` deliberately NOT set, so a dispatch 401s rather than fires): a bare
+key and a typo'd action each returned 400 having made **no GitHub call at
+all**, while `&action=build` reached the dispatch. One dispatch attempt in the
+log, from the one URL that asked for it.
+
 ### Rebuilding the WWC site on demand
 
 Needed on knockout days, when a rebuild after each game beats waiting for
@@ -1232,6 +1264,22 @@ protects them instead is design, not scanning: secrets live only in
 `.dev.vars` and `.env` gitignored. If a belt-and-braces check is ever wanted,
 a pre-commit hook grepping staged diffs for high-entropy strings is the free
 local equivalent — considered 2026-08-05, not built.
+
+**A second exposure this note originally missed (added 2026-08-31).** `CRON_KEY`
+is used *in a URL*, including from a phone, which puts it in browser history and
+bookmark sync — places no repo-side control reaches. And the Worker's hostname is
+effectively public: this repo publishes the account subdomain (see the
+`workers.dev` note above) and the Worker's name, so anyone reading it can
+construct the endpoint. The two site Workers set `workers_dev = false`; the cron
+Worker cannot, because the manual URL is its purpose.
+
+What changed on 2026-08-31 is the **blast radius**, not the secrecy: requiring
+`&action=build` means a leaked, shoulder-surfed or mistyped URL can no longer
+reach the one unrecoverable action. Lengthening the key is the complementary
+move and is a `wrangler secret put CRON_KEY` away, no redeploy — but note it
+invalidates any saved bookmark carrying the old key, which then fails *silently*
+by returning the status page. The `?utm_source=owner` analytics bookmark is a
+different mechanism entirely and is unaffected.
 
 ## Player pages + SEO surface (added 2026-08-16, deployed 2026-08-17)
 

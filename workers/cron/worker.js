@@ -686,11 +686,26 @@ export default {
   },
 
   // Visiting the Worker URL shows status. With ?key=YOUR_CRON_KEY:
-  //   (no action)          — fire a manual build dispatch (posts to Bluesky)
-  //   &post=false          — manual build that does NOT post to Bluesky
+  //   &action=build        — fire a manual WNBA build (POSTS TO BLUESKY)
+  //   &action=build&post=false — ...without posting to Bluesky
   //   &action=check        — run the health check now (emails if problems found)
   //   &action=check&repair=1 — ...and auto-dispatch a rebuild if it's fixable
+  //   &action=wwc          — fire a manual WWC build
+  //   &action=wwccheck     — report on the WWC site (never emails)
   //   &action=testemail    — send a test alert email
+  //
+  // EVERY ACTION IS EXPLICIT, and an unrecognised one does nothing. This used
+  // to end in a catch-all `else` that dispatched build.yml, which made "key
+  // with no action" — and "key with a TYPO in the action" — the branch that
+  // posts to Bluesky. post_to_bluesky.py has no dedupe guard, so that is the
+  // one unrecoverable action this Worker can take, and it was sitting on the
+  // easiest possible URL to arrive at by accident.
+  //
+  // Same inversion already applied to scheduled() when the second site landed,
+  // and for the same reason: a missed build is recoverable, a double post is
+  // not. Worth stating plainly — the request path is reachable by anyone who
+  // can construct the URL, so the blast radius of a leaked or shoulder-surfed
+  // key should not include an unrecoverable action reachable by default.
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const key = url.searchParams.get("key");
@@ -723,11 +738,24 @@ export default {
           "This is a test alert from wnba-stats-cron. If you can read this, " +
           "failure notifications will reach you.\n");
         r = { ok: true, detail: "test email attempted — check inbox and logs" };
-      } else {
+      } else if (action === "build") {
+        // The WNBA build. Now requires naming itself, because it is the only
+        // action here that can post to Bluesky.
         r = await dispatch(env, post);
+      } else {
+        // Unrecognised or absent. Report, do NOT guess — guessing here means
+        // dispatching a build and posting.
+        r = {
+          ok: false,
+          detail:
+            `unknown action ${action ? `"${action}"` : "(none given)"} — ` +
+            `NO ACTION TAKEN. Valid: build, check, wwc, wwccheck, testemail. ` +
+            `A build must be asked for by name: &action=build.`,
+        };
       }
       return new Response(JSON.stringify(r, null, 2), {
-        status: r.ok ? 200 : 502,
+        // 400 for a malformed request, 502 for a real downstream failure.
+        status: r.ok ? 200 : (r.detail || "").startsWith("unknown action") ? 400 : 502,
         headers: { "content-type": "application/json" },
       });
     }
@@ -742,8 +770,9 @@ export default {
       "22:00 UTC — dispatches the build, after the last Berlin game.\n" +
       "11:17 UTC — catch-up dispatch, riding the WNBA trigger (no free cron slot).\n" +
       "14:45 UTC — report-only check; emails if the newest run failed or is >26h old.\n" +
-      "\nManual: ?key=YOUR_CRON_KEY [&post=false]\n" +
-      "        [&action=check[&repair=1]|testemail|wwc|wwccheck]\n",
+      "\nManual: ?key=YOUR_CRON_KEY&action=<name>\n" +
+      "        build [&post=false] | check [&repair=1] | wwc | wwccheck | testemail\n" +
+      "        An action is REQUIRED; an unrecognised one does nothing.\n",
       { headers: { "content-type": "text/plain; charset=utf-8" } }
     );
   },
