@@ -6464,6 +6464,19 @@
             "wnba": true
           },
           {
+            "number": "5",
+            "name": "Sonia Citron",
+            "position": "G",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "WAS",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
             "number": "6",
             "name": "Rhyne Howard",
             "position": "SF",
@@ -6496,6 +6509,19 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "LVA",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "9",
+            "name": "Kiki Iriafen",
+            "position": "F",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "WAS",
               "club_country": null,
               "club_name": null
             },
@@ -6574,32 +6600,6 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "ATL",
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Sonia Citron",
-            "position": "G",
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": "WAS",
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Kiki Iriafen",
-            "position": "F",
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": "WAS",
               "club_country": null,
               "club_name": null
             },
