@@ -123,11 +123,48 @@ def match_games(rows, sched, doc, report):
         else:
             leftovers.append(g)
 
-    # ── Knockouts: round, then chronological slot ─────────────────────────
+    # ── Knockouts, best key first ─────────────────────────────────────────
+    #
+    # PREFERRED: FIBA's OFFICIAL GAME NUMBER, which it publishes inside
+    # `gameName` ("29924-29-A" -> 29) and which our schedule carries as
+    # `game_no`. This is an EXACT key — no ordering, no times, no assumption
+    # about list order — and it is the same number FIBA uses when it says
+    # "Winner of Game 27". Confirmed against the live event on 2026-08-31:
+    # all twelve knockout fixtures carry one (25-36), and FIBA's own
+    # `teamAFrom`/`teamBFrom` independently describe each number's matchup.
+    #
+    # It also sidesteps the placeholder-time problem entirely, so knockout
+    # results can land while FIBA still shows midnight for undecided
+    # fixtures — which is most of the tournament.
+    #
+    # Rows with no `game_no` (third place and the final, whose ids are
+    # deliberately phase-based so their public URLs never move) fall through
+    # to the ordering path below, where a single-game round is exempt.
+    theirs_by_number = {}
+    for g in leftovers:
+        n = g.get("game_number")
+        if n is not None:
+            # A duplicate would make the key ambiguous — drop both rather
+            # than pick one. Never seen; cheap to be sure.
+            theirs_by_number[n] = None if n in theirs_by_number else g
+    matched_gids = set()
+    for r in rows:
+        if r["group"] or not r["game_no"]:
+            continue
+        g = theirs_by_number.get(int(float(r["game_no"])))
+        if g is not None:
+            pairs.append((r, g))
+            used_rows.add(r["game_id"])
+            matched_gids.add(g["game_id"])
+    leftovers = [g for g in leftovers if g["game_id"] not in matched_gids]
+
+    # FALLBACK: round, then chronological slot. Only reaches rows the game
+    # number could not place.
     for phase, codes in PHASE_ROUND_CODES.items():
-        ours = [r for r in rows if r["phase"] == phase]
+        ours = [r for r in rows
+                if r["phase"] == phase and r["game_id"] not in used_rows]
         theirs = [g for g in leftovers if g["round_code"] in codes]
-        if not theirs:
+        if not theirs or not ours:
             continue
         if len(theirs) != len(ours):
             # Do not guess. A mis-slotted knockout puts a real score on the

@@ -284,6 +284,19 @@ def parse_game(payload):
 _SCHED_RE = re.compile(r'\{"gameId":(\d+),"gameName"')
 
 
+
+def _game_number(game_name):
+    """FIBA's official game number out of `gameName` ("29924-29-A" -> 29).
+
+    Returns None for anything that does not carry one, including the group
+    games, whose middle segment is the group letter ("29919-A-3").
+    """
+    parts = (game_name or "").split("-")
+    if len(parts) == 3 and parts[1].isdigit():
+        return int(parts[1])
+    return None
+
+
 def parse_schedule(payload):
     """Every game on an event `/games` page, deduped and sorted by tip.
 
@@ -312,8 +325,28 @@ def parse_schedule(payload):
             status = "live" if g.get("isLive") else "scheduled"
         out.append({
             "game_id": gid,
+            # FIBA's OFFICIAL game number — the one printed in the schedule
+            # and used in "Winner of Game 27". It is not a field of its own;
+            # it is the middle segment of `gameName`, e.g. "29924-29-A" -> 29.
+            # (`gameNumber` is a different thing: "A", or the within-group
+            # index for group games. Do not use it for this.)
+            #
+            # Worth having because it is an EXACT join key for knockout
+            # fixtures, which cannot be joined on teams — they are TBD until
+            # the bracket resolves. The alternative, ordering by kickoff time,
+            # is unusable while FIBA is still publishing placeholder times.
+            "game_number": _game_number(g.get("gameName")),
             "status": status,
             "datetime_utc": g.get("gameDateTimeUTC"),
+            # FIBA's own words for how a knockout fixture is filled
+            # ("Winner of Game 27", "2nd of group A"), null for group games.
+            # Independent confirmation of what a game number refers to.
+            "team_a_from": g.get("teamAFrom"),
+            "team_b_from": g.get("teamBFrom"),
+            # False while the listed time is a placeholder. FIBA sets midnight
+            # local for undecided fixtures, so this is the honest signal that a
+            # timestamp carries no ordering information.
+            "has_real_time": g.get("hasTimeGameDateTime"),
             "round": rnd.get("roundName"),
             "round_code": rnd.get("roundCode"),
             "group": g.get("groupPairingCode"),
