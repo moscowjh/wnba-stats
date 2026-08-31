@@ -26,7 +26,7 @@ import json
 import os
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from html import escape as esc
 from zoneinfo import ZoneInfo
@@ -1150,6 +1150,47 @@ def build_abbreviations_section():
     return html
 
 
+# ── Cross-site link to the WWC companion site ───────────────────
+
+# The WNBA side of the bridge. Until 2026-08-31 the cross-linking ran ONE WAY:
+# the WWC site sent 86 links to WNBA player pages and nothing came back, which
+# is why those links carry target="_blank" — a new tab was the only return
+# path that existed. This is the real return path.
+#
+# Deliberately data-free: no read of wwc2026_teams.json, no per-player logic.
+# The per-player reciprocal link ("playing at the World Cup for 🇺🇸 USA") is a
+# separate, larger backlog item that wires the WWC data into the player-page
+# build. This one is most of the value for a fraction of the work.
+#
+# target="_blank" rel="noopener" mirrors CROSS_SITE in build_wwc_pages.py so
+# the two sites behave symmetrically. The constant is duplicated rather than
+# shared because sites never import each other — only core/ is shared — and
+# promoting it to core/sag would re-render BOTH sites for a 40-byte string.
+CROSS_SITE = 'target="_blank" rel="noopener"'
+
+# Group play opens Sep 4; the final is Sep 13 (sites/wwc/reference/
+# wwc_schedule_2026.csv, 36 games). The banner hides itself the day after,
+# because "Sep 4–13" left up in December is a defect, not a link. Removing
+# the gate is a deliberate act — decide what it should say afterwards first.
+WWC_LAST_DAY = date(2026, 9, 13)
+
+
+def wwc_promo_html(today):
+    """The cross-site banner, or '' once the Cup is over. `today` comes from
+    today_et(), so SAG_TODAY drives it and the golden harness stays
+    deterministic."""
+    if today > WWC_LAST_DAY:
+        return ''
+    return (
+        '<div class="xsite">'
+        f'<a href="https://wwc.statsataglance.com/" {CROSS_SITE}>'
+        'FIBA Women\'s Basketball World Cup 2026</a>'
+        ' \u2014 Sep 4\u201313. Our companion site: schedule, groups, '
+        'and a guide to the 16 teams.'
+        '</div>\n'
+    )
+
+
 # ── Games tab builder ────────────────────────────────────────────────────
 
 def _dow(d):
@@ -1439,7 +1480,13 @@ PAGE_CSS = (
   body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);
         font-size:13px;padding:16px}
   h1{color:var(--accent);font-size:17px;margin-bottom:3px}
-  .meta{color:var(--muted);font-size:11px;margin-bottom:24px}
+  .meta{color:var(--muted);font-size:11px;margin-bottom:14px}
+  /* Cross-site pointer to wwc.statsataglance.com. See wwc_promo_html(). */
+  .xsite{font-size:11px;line-height:1.6;margin-bottom:20px;padding:7px 10px;
+        border:1px solid var(--border);border-left:2px solid var(--accent);
+        background:var(--surface);color:var(--muted)}
+  .xsite a{color:var(--accent);text-decoration:none}
+  .xsite a:hover{text-decoration:underline}
 """
     + chrome.SITE_FOOTER_CSS
     + """\
@@ -1823,7 +1870,8 @@ def assemble_page(display_date, data_through_iso,
         f'<style>\n{PAGE_CSS}\n</style>\n'
         '</head>\n<body>\n\n'
         '<h1>WNBA 2026 \u2014 At a Glance</h1>\n'
-        f'<div class="meta">Fast, ad-free — updated through games of {display_date}</div>\n\n'
+        f'<div class="meta">Fast, ad-free — updated through games of {display_date}</div>\n'
+        f'{wwc_promo_html(today_et())}\n'
         f'<div class="tabs">\n{tab_buttons}\n</div>\n\n'
         f'{games_html}\n'
         f'{standings_html}\n'
