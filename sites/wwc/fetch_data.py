@@ -61,7 +61,7 @@ from sag.adapters import fiba
 SITE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SITE_DIR))
 
-from build_wwc_pages import load_schedule, load_teams  # noqa: E402
+from build_wwc_pages import SCHEDULE_CSV, load_schedule, load_teams  # noqa: E402
 from config import WWC  # noqa: E402
 
 #: From `tournament.source` in wwc2026_teams.json.
@@ -138,7 +138,73 @@ def match_games(rows, sched, doc, report):
                 f"schedule has {len(ours)}. Not matching on a count mismatch — "
                 f"check PHASE_ROUND_CODES.")
             continue
+
+        # ── The ordering guard ────────────────────────────────────────────
+        # This zip is the ONLY thing deciding which real score lands on which
+        # fixture, because knockout rows are TBD and cannot match on teams.
+        # It is sound only if both sides are in the same order, so neither
+        # side is left to chance:
+        #
+        #   - THEIRS is sorted by FIBA's own kickoff time (below).
+        #   - OURS is sorted by our tip time too — NOT left in CSV file order,
+        #     which is what it used to rely on. File order happened to be
+        #     chronological for the quarter-finals, but that was a property of
+        #     how the file was typed, not one anything enforced. Sorting makes
+        #     it true by construction instead of by luck.
+        #
+        # A round with no times cannot be ordered at all, so it is REFUSED
+        # rather than guessed — one step stricter than the count check above,
+        # and the same posture. As of 2026-08-31 that is six rows: the four
+        # qualification-to-QF games (Sep 8-9) and both semi-finals (Sep 12),
+        # all carrying time_tba=TRUE. Fill tip_gmt in the schedule CSV when
+        # FIBA announces the times and they start matching automatically.
+        #
+        # A single-game round is exempt: with one row and one game there is
+        # only one possible pairing, so there is nothing to get wrong. That
+        # keeps the third-place game and the final working even if their
+        # times were ever blanked.
+        untimed = [r for r in ours if not (r.get("tip_gmt") or "").strip()]
+        if untimed and len(ours) > 1:
+            report.append(
+                f"SKIPPED {phase}: {len(untimed)} of {len(ours)} rows have no "
+                f"tip_gmt, so our file order is the only thing that would "
+                f"decide which score lands on which fixture — and nothing "
+                f"establishes it matches FIBA's. Fill tip_gmt in "
+                f"{SCHEDULE_CSV.name} once FIBA announces the times. "
+                f"A wrong score is worse than no score.")
+            continue
+
+        # And the same question asked of THEIR side, which is the half that
+        # nearly got away. Sorting by datetime only establishes an order if
+        # the datetimes are actually distinct: Python's sort is stable, so a
+        # round where every game carries the same timestamp comes back in
+        # FIBA's original list order, and the zip below would then pair our
+        # chronological rows against an order that means nothing.
+        #
+        # This is not hypothetical. Checked live on 2026-08-31, FIBA carries a
+        # PLACEHOLDER of midnight local for every undecided knockout fixture —
+        # all four quarter-finals share 2026-09-09T22:00:00Z, both semi-finals
+        # share 2026-09-11T22:00:00Z, and the four qualification games sit on
+        # two timestamps rather than four. Our own CSV has real, distinct
+        # quarter-final times (09:30/12:30/15:45/18:45), so the round would
+        # have passed both the count check AND the our-side check above while
+        # still being ordered by nothing at all. The quarter-finals had been
+        # assessed as "safe" precisely because OUR times looked fine.
+        #
+        # FIBA fills these in as the bracket resolves, so this clears itself;
+        # until it does, the round is refused rather than guessed.
+        their_dts = [g["datetime_utc"] or "" for g in theirs]
+        if len(set(their_dts)) != len(their_dts) and len(theirs) > 1:
+            report.append(
+                f"SKIPPED {phase}: FIBA's {len(theirs)} games carry only "
+                f"{len(set(their_dts))} distinct kickoff time(s) "
+                f"({sorted(set(their_dts))}) — placeholders, not a schedule. "
+                f"Sorting by them would fall back on FIBA's list order, which "
+                f"establishes nothing. Re-run once FIBA publishes real times.")
+            continue
+
         theirs.sort(key=lambda g: g["datetime_utc"] or "")
+        ours = sorted(ours, key=lambda r: (r["date"], r["tip_gmt"]))
         for row, g in zip(ours, theirs):
             pairs.append((row, g))
     return pairs
