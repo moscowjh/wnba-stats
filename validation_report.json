@@ -1,12 +1,12 @@
 {
-  "run_at_utc": "2026-08-30T11:17:28+00:00",
-  "data_through": "2026-08-29",
+  "run_at_utc": "2026-08-31T11:17:32+00:00",
+  "data_through": "2026-08-30",
   "cutoff": null,
-  "broadcast_category": "Blocks",
+  "broadcast_category": "Steals",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Blocks",
+      "category": "Steals",
       "status": "SKIPPED",
       "checks": [
         {
@@ -18,8 +18,8 @@
     }
   ],
   "alignment": {
-    "ours_total": 592,
-    "theirs_total": 591,
+    "ours_total": 600,
+    "theirs_total": 599,
     "source_behind": [
       "PHX 39<40"
     ],
