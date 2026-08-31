@@ -667,7 +667,7 @@ def page_teams_index(doc):
         out.append(f'<h2 class="sec">Group {g}</h2><div class="tcards">')
         for t in sorted((x for x in doc["teams"] if x["group"] == g),
                         key=lambda x: x["name"]):
-            n = t["wnba"]["current"]
+            n = wnba_on_squad(t)
             # Singular matters: Puerto Rico and others sit at exactly 1.
             wl = (f'{n} WNBA player{"" if n == 1 else "s"}' if n
                   else 'no current WNBA players')
@@ -762,7 +762,7 @@ def wnba_block(t, published):
     site exists. Names link to our OWN player pages wherever we publish one."""
     w = t["wnba"]
     current = [p for p in w["players"] if p["status"] == "current"]
-    n = w["current"]
+    n = wnba_on_squad(t)
     head = (f'WNBA connection <span class="mu">— {n} current '
             f'player{"s" if n != 1 else ""}</span>')
     out = [f'<h2 class="sec">{head}</h2>']
@@ -805,6 +805,31 @@ def wnba_block(t, published):
                    'above are this country\'s current WNBA players, not a '
                    'confirmed call-up list.</div>')
     return "".join(out)
+
+
+def wnba_on_squad(t):
+    """How many WNBA players this team is bringing.
+
+    Reads the SQUAD once we have one, and falls back to the curated
+    country-level `wnba.current` only while we do not.
+
+    The distinction became visible the moment real rosters landed
+    (2026-08-31) and it is not pedantic: `wnba.current` counts a country's
+    WNBA players, the squad counts the ones actually travelling, and the two
+    diverge as soon as anybody is cut. On the day rosters were merged, EIGHT
+    of fourteen teams disagreed — France's card said 11 while its own table
+    showed 8 badges, and Hungary's said 1 after Dorka Juhász was cut from a
+    pool of 25 down to 14. A reader who clicks the card can count the rows,
+    so the card has to be the number they will arrive at.
+
+    The curated block stays authoritative for WHO is connected and how
+    (current / former / drafted), which is what the roster table renders
+    against; this is only the headline count.
+    """
+    players = (t.get("roster") or {}).get("players") or []
+    if players:
+        return sum(1 for p in players if p.get("wnba"))
+    return t["wnba"]["current"]
 
 
 def roster_block(t, published):
@@ -1007,7 +1032,7 @@ def page_team(t, rows, teams, results, box_ids, published):
     out.append(roster_block(t, published))
     out.append(fixtures_block(t, rows, teams, results, box_ids))
 
-    n = t["wnba"]["current"]
+    n = wnba_on_squad(t)
     desc = (f'{t["name"]} at the 2026 FIBA Women\'s Basketball World Cup: '
             f'squad, coach, group fixtures and '
             f'{n if n else "no"} current WNBA player{"s" if n != 1 else ""}.')
@@ -1379,8 +1404,8 @@ def page_guide(doc, teams):
     usa = next(x for x in doc["teams"] if x["code"] == "USA")
     usa_eds = sorted(usa["wwc_record"]["editions"], key=lambda e: e["year"])
     titles = sum(1 for e in usa_eds if e["rank"] == 1)
-    wnba_total = sum(x["wnba"]["current"] for x in doc["teams"])
-    with_wnba = sum(1 for x in doc["teams"] if x["wnba"]["current"])
+    wnba_total = sum(wnba_on_squad(x) for x in doc["teams"])
+    with_wnba = sum(1 for x in doc["teams"] if wnba_on_squad(x))
 
     # The USA's run of consecutive TITLES, derived rather than typed. Jason's
     # 2026-08-28 copy pass changed the claim from "medalled at every one since
@@ -1478,7 +1503,7 @@ most star-studded, with {plink("A\u0027ja Wilson")}, {plink("Breanna Stewart")},
 which nearly beat the US in Paris in 2024, returns a strong team headlined by
 {plink("Gabby Williams")}. Even the host nation, <b>{tlink("GERMANY")}</b>,
 which has qualified only {NUM_WORD.get(len(ger["wwc_record"]["editions"]), len(ger["wwc_record"]["editions"]))}
-before, carries {ger["wnba"]["current"]} WNBA players on its roster.</p>
+before, carries {wnba_on_squad(ger)} WNBA players on its roster.</p>
 
 '''
     body = brief + f'''<h2 class="sec">Rules: differences to know</h2>

@@ -264,11 +264,168 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 21,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "status": "final",
+        "player_count": 12,
+        "as_of": "2026-08-31",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "2",
+            "name": "Elena Buenavida",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Valencia Basket"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "4",
+            "name": "Mariona Ortiz",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Basket Zaragoza"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "5",
+            "name": "Maite Cazorla",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CZE",
+              "club_name": "USK Praha"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "7",
+            "name": "Alba Torrens",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "AzulMarino Palma"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "9",
+            "name": "Helena Pueyo",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Valencia Basket"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "10",
+            "name": "María Conde",
+            "position": "SF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "TOR",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "11",
+            "name": "Awa Fam",
+            "position": "C",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "SEA",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "14",
+            "name": "Raquel Carrera",
+            "position": "C",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "NYL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "17",
+            "name": "Megan DiLeo",
+            "position": "C",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "POR",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "18",
+            "name": "Alicia Flórez",
+            "position": "PG",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "WAS",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "20",
+            "name": "Paula Ginzo",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CZE",
+              "club_name": "Žabiny Brno"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "44",
+            "name": "Iyana Martín",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Spar Girona"
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 5,
@@ -509,11 +666,194 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "not_announced",
-        "player_count": null,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "status": "pool",
+        "player_count": 14,
+        "as_of": "2026-08-29",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "1",
+            "name": "Alexis Peterson",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Valencia Basket"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "3",
+            "name": "Alexandra Wilke",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "GER",
+              "club_name": "Rutronik Stars Keltern"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "8",
+            "name": "Nyara Sabally",
+            "position": "PF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "TOR",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "11",
+            "name": "Marie Gülich",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "AUS",
+              "club_name": "Townsville Fire"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "13",
+            "name": "Leonie Fiebich",
+            "position": "SG",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "NYL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "15",
+            "name": "Luisa Geiselsöder",
+            "position": "C",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "POR",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "16",
+            "name": "Alina Hartmann",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "GER",
+              "club_name": "Alba Berlin"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "20",
+            "name": "Frieda Bühner",
+            "position": "PF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "POR",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "22",
+            "name": "Emily Bessoir",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "CB Jairis"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "24",
+            "name": "Lina Sontag",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "AE Sedis Bàsquet"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "25",
+            "name": "Clara Bielefeld",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "TCU Horned Frogs"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Patricia Broßmann",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "AUS",
+              "club_name": "Perth Redbacks"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Britta Daub",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "GER",
+              "club_name": "Eisvögel USC Freiburg"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Laura Zolper",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "FRA",
+              "club_name": "Basket Lattes"
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 5,
@@ -771,11 +1111,168 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 16,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "status": "final",
+        "player_count": 12,
+        "as_of": "2026-08-20",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "2",
+            "name": "Norika Konno",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "JPN",
+              "club_name": "Eneos Sunflowers"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "3",
+            "name": "Stephanie Mawuli",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "CB Avenida"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "6",
+            "name": "Otoha Goto",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "JPN",
+              "club_name": "Tokyo Healthcare University"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "8",
+            "name": "Maki Takada",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "JPN",
+              "club_name": "Denso Iris"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "10",
+            "name": "Ramu Tokashiki",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "JPN",
+              "club_name": "Toyota Antelopes"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "13",
+            "name": "Rui Machida",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "JPN",
+              "club_name": "Fujitsu Red Wave"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "14",
+            "name": "Azusa Asahina",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "JPN",
+              "club_name": "Toyota Boshoku Sunshine Rabbits"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "23",
+            "name": "Mai Yamamoto",
+            "position": "SG",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "LVA",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "26",
+            "name": "Kokoro Tanaka",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "JPN",
+              "club_name": "Eneos Sunflowers"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "27",
+            "name": "Saki Hayashi",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "JPN",
+              "club_name": "Fujitsu Red Wave"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "52",
+            "name": "Yuki Miyazawa",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "JPN",
+              "club_name": "Fujitsu Red Wave"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "75",
+            "name": "Nanako Todo",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "JPN",
+              "club_name": "Toyota Boshoku Sunshine Rabbits"
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 1,
@@ -951,10 +1448,297 @@
       },
       "roster": {
         "status": "pool",
-        "player_count": 23,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "player_count": 22,
+        "as_of": "2026-07-26",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "0",
+            "name": "Sira Thienou",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "Auburn Tigers"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "1",
+            "name": "Foune Sissoko",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "SEN",
+              "club_name": "ASC Ville de Dakar"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "2",
+            "name": "Aminata Sangaré",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Baloncesto Leganés"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "6",
+            "name": "Roukia Doumbia",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "Oakland Swish"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "10",
+            "name": "Maimouna Haidara",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Porta XI Ensino"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "11",
+            "name": "Kadidia Maiga",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "RWA",
+              "club_name": "REG BBC"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "12",
+            "name": "Alima Dembélé",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Joventut Badalona"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "13",
+            "name": "Mama Cissé",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Adareva Tenerife"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "22",
+            "name": "Kamita Dabou",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "FRA",
+              "club_name": "ASA Sceaux"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "23",
+            "name": "Sika Koné",
+            "position": "PF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "ATL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "50",
+            "name": "Djeneba N'Diaye",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "CB Islas Canarias"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "77",
+            "name": "Diana Balayera",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "FRA",
+              "club_name": "ASVEL Basket"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Aminata Samassekou",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KEN",
+              "club_name": "Kenya Ports"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Fatoumata Sanou",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "MLI",
+              "club_name": "USFAS Bamako"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Fanta Koné",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "Sam Houston Bearkats"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Diaba Konaté",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": "Free agent"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Djénéba Sangaré",
+            "position": "GF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CIV",
+              "club_name": "Friend's Basketball Association"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Diarrah Sissoko",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "Fresno State Bulldogs"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Mama Doumbia",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "CB Islas Canarias"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Fatoumata Niambélé",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "CB Islas Canarias"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Mariam Coulibaly",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "CB Islas Canarias"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Aicha Coulibaly",
+            "position": "GF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "CHI",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          }
+        ]
       },
       "wnba": {
         "current": 1,
@@ -1161,11 +1945,168 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 32,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "status": "final",
+        "player_count": 12,
+        "as_of": "2026-08-29",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "11",
+            "name": "Valériane Ayayi",
+            "position": "SF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "PHX",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "13",
+            "name": "Janelle Salaün",
+            "position": "F",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "GSV",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "14",
+            "name": "Dominique Malonga",
+            "position": "C",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "SEA",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "15",
+            "name": "Gabby Williams",
+            "position": "SF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "GSV",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "20",
+            "name": "Carla Leite",
+            "position": "PG",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "POR",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "22",
+            "name": "Marième Badiane",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ITA",
+              "club_name": "PF Schio"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "23",
+            "name": "Marine Johannès",
+            "position": "SG",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "NYL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "28",
+            "name": "Mamignan Touré",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Beşiktaş"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "31",
+            "name": "Aminata Gueye",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Casademont Zaragoza"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "42",
+            "name": "Leïla Lacan",
+            "position": "G",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "CON",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "47",
+            "name": "Romane Bernies",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "FRA",
+              "club_name": "BLMA"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "98",
+            "name": "Pauline Astier",
+            "position": "G",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "NYL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          }
+        ]
       },
       "wnba": {
         "current": 11,
@@ -1450,10 +2391,193 @@
       },
       "roster": {
         "status": "pool",
-        "player_count": 25,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "player_count": 14,
+        "as_of": "2026-07-10",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "2",
+            "name": "Virág Kiss",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Valencia Basket"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "3",
+            "name": "Reka Dombai",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "KSC Szekszárd"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "7",
+            "name": "Veronika Kányási",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "DVTK"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "9",
+            "name": "Ágnes Studer",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "PEAC-Pécs"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "10",
+            "name": "Nina Aho",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "DVTK"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "18",
+            "name": "Aliz Varga",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "PEAC-Pécs"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "21",
+            "name": "Réka Lelik",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "DVTK"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Tyra Aho",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "DVTK"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Barbara Angyal",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "Sopron Basket"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Júlia Boros",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "DVTK"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Panka Dúl",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "PEAC-Pécs"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Sára Laczkó",
+            "position": "GF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "Sopron Basket"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Zsuzsanna Sitku",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "Sopron Basket"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Ágnes Török",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "HUN",
+              "club_name": "PEAC-Pécs"
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 1,
@@ -1685,9 +2809,179 @@
       "roster": {
         "status": "pool",
         "player_count": 13,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "as_of": "2026-05-26",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "5",
+            "name": "Heo Ye-eun",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Cheongju KB Stars"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "7",
+            "name": "Park Ji-su",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Incheon Shinhan"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "9",
+            "name": "Park Ji-hyun",
+            "position": "G",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "LAS",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "12",
+            "name": "Lee Hae-ran",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Samsung Life Blueminx"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "39",
+            "name": "Hong Yu-sun",
+            "position": null,
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Incheon Shinhan"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Ahn Hye-ji",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Busan BNK Sum"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Park So-hee",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Bucheon Hana Bank"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Lee So-hee",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Busan BNK Sum"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Kang Yu-rim",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Samsung Life Blueminx"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Kang Yi-seul",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Asan Woori Bank Woori Won"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Choi Yi-saem",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Busan BNK Sum"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Jeong Hyun",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Bucheon Hana Bank"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Jin An",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "KOR",
+              "club_name": "Bucheon Hana Bank"
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 1,
@@ -1859,11 +3153,233 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "not_announced",
-        "player_count": null,
-        "as_of": "2026-08-18",
+        "status": "pool",
+        "player_count": 17,
+        "as_of": "2026-08-31",
         "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "players": [
+          {
+            "number": null,
+            "name": "Amy Okonkwo",
+            "position": null,
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Elizabeth Balogun",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Ezinne Kalu",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Promise Amukamara",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Grace Efosa-Aguebor",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Murjanatu Musa",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Rita Igbokwe",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Jordan Obi",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Ifunanya Okoro",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Pallas Kunaiyi-Akpanah",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Nora Ezike",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Nicole Enabosi",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Uche Izoje",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Victoria Macaulay",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Maryam Dauda",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Gabby White",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Idubamo Beggi",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 1,
@@ -2132,81 +3648,16 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "as_of": "2026-08-27",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
-            "number": null,
-            "name": "Zitina Aokuso",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Chloe Bibby",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Isobel Borlase",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Isabelle Bourne",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Alex Fowler",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Ezi Magbegor",
-            "position": null,
+            "number": "1",
+            "name": "Miela Sowah",
+            "position": "G",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": null,
+              "wnba_team": "GSV",
               "club_country": null,
               "club_name": null
             },
@@ -2214,12 +3665,12 @@
             "wnba": true
           },
           {
-            "number": null,
+            "number": "2",
             "name": "Jade Melbourne",
-            "position": null,
+            "position": "G",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": null,
+              "wnba_team": "SEA",
               "club_country": null,
               "club_name": null
             },
@@ -2227,69 +3678,134 @@
             "wnba": true
           },
           {
-            "number": null,
-            "name": "Steph Reid",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Alanna Smith",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Steph Talbot",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Sami Whitcomb",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
+            "number": "4",
             "name": "Alex Wilson",
-            "position": null,
+            "position": "SG",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
+              "club_country": "AUS",
+              "club_name": "Sydney Flames"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "6",
+            "name": "Stephanie Talbot",
+            "position": "SF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "LVA",
               "club_country": null,
               "club_name": null
             },
             "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "11",
+            "name": "Alanna Smith",
+            "position": "F",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "DAL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "12",
+            "name": "Stephanie Reid",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "AUS",
+              "club_name": "Tasmania Jewels"
+            },
+            "player_slug": null,
             "wnba": false
+          },
+          {
+            "number": "13",
+            "name": "Ezi Magbegor",
+            "position": "F",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "SEA",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "20",
+            "name": "Isobel Borlase",
+            "position": "G",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "ATL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "22",
+            "name": "Zitina Aokuso",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "AUS",
+              "club_name": "Adelaide Lightning"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "23",
+            "name": "Alex Fowler",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "AUS",
+              "club_name": "Townsville Fire"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "34",
+            "name": "Isabelle Bourne",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "AUS",
+              "club_name": "Sydney Flames"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "55",
+            "name": "Chloe Bibby",
+            "position": "PF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "MIN",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
           }
         ]
       },
@@ -2522,257 +4038,166 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 19,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "status": "final",
+        "player_count": 12,
+        "as_of": "2026-08-25",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
-            "number": null,
-            "name": "Emma Meesseman",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Julie Vanloo",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Julie Allemand",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Kyara Linskens",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": null
-          },
-          {
-            "number": null,
-            "name": "Antonia Delaere",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": null
-          },
-          {
-            "number": null,
-            "name": "Nastja Claessens",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": null
-          },
-          {
-            "number": null,
-            "name": "Maxuella Lisowa-Mbaka",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": null
-          },
-          {
-            "number": null,
+            "number": "4",
             "name": "Elise Ramette",
-            "position": null,
+            "position": "PG",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Joventut Badalona"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "5",
+            "name": "Nastja Claessens",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "Kansas State Wildcats"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "6",
+            "name": "Antonia Delaere",
+            "position": "SF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "MIN",
               "club_country": null,
               "club_name": null
             },
             "player_slug": null,
-            "wnba": null
+            "wnba": true
           },
           {
-            "number": null,
-            "name": "Ine Joris",
-            "position": null,
+            "number": "11",
+            "name": "Emma Meesseman",
+            "position": "PF",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Fenerbahçe"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "13",
+            "name": "Kyara Linskens",
+            "position": "C",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "PHX",
               "club_country": null,
               "club_name": null
             },
             "player_slug": null,
-            "wnba": null
+            "wnba": true
           },
           {
-            "number": null,
-            "name": "Billie Massey",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": null
-          },
-          {
-            "number": null,
-            "name": "Becky Massey",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": null
-          },
-          {
-            "number": null,
-            "name": "Alicia Courthiau",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": null
-          },
-          {
-            "number": null,
-            "name": "Laure Resimont",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": null
-          },
-          {
-            "number": null,
+            "number": "22",
             "name": "Bethy Mununga",
-            "position": null,
+            "position": "SF",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null
+              "club_country": "FRA",
+              "club_name": "ASVEL Basket"
             },
             "player_slug": null,
-            "wnba": null
+            "wnba": false
           },
           {
-            "number": null,
-            "name": "Habibatou Bah",
-            "position": null,
+            "number": "25",
+            "name": "Becky Massey",
+            "position": "C",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null
+              "club_country": "FRA",
+              "club_name": "Basket Landes"
             },
             "player_slug": null,
-            "wnba": null
+            "wnba": false
           },
           {
-            "number": null,
-            "name": "Jade Masogayo",
-            "position": null,
+            "number": "31",
+            "name": "Maxuella Lisowa-Mbaka",
+            "position": "SF",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null
+              "club_country": "ROU",
+              "club_name": "CS Rapid București"
             },
             "player_slug": null,
-            "wnba": null
+            "wnba": false
           },
           {
-            "number": null,
-            "name": "Noor Devos",
-            "position": null,
+            "number": "34",
+            "name": "Billie Massey",
+            "position": "C",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null
+              "club_country": "ESP",
+              "club_name": "CB Jairis"
             },
             "player_slug": null,
-            "wnba": null
+            "wnba": false
           },
           {
-            "number": null,
-            "name": "Louann Battisson",
-            "position": null,
+            "number": "35",
+            "name": "Julie Vanloo",
+            "position": "PG",
             "plays_for": {
-              "type": null,
-              "wnba_team": null,
+              "type": "wnba",
+              "wnba_team": "NYL",
               "club_country": null,
               "club_name": null
             },
             "player_slug": null,
-            "wnba": null
+            "wnba": true
           },
           {
-            "number": null,
-            "name": "Marie Vervaet",
-            "position": null,
+            "number": "55",
+            "name": "Julie Allemand",
+            "position": "PG",
             "plays_for": {
-              "type": null,
-              "wnba_team": null,
+              "type": "wnba",
+              "wnba_team": "TOR",
               "club_country": null,
               "club_name": null
             },
             "player_slug": null,
-            "wnba": null
+            "wnba": true
+          },
+          {
+            "number": "71",
+            "name": "Alicia Courthiau",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "Wisconsin Badgers"
+            },
+            "player_slug": null,
+            "wnba": false
           }
         ]
       },
@@ -2956,11 +4381,168 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "not_announced",
-        "player_count": null,
-        "as_of": "2026-08-18",
+        "status": "final",
+        "player_count": 12,
+        "as_of": "2026-08-31",
         "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "players": [
+          {
+            "number": null,
+            "name": "Jacqueline Benitez",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Nina De Leon",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Zaida Gonzalez",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Arella Guirantes",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Brianna Jones",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Imani McGee-Stafford",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Tayra Melendez",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "India Pagan",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Sofia Roma",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Pamela Rosado",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Trinity San Antonio",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Denise Solis",
+            "position": null,
+            "plays_for": {
+              "type": null,
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 0,
@@ -3130,9 +4712,270 @@
       "roster": {
         "status": "pool",
         "player_count": 20,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "as_of": "2026-07-22",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "2",
+            "name": "Sevgi Uzun",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Galatasaray"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "4",
+            "name": "Olcay Çakır",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Fenerbahçe"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "6",
+            "name": "Gökşen Fitik",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Galatasaray"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "8",
+            "name": "Ayşe Cora",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Galatasaray"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "10",
+            "name": "Alperi Onar",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Fenerbahçe"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "11",
+            "name": "Elif Bayram",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Galatasaray"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "12",
+            "name": "Zeynep Şevval Gül",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Fenerbahçe"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "17",
+            "name": "Derin Erdoğan",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Galatasaray"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "20",
+            "name": "Sinem Ataş",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "ÇBK Mersin"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "22",
+            "name": "Kennedy Burke",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "ÇBK Mersin"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "30",
+            "name": "Melek Uzunoğlu",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Emlak Konut"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "33",
+            "name": "Esra Ural",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "ÇBK Mersin"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Ayşenaz Harma",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "ÇBK Mersin"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Berfin Sertoğlu",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Emlak Konut"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Ceren Akpınar",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Emlak Konut"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Tuana Vural",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Fenerbahçe"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Manolya Kurtulmuş",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Fenerbahçe"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Sude Yılmaz",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Galatasaray"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Tilbe Şenyürek",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Spar Girona"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Elif İstanbulluoğlu",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "Louisville Cardinals"
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 1,
@@ -3369,11 +5212,259 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "not_announced",
-        "player_count": null,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "status": "pool",
+        "player_count": 19,
+        "as_of": "2026-04-14",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "1",
+            "name": "Wang Siyu",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Sichuan Yuanda"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "6",
+            "name": "Yang Shuyu",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Guangdong Vermilion Birds"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "14",
+            "name": "Li Yueru",
+            "position": "C",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "DAL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "15",
+            "name": "Han Xu",
+            "position": "C",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "NYL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "16",
+            "name": "Luo Xinyu",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Jiangsu Phoenix"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "19",
+            "name": "Zhang Ziyu",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Shandong Six Stars"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "31",
+            "name": "Jia Saiqi",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Sichuan Yuanda"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Liu Bei",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Shanxi Flame"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Chen Yujie",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Shanxi Flame"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Liu Yutong",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Shanghai Swordfish"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Zhang Manman",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Jiangsu Phoenix"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Sun Yu",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Jiangsu Phoenix"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Wang Jiaqi",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Wuhan Shengfan"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Chen Mingling",
+            "position": "FC",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Guangdong Vermilion Birds"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Zhang Mingzhu",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Guangdong Vermilion Birds"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Tang Ziting",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Sichuan Yuanda"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Li Xingnuo",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Beijing Normal University"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Zhang Zihan",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CHN",
+              "club_name": "Beijing Normal University"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": null,
+            "name": "Deng Yuting",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "Oklahoma State Cowgirls"
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 2,
@@ -3552,11 +5643,168 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 16,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "status": "final",
+        "player_count": 12,
+        "as_of": "2026-08-29",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "1",
+            "name": "Kateřina Zeithammerová",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CZE",
+              "club_name": "Žabiny Brno"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "2",
+            "name": "Julie Pospíšilová",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "FRA",
+              "club_name": "Flammes Carolo Basket"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "3",
+            "name": "Alena Hanušová",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CZE",
+              "club_name": "DSK Brandýs"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "4",
+            "name": "Gabriela Andělová",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CZE",
+              "club_name": "USK Praha"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "5",
+            "name": "Natálie Stoupalová",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CZE",
+              "club_name": "Žabiny Brno"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "7",
+            "name": "Petra Malíková",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CZE",
+              "club_name": "USK Praha"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "8",
+            "name": "Veronika Voráčková",
+            "position": "SF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ESP",
+              "club_name": "Basket Zaragoza"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "10",
+            "name": "Eliška Joklová",
+            "position": "PG",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "MIN",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "12",
+            "name": "Monika Fučíková",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CZE",
+              "club_name": "Žabiny Brno"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "13",
+            "name": "Petra Holešínská",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "TUR",
+              "club_name": "Botaş SK"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "16",
+            "name": "Kateřina Kalná",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CZE",
+              "club_name": "USK Praha"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "20",
+            "name": "Natálie Koucká",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "CZE",
+              "club_name": "USK Praha"
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 2,
@@ -3736,11 +5984,168 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 19,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
-        "players": []
+        "status": "final",
+        "player_count": 12,
+        "as_of": "2026-08-31",
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "players": [
+          {
+            "number": "0",
+            "name": "Jasmine Keys",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ITA",
+              "club_name": "PF Schio"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "5",
+            "name": "Matilde Villa",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ITA",
+              "club_name": "Reyer Venezia"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "6",
+            "name": "Francesca Pasa",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ITA",
+              "club_name": "Reyer Venezia"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "8",
+            "name": "Costanza Verona",
+            "position": "SG",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "DAL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "9",
+            "name": "Cecilia Zandalasini",
+            "position": "SF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "GSV",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "11",
+            "name": "Francesca Pan",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ITA",
+              "club_name": "Reyer Venezia"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "13",
+            "name": "Lorela Cubaj",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ITA",
+              "club_name": "Reyer Venezia"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "14",
+            "name": "Sara Madera",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ITA",
+              "club_name": "Magnolia Basket Campobasso"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "18",
+            "name": "Mariella Santucci",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ITA",
+              "club_name": "Reyer Venezia"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "19",
+            "name": "Martina Fassina",
+            "position": "SG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ITA",
+              "club_name": "Reyer Venezia"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "22",
+            "name": "Olbis Andrè",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "ITA",
+              "club_name": "PF Schio"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "55",
+            "name": "Vittoria Blasigh",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "UCF Knights"
+            },
+            "player_slug": null,
+            "wnba": false
+          }
+        ]
       },
       "wnba": {
         "current": 2,
@@ -4042,29 +6447,16 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-18",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "as_of": null,
+        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
-            "number": null,
-            "name": "Aliyah Boston",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
+            "number": "4",
             "name": "Paige Bueckers",
-            "position": null,
+            "position": "G",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": null,
+              "wnba_team": "DAL",
               "club_country": null,
               "club_name": null
             },
@@ -4072,77 +6464,12 @@
             "wnba": true
           },
           {
-            "number": null,
-            "name": "Caitlin Clark",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Napheesa Collier",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Kahleah Copper",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Chelsea Gray",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
-            "name": "Rhyne Howard",
-            "position": null,
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": null,
+            "number": "5",
             "name": "Kelsey Plum",
-            "position": null,
+            "position": "G",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": null,
+              "wnba_team": "PHX",
               "club_country": null,
               "club_name": null
             },
@@ -4150,12 +6477,12 @@
             "wnba": true
           },
           {
-            "number": null,
-            "name": "Angel Reese",
-            "position": null,
+            "number": "6",
+            "name": "Rhyne Howard",
+            "position": "SF",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": null,
+              "wnba_team": "ATL",
               "club_country": null,
               "club_name": null
             },
@@ -4163,12 +6490,12 @@
             "wnba": true
           },
           {
-            "number": null,
-            "name": "Breanna Stewart",
-            "position": null,
+            "number": "7",
+            "name": "Kahleah Copper",
+            "position": "G/F",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": null,
+              "wnba_team": "PHX",
               "club_country": null,
               "club_name": null
             },
@@ -4176,12 +6503,25 @@
             "wnba": true
           },
           {
-            "number": null,
+            "number": "8",
+            "name": "Chelsea Gray",
+            "position": "G",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "LVA",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "9",
             "name": "A'ja Wilson",
-            "position": null,
+            "position": "C",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": null,
+              "wnba_team": "LVA",
               "club_country": null,
               "club_name": null
             },
@@ -4189,12 +6529,77 @@
             "wnba": true
           },
           {
-            "number": null,
-            "name": "Jackie Young",
-            "position": null,
+            "number": "10",
+            "name": "Breanna Stewart",
+            "position": "PF",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": null,
+              "wnba_team": "NYL",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "11",
+            "name": "Napheesa Collier",
+            "position": "SF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "MIN",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "12",
+            "name": "Caitlin Clark",
+            "position": "G",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "IND",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "13",
+            "name": "Jackie Young",
+            "position": "G",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "LVA",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "14",
+            "name": "Aliyah Boston",
+            "position": "C",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "IND",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": "15",
+            "name": "Angel Reese",
+            "position": "PF",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "ATL",
               "club_country": null,
               "club_name": null
             },
