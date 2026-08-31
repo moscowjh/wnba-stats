@@ -349,19 +349,94 @@ a game runs                    ~1h45-2h wall clock, plus OT
 22:00 UTC gives ~45 minutes past the worst case. Times come from
 `sites/wwc/reference/wwc_schedule_2026.csv` (`tip_gmt`).
 
+For reference during the tournament: **22:00 UTC is 6:00 PM EDT**, and
+midnight in Berlin (the calendar date there has already rolled over when the
+build fires — harmless, because WWC lifecycle state is derived from
+`results.json` and never from the clock, but worth knowing before writing
+anything that *does* consult a date).
+
+**Same DST caveat as the 11:17 dispatch above.** Cron triggers are UTC and do
+not follow US clock changes, so when ET shifts to EST on 2026-11-01, 22:00 UTC
+becomes **5:00 PM EST**. Irrelevant to a tournament that ends 13 September, and
+noted only because this Worker may outlive it — if these triggers are ever
+reused for a winter event, re-derive the time rather than assuming the slot
+still means what it meant in September.
+
 **Six games have no announced time yet** — Sep 8, 9 and 12 are all
 `time_tba=TRUE`. Nothing ingests times from FIBA (`fetch_data.py` writes
 results and box scores only; times come from that hand-maintained CSV), so
 those need a human edit when FIBA announces them.
 
-### Testing the WWC path without waiting for 22:00
+### Rebuilding the WWC site on demand
 
-The Worker's `?key=` route gained two actions:
+Needed on knockout days, when a rebuild after each game beats waiting for
+22:00. Three ways, best-first:
 
-```
-?key=CRON_KEY&action=wwc        # dispatch wwc.yml now
-?key=CRON_KEY&action=wwccheck   # run the WWC check, report-only, NO email
-```
+| How | Use it when |
+|---|---|
+| `https://<worker-url>/?key=CRON_KEY&action=wwc` | **On a phone, watching a game.** Any browser, no laptop, no login. |
+| Actions UI → `WWC site build` → **Run workflow** | You want the `fetch` / `force_fetch` checkboxes — i.e. something looks wrong and a box score already on disk needs re-pulling. |
+| `gh workflow run wwc.yml` | You are already in a terminal. |
+
+Also available: `?key=CRON_KEY&action=wwccheck` runs the WWC check
+**report-only and sends no email** — unlike the scheduled 14:45 pass, which
+does. Use it to see what the check sees.
+
+**A run takes ~40s, and mashing the button is safe.** `wwc.yml` sets
+`concurrency: cancel-in-progress: false`, so rapid dispatches queue rather
+than cancel each other.
+
+**Rebuilding "too early" costs nothing.** If FIBA has not published the box
+score yet, the final score still lands and simply is not a link — a score only
+becomes a link when the box score is genuinely emitted in the same run (see
+`docs/wwc-site-internals.md`, correct-or-blank). Run it again later and the
+link appears. The fetch is incremental, so a repeat run is two or three page
+fetches, not thirty-six.
+
+**Mid-round rebuilds are safe on knockout days.** `match_games()` refuses to
+match a knockout round whose game count disagrees with ours, and the instinct
+is that 1-of-4 quarter-finals played would trip it. It does not: FIBA's event
+page lists every *fixture* in a round regardless of how many are played, so
+the count is 4-vs-4 from the moment the bracket resolves. **But see the
+ordering caveat below before trusting a knockout rebuild.**
+
+### ⚠️ UNVERIFIED: knockout games join on FILE ORDER, and six have no times
+
+**Open as of 2026-08-30. Belongs to the Sep 2 live-stats checkpoint.**
+
+Knockout fixtures cannot join on team codes — ours are `TBD` until the bracket
+resolves — so `match_games()` joins them on **round, then chronological
+order**: it sorts FIBA's games by `datetime_utc` and `zip`s them against our
+schedule rows *in CSV file order*. That is correct only if our rows are
+themselves chronological.
+
+| Phase | Our file order | Safe? |
+|---|---|---|
+| `quarter_final` (Sep 10) | 09:30, 12:30, 15:45, 18:45 | ✅ genuinely chronological |
+| `third_place` / `final` (Sep 13) | single row each | ✅ nothing to order |
+| `qualification_to_qf` (Sep 8–9) | **TBA ×4** | ⚠️ unverified |
+| `semi_final` (Sep 12) | **TBA ×2** | ⚠️ unverified |
+
+For those **six** games `tip_gmt` is empty (`time_tba=TRUE`), so nothing
+establishes that our file order matches FIBA's chronological order. If they
+disagree, a real score lands on the wrong fixture — and `fetch_data.py`'s own
+comment names why that is the worst outcome available: it "reads as correct to
+everyone." A wrong score is worse than no score.
+
+This is **not** a manual-rebuild problem; a scheduled run carries the identical
+risk. Two things close it:
+
+1. **Fill `tip_gmt` for those six rows when FIBA announces the times.** Nothing
+   ingests times from FIBA — `fetch_data.py` writes results and box scores
+   only — so this is a human edit to
+   `sites/wwc/reference/wwc_schedule_2026.csv`. It also fixes the times shown
+   on the Games and Groups pages, which today render as TBA.
+2. **Guard the zip**: refuse to match a knockout round whose rows lack times,
+   rather than silently trusting file order. Same posture as the existing
+   count-mismatch skip, one step stricter.
+
+Until both land, treat knockout results from Sep 8, 9 and 12 as
+**needing a human eye** after the first rebuild of each round.
 
 ### Routing is explicit, and that was a deliberate inversion
 
