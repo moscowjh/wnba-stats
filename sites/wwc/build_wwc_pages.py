@@ -668,12 +668,15 @@ def page_teams_index(doc):
         for t in sorted((x for x in doc["teams"] if x["group"] == g),
                         key=lambda x: x["name"]):
             n = t["wnba"]["current"]
-            wl = (f'{n} in the WNBA' if n else 'no current WNBA players')
+            # Singular matters: Puerto Rico and others sit at exactly 1.
+            wl = (f'{n} WNBA player{"" if n == 1 else "s"}' if n
+                  else 'no current WNBA players')
             apps = t["wwc_record"]["appearances_count"]
             out.append(
                 f'<a class="tc" href="/teams/{team_slug(t)}/">'
                 f'<div class="n">{t["flag"]} {esc(t["name"])}</div>'
-                f'<div class="m">{esc(wl)} · {apps} World Cups</div></a>')
+                f'<div class="m">{esc(wl)} · {apps} World Cup'
+                f'{"" if apps == 1 else "s"}</div></a>')
         out.append("</div>")
     return shell("/teams/", f"Teams — {TOURNAMENT_NAME} 2026", "".join(out),
                  "All 16 teams at the 2026 FIBA Women's Basketball World Cup, "
@@ -1095,8 +1098,7 @@ is 1–1 against the others, so the mini-table is tied on record and
 <b>margin decides</b>. Beating one of them does not put you above them: a team
 can win its head-to-head meeting and still finish below the team it beat. Each
 time the procedure separates one team out, it <b>starts again from the top</b>
-for whoever is still tied. (All four tied is impossible — the six group games
-produce six wins, which will not divide evenly among four teams.)</p>''')
+for whoever is still tied.</p>''')
     return shell("/groups/", f"Groups — {TOURNAMENT_NAME} 2026", "".join(out),
                  "Group tables, fixtures and the route to the quarter-finals "
                  "at the 2026 FIBA Women's Basketball World Cup.")
