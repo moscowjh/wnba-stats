@@ -455,8 +455,8 @@ def shell(path, title, body, description, extra_head=""):
   <div class="brand">stats at a glance</div>
   <div class="strap">{TOURNAMENT_STRAP}</div>
 </div>
-<nav>{nav}</nav>
 {WNBA_PROMO_HTML}
+<nav>{nav}</nav>
 {body}
 {chrome.SITE_FOOTER_HTML}<script>
 {chrome.usage_js(WWC.slug, key)}
@@ -569,6 +569,17 @@ def _readable_rule(rule):
     for pos in ("1st", "2nd", "3rd", "4th"):
         for g in "ABCD":
             rule = rule.replace(f"{pos} {g}", f"{pos} Grp {g}")
+    # The group winner is named FIRST in every quarter-final. FIBA's schedule
+    # alternates the sides (games 29-30 list the qualifier first, 31-32 the
+    # group winner), which reads as a difference between the fixtures when it
+    # is only a difference in how they were typed. Two of the four would
+    # otherwise be mirror images of the other two for no reason a reader can
+    # see. Only ever fires where one side is a group winner and the other is
+    # not, so the qualifiers, semi-finals and final are untouched.
+    parts = rule.split(" - ")
+    if (len(parts) == 2 and parts[1].startswith("1st Grp")
+            and not parts[0].startswith("1st Grp")):
+        rule = f"{parts[1]} - {parts[0]}"
     return rule
 
 
