@@ -29,7 +29,13 @@
   body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);
         font-size:13px;padding:16px}
   h1{color:var(--accent);font-size:17px;margin-bottom:3px}
-  .meta{color:var(--muted);font-size:11px;margin-bottom:24px}
+  .meta{color:var(--muted);font-size:11px;margin-bottom:14px}
+  /* Cross-site pointer to wwc.statsataglance.com. See wwc_promo_html(). */
+  .xsite{font-size:11px;line-height:1.6;margin-bottom:20px;padding:7px 10px;
+        border:1px solid var(--border);border-left:2px solid var(--accent);
+        background:var(--surface);color:var(--muted)}
+  .xsite a{color:var(--accent);text-decoration:none}
+  .xsite a:hover{text-decoration:underline}
   .site-footer{margin-top:34px;padding-top:12px;border-top:1px solid var(--border);
       color:var(--muted);font-size:11px;line-height:1.8}
   .site-footer a{color:var(--muted);text-decoration:underline}
@@ -178,6 +184,7 @@
 
 <h1>WNBA 2026 — At a Glance</h1>
 <div class="meta">Fast, ad-free — updated through games of August 30</div>
+<div class="xsite"><a href="https://wwc.statsataglance.com/" target="_blank" rel="noopener">FIBA Women's Basketball World Cup 2026</a> — Sep 4–13. Our companion site: schedule, groups, and a guide to the 16 teams.</div>
 
 <div class="tabs">
   <button class="tab active" data-tab="games" onclick="showTab('games',this)">Games</button>
