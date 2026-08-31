@@ -40,6 +40,14 @@
   .mast .brand{color:var(--text);font-size:14.5px;margin-top:5px;
     font-weight:500}
   .mast .strap{color:var(--muted);font-size:11.5px;margin-top:2px}
+  /* Cross-site pointer to wnba.statsataglance.com. Mirrors .xsite on the
+     WNBA site so the bridge looks the same from both ends. Kept to one
+     short sentence: it must not exceed two lines on a phone. */
+  .xsite{font-size:11px;line-height:1.6;margin:0 0 16px;padding:7px 10px;
+        border:1px solid var(--border);border-left:2px solid var(--accent);
+        background:var(--surface);color:var(--muted)}
+  .xsite a{color:var(--accent);text-decoration:none}
+  .xsite a:hover{text-decoration:underline}
   /* Tap targets, 2026-08-29. Was 13px text with 4px of bottom padding — a
      ~24px target against Apple's 44px guidance, and coloured var(--muted) by
      the generic `a` rule, so the nav read as ordinary body links rather than
@@ -191,6 +199,7 @@
   <div class="strap">Berlin · September 4–13, 2026</div>
 </div>
 <nav><a href="/" class="on">Guide</a><a href="/games/">Games</a><a href="/teams/">Teams</a><a href="/groups/">Groups</a></nav>
+<div class="xsite"><a href="https://wnba.statsataglance.com/" target="_blank" rel="noopener">WNBA 2026 — At a Glance</a> · our companion site: standings, leaders, box scores.</div>
 <h2 class="sec">World Cup overview</h2>
 <p class="prose"><b>The FIBA Women&#x27;s Basketball World Cup</b> is the world championship of
 women’s basketball and the sport’s biggest event outside the Olympics,

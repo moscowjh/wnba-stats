@@ -242,6 +242,14 @@ SITE_CSS = f"""\
   .mast .brand{{color:var(--text);font-size:14.5px;margin-top:5px;
     font-weight:500}}
   .mast .strap{{color:var(--muted);font-size:11.5px;margin-top:2px}}
+  /* Cross-site pointer to wnba.statsataglance.com. Mirrors .xsite on the
+     WNBA site so the bridge looks the same from both ends. Kept to one
+     short sentence: it must not exceed two lines on a phone. */
+  .xsite{{font-size:11px;line-height:1.6;margin:0 0 16px;padding:7px 10px;
+        border:1px solid var(--border);border-left:2px solid var(--accent);
+        background:var(--surface);color:var(--muted)}}
+  .xsite a{{color:var(--accent);text-decoration:none}}
+  .xsite a:hover{{text-decoration:underline}}
   /* Tap targets, 2026-08-29. Was 13px text with 4px of bottom padding — a
      ~24px target against Apple's 44px guidance, and coloured var(--muted) by
      the generic `a` rule, so the nav read as ordinary body links rather than
@@ -395,6 +403,27 @@ def nav_items():
     return [games] + middle + [guide]
 
 
+# The WWC end of the bridge, and the mirror of wwc_promo_html() on the WNBA
+# site. Site-level and data-free: no per-player logic, no read of any WNBA
+# artifact — it points at the site, and that is the whole job.
+#
+# Deliberately ONE short sentence. It sits above the fold on every page and
+# must not run past two lines on a phone, so it names the site and three
+# things you can get there, and stops. CROSS_SITE opens it in a new tab, the
+# same treatment the 86 player links already use, so a reader following it
+# never loses their place in the tournament.
+#
+# Unlike the WNBA side's version this carries no end date. The WNBA site is
+# not an event; there is nothing to expire.
+WNBA_PROMO_HTML = (
+    '<div class="xsite">'
+    f'<a href="https://wnba.statsataglance.com/" {CROSS_SITE}>'
+    'WNBA 2026 \u2014 At a Glance</a>'
+    ' \u00b7 our companion site: standings, leaders, box scores.'
+    '</div>'
+)
+
+
 def shell(path, title, body, description, extra_head=""):
     """One page. `path` is both the canonical URL and the nav highlight."""
     nav = "".join(
@@ -427,6 +456,7 @@ def shell(path, title, body, description, extra_head=""):
   <div class="strap">{TOURNAMENT_STRAP}</div>
 </div>
 <nav>{nav}</nav>
+{WNBA_PROMO_HTML}
 {body}
 {chrome.SITE_FOOTER_HTML}<script>
 {chrome.usage_js(WWC.slug, key)}
@@ -466,10 +496,13 @@ DAYNAME = {
     "2026-09-10": "Thu 10 Sep", "2026-09-12": "Sat 12 Sep",
     "2026-09-13": "Sun 13 Sep",
 }
+# Deliberately abbreviated (Jason, 2026-08-31). These render in a 36px tag
+# beside every fixture; "Quarter-final" and "Semi-final" wrapped onto two
+# lines on an iPhone, which is what a label is supposed to avoid.
 PHASE = {
-    "group": "Group", "qualification_to_qf": "Qualification to QF",
-    "quarter_final": "Quarter-final", "semi_final": "Semi-final",
-    "third_place": "Third place", "final": "Final",
+    "group": "Group", "qualification_to_qf": "QF Qual",
+    "quarter_final": "QF", "semi_final": "SF",
+    "third_place": "3rd Pl", "final": "Final",
 }
 
 
@@ -503,13 +536,51 @@ def tip_cell(row):
     return f'{et}<br>{cest}'
 
 
+# "2nd A" reads as a typo to anyone who has not memorised the bracket, so the
+# group is named. And a reference to a numbered game is REMOVED rather than
+# spelled out: this site does not number its games, so "W27" pointed at
+# something a reader had no way to look up. Naming the round it comes from
+# says everything a reader needs — which qualifier it was becomes moot the
+# moment the team is known, and until then nobody is tracing the bracket.
+#
+# Deciding this also retired a live data defect rather than fixing it: our
+# CSV had the game-27 and game-28 matchup rules swapped against FIBA's
+# numbering (found 2026-08-31). With no game numbers on the page, nothing
+# published depends on that mapping any more.
+# Game numbers -> the ROUND THE WINNER CAME FROM. Read them off the schedule
+# rather than by eye: 25-28 are the QF qualifiers, 29-32 the quarter-finals,
+# 33-34 the semi-finals. So W29 is a QUARTER-FINAL winner, not a semi-final
+# one - an off-by-one-round here is invisible in the code and wrong on the
+# page, which is exactly how the first cut of this table got it.
+_RULE_WORDS = [
+    ("W25", "QF Qual winner"), ("W26", "QF Qual winner"),
+    ("W27", "QF Qual winner"), ("W28", "QF Qual winner"),
+    ("W29", "QF winner"), ("W30", "QF winner"),
+    ("W31", "QF winner"), ("W32", "QF winner"),
+    ("W33", "SF winner"), ("W34", "SF winner"),
+    ("L33", "SF loser"), ("L34", "SF loser"),
+]
+
+
+def _readable_rule(rule):
+    for a, b in _RULE_WORDS:
+        rule = rule.replace(a, b)
+    # "2nd A" -> "2nd Grp A", without touching an already-named group.
+    for pos in ("1st", "2nd", "3rd", "4th"):
+        for g in "ABCD":
+            rule = rule.replace(f"{pos} {g}", f"{pos} Grp {g}")
+    return rule
+
+
 def matchup_rule(row):
-    """The bracket rule, shown until the slot resolves ('2nd A - 3rd B').
+    """The bracket rule, shown until the slot resolves ('2nd Grp A - 3rd Grp B').
+
     The trailing '  [note]' in the CSV is a provenance annotation for us,
-    not copy for a reader — strip it."""
+    not copy for a reader — strip it.
+    """
     if not row["matchup_rule"]:
         return ""
-    rule = row["matchup_rule"].split("  [")[0]
+    rule = _readable_rule(row["matchup_rule"].split("  [")[0])
     return f'<div class="mu" style="font-size:10.5px">{esc(rule)}</div>'
 
 
@@ -956,15 +1027,7 @@ def page_groups(doc, rows, teams, results, box_ids):
 <b>2nd and 3rd</b> → qualification play-off, single elimination, cross-group.<br>
 <b>4th</b> → eliminated. There is no classification round and no consolation bracket.
 </div>
-<p class="prose" style="font-size:12.5px">Two things follow, and they are why
-every group game matters: winning your group is worth an entire knockout game,
-and finishing fourth ends your tournament on day four. A group winner cannot
-meet the runner-up from its own group before the final.</p>
-<div class="path" style="margin-top:10px">
-<span class="mu">Qualification to QF</span> &nbsp; 2A–3B &nbsp;·&nbsp; 2B–3A &nbsp;·&nbsp; 3C–2D &nbsp;·&nbsp; 3D–2C<br>
-<span class="mu">Quarter-finals</span> &nbsp; W27–1A &nbsp;·&nbsp; W28–1B &nbsp;·&nbsp; 1C–W25 &nbsp;·&nbsp; 1D–W26<br>
-<span class="mu">Semi-finals</span> &nbsp; W29–W32 &nbsp;·&nbsp; W30–W31
-</div>''']
+''']
 
     for i, g in enumerate("ABCD"):
         out.append(f'<h2 class="sec">Group {g}</h2>')
@@ -999,27 +1062,30 @@ meet the runner-up from its own group before the final.</p>
     # right ORDER of criteria types and was wrong in three ways that change
     # results; see `classify()` for the detail. This section is the reader's
     # half of that fix and is the most-asked question of any group stage.
-    out.append('''<h2 class="sec">If teams finish level</h2>
+    out.append('''<h2 class="sec">If teams finish tied</h2>
 <p class="prose" style="font-size:12.5px">Teams are ranked on
 <b>classification points — two for a win, one for a loss</b>. That is not the
-system most US fans expect: a 3–0 team has six, an 0–3 team has three, and
-nobody finishes on zero.</p>
+system most US fans expect: a 3–0 team has six points, an 0–3 team has three
+points, and nobody finishes on zero.</p>
 <div class="path">
 <b>1.</b> Classification points<br>
-<b>2.</b> If teams are level, <b>only the games between those teams count</b> —
+<b>2.</b> If teams are tied, <b>only the games between those teams count</b> —
 they are re-ranked as a mini-table: record, then points difference, then points
 scored, all within that group of teams<br>
-<b>3.</b> Still level → points difference across all group games, then points
+<b>3.</b> Still tied → points difference across all group games, then points
 scored across all group games<br>
-<b>4.</b> Still level → FIBA world ranking
+<b>4.</b> Still tied → FIBA world ranking
 </div>
 <p class="prose" style="font-size:12.5px">Step 2 is the one worth
-understanding, because it is not the same as "head-to-head". With three teams
-tied, beating one of them does not put you above them — what counts is your
-record and margin across <i>all</i> the games among the tied teams. A team can
-win its head-to-head meeting and still finish below the team it beat. And each
+understanding, because it is not the same as "head-to-head". <b>Three-way ties
+are common</b> — they happen whenever three teams beat each other in a circle,
+which is a quarter of all possible group outcomes. When that happens each team
+is 1–1 against the others, so the mini-table is tied on record and
+<b>margin decides</b>. Beating one of them does not put you above them: a team
+can win its head-to-head meeting and still finish below the team it beat. Each
 time the procedure separates one team out, it <b>starts again from the top</b>
-for whoever is still tied.</p>''')
+for whoever is still tied. (All four tied is impossible — the six group games
+produce six wins, which will not divide evenly among four teams.)</p>''')
     return shell("/groups/", f"Groups — {TOURNAMENT_NAME} 2026", "".join(out),
                  "Group tables, fixtures and the route to the quarter-finals "
                  "at the 2026 FIBA Women's Basketball World Cup.")
