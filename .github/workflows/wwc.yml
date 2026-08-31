@@ -144,6 +144,25 @@ jobs:
       - name: Build WWC pages
         run: python sites/wwc/build_wwc_pages.py
 
+      # Cross-check the results we just built against ESPN, an independent
+      # pipeline that names the teams which actually played. This is the only
+      # check that can catch a real score attached to the WRONG knockout
+      # fixture -- our own join is exact against FIBA, but a join can be
+      # self-consistently wrong, and that failure "reads as correct to
+      # everyone."
+      #
+      # continue-on-error, and the script exits 0 on problems anyway: it
+      # REPORTS, it does not gate. Same contract validate_stats.py has on the
+      # WNBA side. ESPN being unreachable, or changing its JSON, must never
+      # stop this site from publishing -- and note ESPN lists only fixtures
+      # whose teams are known, so before a knockout round resolves there is
+      # legitimately nothing to compare.
+      #
+      # Read the step log on knockout days. Nothing else surfaces it.
+      - name: Cross-check results against ESPN
+        continue-on-error: true
+        run: python sites/wwc/validate_results.py
+
       - name: Commit built site
         run: |
           git config user.name  "wnba-stats-bot"
