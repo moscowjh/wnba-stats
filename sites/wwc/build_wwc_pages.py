@@ -1498,7 +1498,7 @@ internationally. Every team\u2019s full record is on its own page — see
 <a href="/teams/">Teams</a>.</p>
 <p class="prose"><b>{wnba_total} current WNBA players are in this field</b>,
 spread across {with_wnba} of the {t["team_count"]} teams. The US roster is the
-most star-studded, with {plink("A\u0027ja Wilson")}, {plink("Breanna Stewart")},
+most star-studded, with {plink("Napheesa Collier")}, {plink("Breanna Stewart")},
 {plink("Caitlin Clark")} and {plink("Paige Bueckers")} among its names. France,
 which nearly beat the US in Paris in 2024, returns a strong team headlined by
 {plink("Gabby Williams")}. Even the host nation, <b>{tlink("GERMANY")}</b>,

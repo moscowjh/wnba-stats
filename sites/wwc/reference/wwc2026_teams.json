@@ -6447,7 +6447,7 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": null,
+        "as_of": "2026-08-31",
         "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
@@ -6457,19 +6457,6 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "DAL",
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": "5",
-            "name": "Kelsey Plum",
-            "position": "G",
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": "PHX",
               "club_country": null,
               "club_name": null
             },
@@ -6506,19 +6493,6 @@
             "number": "8",
             "name": "Chelsea Gray",
             "position": "G",
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": "LVA",
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
-          },
-          {
-            "number": "9",
-            "name": "A'ja Wilson",
-            "position": "C",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "LVA",
@@ -6605,6 +6579,32 @@
             },
             "player_slug": null,
             "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Sonia Citron",
+            "position": "G",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "WAS",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
+          },
+          {
+            "number": null,
+            "name": "Kiki Iriafen",
+            "position": "F",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "WAS",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
           }
         ]
       },
@@ -6614,7 +6614,7 @@
         "drafted_only": 0,
         "total_connected": 12,
         "roster_basis": "final_12",
-        "as_of": "2026-08-19",
+        "as_of": "2026-08-31",
         "confidence": "high",
         "players": [
           {
@@ -6632,15 +6632,6 @@
             "status": "current",
             "wnba_team": "IND",
             "wnba_team_full": "Indiana Fever",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "A'ja Wilson",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "LVA",
-            "wnba_team_full": "Las Vegas Aces",
             "note": null,
             "confidence": "high"
           },
@@ -6690,15 +6681,6 @@
             "confidence": "high"
           },
           {
-            "name": "Kelsey Plum",
-            "position": "G",
-            "status": "current",
-            "wnba_team": "PHX",
-            "wnba_team_full": "Phoenix Mercury",
-            "note": null,
-            "confidence": "high"
-          },
-          {
             "name": "Kahleah Copper",
             "position": "G",
             "status": "current",
@@ -6724,9 +6706,27 @@
             "wnba_team_full": "Atlanta Dream",
             "note": null,
             "confidence": "high"
+          },
+          {
+            "name": "Sonia Citron",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "WAS",
+            "wnba_team_full": "Washington Mystics",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Kiki Iriafen",
+            "position": "F",
+            "status": "current",
+            "wnba_team": "WAS",
+            "wnba_team_full": "Washington Mystics",
+            "note": null,
+            "confidence": "high"
           }
         ],
-        "note": "All twelve play in the WNBA. Plum moved to Phoenix and Reese to Atlanta in 2026 — do not print Sparks or Sky.",
+        "note": "All twelve play in the WNBA. Citron and Iriafen (both Washington) replaced Plum and Wilson on 2026-08-31. Plum moved to Phoenix and Reese to Atlanta in 2026 — do not print Sparks or Sky.",
         "sources": [
           {
             "claim": null,
