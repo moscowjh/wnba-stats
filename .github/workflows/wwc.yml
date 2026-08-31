@@ -12,13 +12,20 @@ name: WWC site build
 # game played. Sharing a workflow would mean a WNBA fetch failure blocking a
 # WWC content fix, and vice versa.
 #
-# ⚠️ SCHEDULING IS NOT WIRED YET. There is no cron here. From 4 September this
-# needs a daily run after the last Berlin game (~18:45 UTC). GitHub's native
-# `schedule:` is unreliable on this repo — it silently dropped three mornings
-# in June 2026, which is why the WNBA build is dispatched by a Cloudflare cron
-# Worker instead. Adding WWC means editing `workers/cron/worker.js` (which
-# hardcodes `const WORKFLOW = "build.yml"`) and redeploying it BY HAND, since
-# no Worker is deployed by CI. See DEPLOY.md.
+# ⚠️ SCHEDULING LIVES ELSEWHERE — deliberately. There is no cron in this file
+# and there must not be one. GitHub's native `schedule:` is unreliable on this
+# repo — it silently dropped three mornings in June 2026 — so this workflow is
+# dispatched by the Cloudflare cron Worker in `workers/cron/`, deployed by hand
+# on 2026-08-31. Adding a `schedule:` here would DOUBLE-BUILD, not back it up.
+#
+# Two dispatches drive this workflow (see `scheduled()` in worker.js):
+#   22:00 UTC — the daily build, after the last Berlin game.
+#   11:17 UTC — a catch-up, riding the WNBA trigger because the Free plan
+#               allows only 5 Cron Triggers per ACCOUNT and all 5 are in use.
+# A report-only check at 14:45 UTC emails if the newest run here failed or is
+# more than 26h old. No Worker is deployed by CI, so any change to that
+# scheduling needs a manual `cd workers/cron && npx wrangler deploy`.
+# See DEPLOY.md.
 #
 # ⚠️ YAML gotcha, learned expensively on 2026-06-16 — never put a bare
 # colon-space (": ") inside an UNQUOTED scalar (a `run:` line, a commit

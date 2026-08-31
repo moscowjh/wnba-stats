@@ -172,7 +172,7 @@ async function dispatchWwc(env, label = "scheduled") {
 }
 
 // Report-only, and separate from healthCheck() by design. The WNBA check
-// repairs; this one only tells you. The repair here is the 06:30 catch-up
+// repairs; this one only tells you. The repair here is the 11:17 catch-up
 // dispatch, which has already run by the time this fires, so a problem that
 // survives to 14:45 has outlived one automatic retry and wants a human.
 //
@@ -647,7 +647,7 @@ export default {
   //
   // So the failure mode was inverted on purpose. An unrecognised cron now
   // does nothing and logs why. That yields a MISSED build — which the 11:45
-  // health check already detects and repairs for WNBA, and which the 06:30
+  // health check already detects and repairs for WNBA, and which the 11:17
   // catch-up covers for WWC. Both are recoverable; a double post is not.
   //
   // Exact string equality against the wrangler.toml entries is not a new
