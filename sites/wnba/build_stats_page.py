@@ -1854,20 +1854,22 @@ def assemble_page(display_date, data_through_iso,
         '<meta name="description" content="Fast, ad-free WNBA stats you can check at a glance \u2014 leaders, standings, four factors, updated every morning.">\n'
         # Social preview (Open Graph + Twitter) \u2014 image lives at public/og.png,
         # served as a static asset by the Worker. Absolute URLs required.
-        '<meta property="og:type" content="website">\n'
-        '<meta property="og:site_name" content="statsataglance">\n'
-        '<meta property="og:title" content="WNBA 2026 \u2014 At a Glance">\n'
-        '<meta property="og:description" content="Fast, ad-free WNBA stats you can check at a glance \u2014 leaders, standings, four factors, updated every morning.">\n'
-        '<meta property="og:url" content="https://wnba.statsataglance.com/">\n'
-        '<meta property="og:image" content="https://wnba.statsataglance.com/og.png">\n'
-        '<meta property="og:image:width" content="1200">\n'
-        '<meta property="og:image:height" content="630">\n'
-        '<meta property="og:image:alt" content="WNBA 2026 \u2014 At a Glance: fast, ad-free WNBA stats">\n'
-        '<meta name="twitter:card" content="summary_large_image">\n'
-        '<meta name="twitter:title" content="WNBA 2026 \u2014 At a Glance">\n'
-        '<meta name="twitter:description" content="Fast, ad-free WNBA stats \u2014 leaders, standings, four factors, updated every morning.">\n'
-        '<meta name="twitter:image" content="https://wnba.statsataglance.com/og.png">\n'
-        f'<style>\n{PAGE_CSS}\n</style>\n'
+        # Emitted by `sag.seo.social_tags`, shared with the player pages and the
+        # WWC site; it was three hand-rolled copies until 2026-09-02. The two
+        # overrides below are NOT decoration: this page deliberately ships a
+        # shorter twitter:description than its og:description, and a bespoke
+        # og:image:alt. Folding them into one string would be a silent copy
+        # change on the live page.
+        + "\n".join(seo.social_tags(
+            WNBA, "/",
+            "WNBA 2026 \u2014 At a Glance",
+            "Fast, ad-free WNBA stats you can check at a glance \u2014 leaders, "
+            "standings, four factors, updated every morning.",
+            image_alt="WNBA 2026 \u2014 At a Glance: fast, ad-free WNBA stats",
+            twitter_description="Fast, ad-free WNBA stats \u2014 leaders, "
+                                "standings, four factors, updated every morning.",
+        )) + "\n"
+        + f'<style>\n{PAGE_CSS}\n</style>\n'
         '</head>\n<body>\n\n'
         '<h1>WNBA 2026 \u2014 At a Glance</h1>\n'
         f'<div class="meta">Fast, ad-free — updated through games of {display_date}</div>\n'

@@ -32,6 +32,66 @@ def canonical_url(cfg, path):
     return f"{cfg.base_url}{path}"
 
 
+def social_tags(cfg, path, title, description, *, og_type="website",
+                card=None, image_alt=None, twitter_description=None):
+    """Open Graph + Twitter tags for one page. Absolute URLs, per spec.
+
+    THE social-tag function. Three emitters used to hand-roll this block and
+    had drifted three ways (two image URLs built differently, one site with no
+    tags at all) — a link preview is the one surface where the drift is
+    invisible locally and permanent once a platform caches it.
+
+    The image is emitted ONLY when the site actually ships one
+    (`cfg.og_image.exists()`). A card that references a missing PNG previews
+    worse than no card at all, and every one of these platforms caches the
+    result — so this follows the same correct-or-blank posture as the
+    2026-07-03 line-score fix rather than emitting a hopeful URL. The practical
+    effect is that a site gains its card the moment the PNG lands, with no code
+    change: drop `public/og.png` in and the next build starts emitting it.
+
+    `card` overrides the card type. It exists for ONE unresolved case — the
+    WNBA player pages ship `summary` where the main page ships
+    `summary_large_image`, and nobody now knows whether that was deliberate
+    (a profile arguably wants the compact card) or drift. Jason chose to keep
+    the difference explicit rather than silently unify it, 2026-09-02. Delete
+    the argument if it is ever settled.
+
+    `image_alt` and `twitter_description` exist because the WNBA main page
+    deliberately ships a SHORTER twitter:description than its og:description
+    and a bespoke og:image:alt. Flattening those to one string would have been
+    a silent copy change on the live page, so they stay overridable and the
+    default is the obvious one.
+    """
+    tags = [
+        f'<meta property="og:type" content="{esc(og_type)}">',
+        '<meta property="og:site_name" content="statsataglance">',
+        f'<meta property="og:title" content="{esc(title)}">',
+        f'<meta property="og:description" content="{esc(description)}">',
+        f'<meta property="og:url" content="{esc(canonical_url(cfg, path))}">',
+    ]
+    has_image = cfg.og_image.exists()
+    if has_image:
+        image_url = f"{cfg.base_url}/{cfg.og_image.name}"
+        tags += [
+            f'<meta property="og:image" content="{esc(image_url)}">',
+            '<meta property="og:image:width" content="1200">',
+            '<meta property="og:image:height" content="630">',
+            f'<meta property="og:image:alt" content="{esc(image_alt or title)}">',
+        ]
+    # twitter:card is what makes X/iMessage/Slack/WhatsApp draw a card at all —
+    # its ABSENCE (not a missing image) is why the WWC links rendered bare.
+    tags.append('<meta name="twitter:card" content="'
+                f'{card or ("summary_large_image" if has_image else "summary")}">')
+    tags += [
+        f'<meta name="twitter:title" content="{esc(title)}">',
+        '<meta name="twitter:description" content="'
+        f'{esc(twitter_description or description)}">',
+    ]
+    if has_image:
+        tags.append(f'<meta name="twitter:image" content="{esc(image_url)}">')
+    return tags
+
+
 def sitemap_xml(cfg, paths, lastmod):
     """One <url> per path, all stamped with the build's data date. The daily
     build regenerates this whole file; lastmod moving forward each morning is

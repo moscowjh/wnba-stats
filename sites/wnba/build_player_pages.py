@@ -381,22 +381,25 @@ def head_html(title, path, description, jsonld=None):
     """Shared <head> for every page under /players/: canonical + meta +
     Open Graph/Twitter, plus optional JSON-LD. All URLs absolute."""
     canonical = seo.canonical_url(WNBA, path)
-    og_image = f"{WNBA.base_url}/og.png"
     parts = [
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
         f"<title>{esc(title)}</title>",
         f'<meta name="description" content="{esc(description)}">',
         f'<link rel="canonical" href="{esc(canonical)}">',
-        '<meta property="og:type" content="profile">',
-        '<meta property="og:site_name" content="statsataglance">',
-        f'<meta property="og:title" content="{esc(title)}">',
-        f'<meta property="og:description" content="{esc(description)}">',
-        f'<meta property="og:url" content="{esc(canonical)}">',
-        f'<meta property="og:image" content="{esc(og_image)}">',
-        '<meta name="twitter:card" content="summary">',
-        f'<meta name="twitter:title" content="{esc(title)}">',
-        f'<meta name="twitter:description" content="{esc(description)}">',
+        # Social tags come from `sag.seo.social_tags`, shared with the main
+        # page and the WWC site. This call is the ONLY one passing an explicit
+        # `card`: these pages ship the compact `summary` where the main page
+        # ships `summary_large_image`, and it is unresolved whether that was
+        # deliberate (a profile arguably wants the small card) or drift. Jason
+        # chose to keep the difference rather than silently unify it,
+        # 2026-09-02. Drop the argument if it is ever settled.
+        #
+        # Routing through the helper DID change these pages: they were missing
+        # og:image:width/height/alt and twitter:image, which the main page has
+        # had since Phase 1. That is the drift this refactor existed to end.
+        *seo.social_tags(WNBA, path, title, description,
+                         og_type="profile", card="summary"),
     ]
     if jsonld:
         parts.append(f'<script type="application/ld+json">{jsonld}</script>')

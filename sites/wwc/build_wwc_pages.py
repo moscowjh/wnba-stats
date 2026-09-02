@@ -434,6 +434,17 @@ def shell(path, title, body, description, extra_head=""):
     # over-long keys COLLIDE rather than truncate (DEPLOY.md, blob2).
     key = analytics_key(path)
     assert len(key) <= 32, f"analytics page key too long: {key!r}"
+    # Shared with both WNBA emitters. Until 2026-09-02 this page shipped four
+    # og:* tags and NO twitter:card, which is why forwarded links previewed as
+    # bare URLs rather than as a card — twitter:card is the tag every one of
+    # X / iMessage / Slack / WhatsApp reads to decide to draw a card at all.
+    #
+    # There is no `sites/wwc/public/og.png` yet, so `social_tags` deliberately
+    # emits `twitter:card=summary` and ZERO og:image tags: a card pointing at a
+    # missing PNG previews worse than no image, and these platforms cache hard.
+    # Drop the file in and the next build starts emitting the full card with no
+    # code change here.
+    social = "\n".join(seo.social_tags(WWC, path, title, description))
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -442,10 +453,7 @@ def shell(path, title, body, description, extra_head=""):
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(description)}">
 <link rel="canonical" href="{esc(canonical)}">
-<meta property="og:title" content="{esc(title)}">
-<meta property="og:description" content="{esc(description)}">
-<meta property="og:url" content="{esc(canonical)}">
-<meta property="og:type" content="website">
+{social}
 {extra_head}<style>
 {PAGE_CSS}</style>
 </head>

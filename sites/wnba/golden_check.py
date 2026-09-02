@@ -73,6 +73,19 @@ def _build(out_site_dir, sag_today):
         WNBA, site_dir=Path(out_site_dir), data_dir_override=SNAP_DATA)
     bsp.WNBA = cfg
     bsp.OUTPUT = cfg.page_output
+
+    # og.png is an INPUT to the page now, not just a served asset: since
+    # 2026-09-02 `seo.social_tags` gates the og:image/twitter:image block on
+    # `cfg.og_image.exists()`. Redirecting site_dir moves public_dir with it,
+    # so without this copy the harness renders the NO-IMAGE variant
+    # (twitter:card=summary) while production renders the card — and the
+    # golden would faithfully freeze a page that production never emits.
+    # Exactly why SNAP_DATA exists: the harness supplies inputs, it does not
+    # fake them.
+    if WNBA.og_image.exists():
+        cfg.public_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(WNBA.og_image, cfg.og_image)
+
     bsp.main()
     return cfg.page_output, cfg.social_payload
 
