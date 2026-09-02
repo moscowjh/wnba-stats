@@ -1,7 +1,7 @@
 {
   "_schema": {
     "version": "2.1.0",
-    "generated": "2026-08-19",
+    "generated": "2026-08-31",
     "note": "One record per team, 16 records. Field set frozen before profile writing. Source of truth for the WWC team pages; all views (spreadsheet, HTML table) are generated from this file and are disposable.",
     "keys": "code is the primary key (FIBA three-letter). schedule_key joins to sites/wwc/reference/wwc_schedule_2026.csv, which uses UPPERCASE full names, not codes. Both are needed; neither alone is sufficient.",
     "sources": "A LIST, not a single URL, following the hooks.json convention. Verbatim quotes are attached where the source stated a figure directly.",

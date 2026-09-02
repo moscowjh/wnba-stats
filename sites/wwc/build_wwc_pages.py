@@ -1925,11 +1925,30 @@ def main():
         if not box.get("_fixture"):
             paths.append(f"/games/{gid}/")
 
-    # lastmod is the tournament's own data date, not today: the pages
-    # genuinely have not changed since the reference data did, and a
+    # lastmod is the tournament's own DATA date, never today's date: the
+    # pages genuinely have not changed since the data behind them did, and a
     # lastmod that moves every build on a static programme site is a
     # freshness claim we cannot back.
-    lastmod = doc["_schema"]["generated"][:10]
+    #
+    # TWO sources, because the reference file alone is not the whole data
+    # date. `_schema.generated` covers editorial and roster edits; the date
+    # of the newest game we hold a result for covers the tournament itself.
+    # Without the second term the stamp freezes on Sep 4 and the sitemap
+    # spends the entire Cup claiming nothing changed while every Games,
+    # Groups and team page changes daily — the inverse of the over-claiming
+    # this comment was originally written to prevent, and just as wrong.
+    #
+    # Taking the max means the stamp advances when, and only when, something
+    # on the pages really moved. ISO dates compare correctly as strings, so
+    # no parsing is needed. Results whose game_id is not in the schedule are
+    # skipped rather than crashing the build on a match day.
+    #
+    # NOTE: `_schema.generated` is hand-maintained. It went stale once
+    # already — it still read 2026-08-19 on 2026-09-01, nine days after the
+    # real rosters for all 16 teams landed. Bump it in the same commit as
+    # any edit to this file's contents.
+    played = [rows_by_id[g]["date"] for g in results if g in rows_by_id]
+    lastmod = max([doc["_schema"]["generated"][:10]] + played)
     # `sag.seo` writes into cfg.public_dir, so a preview run redirects it via
     # the config's own override rather than by writing paths by hand — the
     # same move golden_check.py makes, and the reason that override exists.
