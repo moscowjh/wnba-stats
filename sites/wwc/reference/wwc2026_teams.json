@@ -1,7 +1,7 @@
 {
   "_schema": {
     "version": "2.1.0",
-    "generated": "2026-08-31",
+    "generated": "2026-09-02",
     "note": "One record per team, 16 records. Field set frozen before profile writing. Source of truth for the WWC team pages; all views (spreadsheet, HTML table) are generated from this file and are disposable.",
     "keys": "code is the primary key (FIBA three-letter). schedule_key joins to sites/wwc/reference/wwc_schedule_2026.csv, which uses UPPERCASE full names, not codes. Both are needed; neither alone is sufficient.",
     "sources": "A LIST, not a single URL, following the hooks.json convention. Verbatim quotes are attached where the source stated a figure directly.",
@@ -100,7 +100,9 @@
     "HUN.wwc_editions": "Fourth appearance was listed as 1990 on a Wikipedia-derived grid. Correct: 1986, from FIBA's Hungary History tab.",
     "BEL.coach.us_connection": "Called Thibault the WNBA's all-time coaching wins leader. Cheryl Reeve passed him in 2026. A decaying superlative should never have been stored in a data field — the falsifiability rule now applies to us_connection.summary as well.",
     "MLI.coach": "Named Hamchétou Maïga-Ba as head coach on wiki sourcing. No evidence supports it; withdrawn to null. Mali's coach is currently unknown.",
-    "KOR.wwc_appearances_count": "Was 16 with a null editions array, on the basis of FIBA's prose article. Correct: 17, from FIBA's Korea History tab, which also supplied every placing. FIBA's article and FIBA's data disagree; the data is right."
+    "KOR.wwc_appearances_count": "Was 16 with a null editions array, on the basis of FIBA's prose article. Correct: 17, from FIBA's Korea History tab, which also supplied every placing. FIBA's article and FIBA's data disagree; the data is right.",
+    "HUN.roster.juhasz": "A 2026-08-31 session recorded that Dorka Juhász had been CUT, inferring it from Hungary's list shrinking 25 -> 14. She had not been. The 14 was an interim narrowing (10 July); the final 12 (31 August) has her at No. 14. The inference reached build_wwc_pages.py's wnba_on_squad() docstring and drove the headline count, so the page published '0 current players' above a table naming her. Absence from a scraped list is not evidence of a cut.",
+    "ESP.wnba.gustafson": "The wnba block carried 'Megan Gustafson'. The squad and the Spanish federation both say Megan DiLeo. Same player, married name."
   },
   "teams": [
     {
@@ -266,8 +268,6 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-31",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
             "number": "2",
@@ -379,7 +379,7 @@
             "position": "C",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": "POR",
+              "wnba_team": "PDX",
               "club_country": null,
               "club_name": null
             },
@@ -425,17 +425,29 @@
             "player_slug": null,
             "wnba": false
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-08-31",
+        "history": "21 on 07-24, final 12 on 08-31"
       },
       "wnba": {
         "current": 5,
         "former": 1,
-        "drafted_only": 5,
-        "total_connected": 11,
-        "roster_basis": "pool_21",
-        "as_of": "2026-08-19",
+        "drafted_only": 3,
+        "total_connected": 9,
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
+          {
+            "name": "María Conde",
+            "position": "SF",
+            "status": "current",
+            "wnba_team": "TOR",
+            "wnba_team_full": "Toronto Tempo",
+            "note": null,
+            "confidence": "high"
+          },
           {
             "name": "Awa Fam",
             "position": "C",
@@ -455,26 +467,17 @@
             "confidence": "high"
           },
           {
-            "name": "María Conde",
-            "position": "F",
+            "name": "Megan DiLeo",
+            "position": "C",
             "status": "current",
-            "wnba_team": "TOR",
-            "wnba_team_full": "Toronto Tempo",
+            "wnba_team": "PDX",
+            "wnba_team_full": "Portland Fire",
             "note": null,
             "confidence": "high"
           },
           {
-            "name": "Megan Gustafson",
-            "position": "C",
-            "status": "current",
-            "wnba_team": "POR",
-            "wnba_team_full": "Portland Fire",
-            "note": "Naturalised Spaniard; seven-year WNBA veteran. Not 'Megan DiLeo'.",
-            "confidence": "high"
-          },
-          {
             "name": "Alicia Flórez",
-            "position": "G",
+            "position": "PG",
             "status": "current",
             "wnba_team": "WAS",
             "wnba_team_full": "Washington Mystics",
@@ -491,30 +494,12 @@
             "confidence": "high"
           },
           {
-            "name": "Iyana Martín Carrión",
-            "position": null,
-            "status": "drafted_only",
-            "wnba_team": "POR",
-            "wnba_team_full": "Portland Fire",
-            "note": "7th overall 2026 — declined to join Portland in order to train with Spain for this World Cup.",
-            "confidence": "high"
-          },
-          {
             "name": "Alba Torrens",
             "position": null,
             "status": "drafted_only",
             "wnba_team": "CON",
             "wnba_team_full": "Connecticut Sun",
             "note": "36th overall 2009; has repeatedly declined, citing national-team commitments.",
-            "confidence": "high"
-          },
-          {
-            "name": "Aina Ayuso",
-            "position": null,
-            "status": "drafted_only",
-            "wnba_team": "LAS",
-            "wnba_team_full": "Los Angeles Sparks",
-            "note": "34th overall 2021.",
             "confidence": "high"
           },
           {
@@ -527,6 +512,26 @@
             "confidence": "high"
           },
           {
+            "name": "Iyana Martín",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "POR",
+            "wnba_team_full": "Portland Fire",
+            "note": "7th overall 2026 — declined to join Portland in order to train with Spain for this World Cup.",
+            "confidence": "high"
+          }
+        ],
+        "not_on_squad": [
+          {
+            "name": "Aina Ayuso",
+            "position": null,
+            "status": "drafted_only",
+            "wnba_team": "LAS",
+            "wnba_team_full": "Los Angeles Sparks",
+            "note": "34th overall 2021.",
+            "confidence": "high"
+          },
+          {
             "name": "Txell Alarcón",
             "position": null,
             "status": "drafted_only",
@@ -536,7 +541,7 @@
             "confidence": "high"
           }
         ],
-        "note": "Pool of 21 to be cut to 16. Marta Suárez, drafted 16th overall in 2026, is NOT in the pool.",
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -666,10 +671,8 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 14,
-        "as_of": "2026-08-29",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "status": "final",
+        "player_count": 12,
         "players": [
           {
             "number": "1",
@@ -711,14 +714,14 @@
             "wnba": true
           },
           {
-            "number": "11",
-            "name": "Marie Gülich",
-            "position": "PF",
+            "number": "9",
+            "name": "Emma Eichmeyer",
+            "position": "F",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_country": "AUS",
-              "club_name": "Townsville Fire"
+              "club_country": null,
+              "club_name": "Saarlouis Royals"
             },
             "player_slug": null,
             "wnba": false
@@ -742,7 +745,7 @@
             "position": "C",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": "POR",
+              "wnba_team": "PDX",
               "club_country": null,
               "club_name": null
             },
@@ -750,14 +753,14 @@
             "wnba": true
           },
           {
-            "number": "16",
-            "name": "Alina Hartmann",
-            "position": "SF",
+            "number": "19",
+            "name": "Britta Daub",
+            "position": "G",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
               "club_country": "GER",
-              "club_name": "Alba Berlin"
+              "club_name": "Eisvögel USC Freiburg"
             },
             "player_slug": null,
             "wnba": false
@@ -768,12 +771,25 @@
             "position": "PF",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": "POR",
+              "wnba_team": "PDX",
               "club_country": null,
               "club_name": null
             },
             "player_slug": null,
             "wnba": true
+          },
+          {
+            "number": "21",
+            "name": "Marie Gülich",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "AUS",
+              "club_name": "Townsville Fire"
+            },
+            "player_slug": null,
+            "wnba": false
           },
           {
             "number": "22",
@@ -813,57 +829,59 @@
             },
             "player_slug": null,
             "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Patricia Broßmann",
-            "position": "PF",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "AUS",
-              "club_name": "Perth Redbacks"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Britta Daub",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "GER",
-              "club_name": "Eisvögel USC Freiburg"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Laura Zolper",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "FRA",
-              "club_name": "Basket Lattes"
-            },
-            "player_slug": null,
-            "wnba": false
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-09-02",
+        "history": "16 on 07-17, 14 on 08-29, final 12 on 09-02"
       },
       "wnba": {
-        "current": 5,
+        "current": 4,
         "former": 0,
         "drafted_only": 0,
-        "total_connected": 5,
-        "roster_basis": "proxy_wnba_rosters",
-        "as_of": "2026-08-19",
-        "confidence": "medium",
+        "total_connected": 4,
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
+        "confidence": "high",
         "players": [
+          {
+            "name": "Nyara Sabally",
+            "position": "PF",
+            "status": "current",
+            "wnba_team": "TOR",
+            "wnba_team_full": "Toronto Tempo",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Leonie Fiebich",
+            "position": "SG",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Luisa Geiselsöder",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "PDX",
+            "wnba_team_full": "Portland Fire",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Frieda Bühner",
+            "position": "PF",
+            "status": "current",
+            "wnba_team": "PDX",
+            "wnba_team_full": "Portland Fire",
+            "note": "Drafted 17th overall 2026; played 32 games as a rookie.",
+            "confidence": "high"
+          }
+        ],
+        "not_on_squad": [
           {
             "name": "Satou Sabally",
             "position": "F",
@@ -872,45 +890,9 @@
             "wnba_team_full": "New York Liberty",
             "note": null,
             "confidence": "high"
-          },
-          {
-            "name": "Leonie Fiebich",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "NYL",
-            "wnba_team_full": "New York Liberty",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Nyara Sabally",
-            "position": "C",
-            "status": "current",
-            "wnba_team": "TOR",
-            "wnba_team_full": "Toronto Tempo",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Luisa Geiselsöder",
-            "position": "C",
-            "status": "current",
-            "wnba_team": "POR",
-            "wnba_team_full": "Portland Fire",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Frieda Bühner",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "POR",
-            "wnba_team_full": "Portland Fire",
-            "note": "Drafted 17th overall 2026; played 32 games as a rookie.",
-            "confidence": "high"
           }
         ],
-        "note": "No squad announced. These are Germans currently in the WNBA and are likely but UNCONFIRMED call-ups — squad membership is inference, not fact.",
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -1113,8 +1095,6 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-20",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
             "number": "2",
@@ -1272,20 +1252,23 @@
             "player_slug": null,
             "wnba": false
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-08-20",
+        "history": "14 on 07-27, final on 08-20"
       },
       "wnba": {
         "current": 1,
         "former": 2,
         "drafted_only": 1,
         "total_connected": 4,
-        "roster_basis": "pool_16",
-        "as_of": "2026-08-19",
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
           {
             "name": "Mai Yamamoto",
-            "position": "G",
+            "position": "SG",
             "status": "current",
             "wnba_team": "LVA",
             "wnba_team_full": "Las Vegas Aces",
@@ -1320,7 +1303,8 @@
             "confidence": "high"
           }
         ],
-        "note": null,
+        "not_on_squad": [],
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -1449,8 +1433,6 @@
       "roster": {
         "status": "pool",
         "player_count": 22,
-        "as_of": "2026-07-26",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
             "number": "0",
@@ -1663,7 +1645,7 @@
           {
             "number": null,
             "name": "Djénéba Sangaré",
-            "position": "GF",
+            "position": "G/F",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
@@ -1728,7 +1710,7 @@
           {
             "number": null,
             "name": "Aicha Coulibaly",
-            "position": "GF",
+            "position": "G/F",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "CHI",
@@ -1738,28 +1720,41 @@
             "player_slug": null,
             "wnba": true
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-07-26",
+        "history": "23-player preselection 07-26; NO final squad published"
       },
       "wnba": {
-        "current": 1,
+        "current": 2,
         "former": 0,
         "drafted_only": 0,
-        "total_connected": 1,
-        "roster_basis": "pool_23",
-        "as_of": "2026-08-19",
+        "total_connected": 2,
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
           {
             "name": "Sika Koné",
-            "position": "F",
+            "position": "PF",
             "status": "current",
             "wnba_team": "ATL",
             "wnba_team_full": "Atlanta Dream",
             "note": "Drafted 29th overall in 2022 by New York; Chicago 2023, Minnesota 2024, Washington 2024-25, Atlanta since August 2025. Around 95 career games.",
             "confidence": "high"
+          },
+          {
+            "name": "Aicha Coulibaly",
+            "position": "G/F",
+            "status": "current",
+            "wnba_team": "CHI",
+            "wnba_team_full": "Chicago Sky",
+            "note": null,
+            "confidence": "high"
           }
         ],
-        "note": "Mali's only WNBA player. Diaba Konaté has no WNBA connection.",
+        "not_on_squad": [],
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -1947,8 +1942,6 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-29",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
             "number": "11",
@@ -2008,7 +2001,7 @@
             "position": "PG",
             "plays_for": {
               "type": "wnba",
-              "wnba_team": "POR",
+              "wnba_team": "PDX",
               "club_country": null,
               "club_name": null
             },
@@ -2095,7 +2088,7 @@
           },
           {
             "number": "98",
-            "name": "Pauline Astier",
+            "name": "Pauline Astier",
             "position": "G",
             "plays_for": {
               "type": "wnba",
@@ -2106,23 +2099,26 @@
             "player_slug": null,
             "wnba": true
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-08-29",
+        "history": "32 on 07-07, final 12 on 08-29"
       },
       "wnba": {
-        "current": 11,
-        "former": 2,
-        "drafted_only": 1,
-        "total_connected": 14,
-        "roster_basis": "pool_32",
-        "as_of": "2026-08-19",
+        "current": 8,
+        "former": 1,
+        "drafted_only": 0,
+        "total_connected": 9,
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
           {
-            "name": "Gabby Williams",
-            "position": "F",
+            "name": "Valériane Ayayi",
+            "position": "SF",
             "status": "current",
-            "wnba_team": "GSV",
-            "wnba_team_full": "Golden State Valkyries",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
             "note": null,
             "confidence": "high"
           },
@@ -2145,26 +2141,26 @@
             "confidence": "high"
           },
           {
+            "name": "Gabby Williams",
+            "position": "SF",
+            "status": "current",
+            "wnba_team": "GSV",
+            "wnba_team_full": "Golden State Valkyries",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Carla Leite",
+            "position": "PG",
+            "status": "current",
+            "wnba_team": "PDX",
+            "wnba_team_full": "Portland Fire",
+            "note": null,
+            "confidence": "high"
+          },
+          {
             "name": "Marine Johannès",
-            "position": "G",
-            "status": "current",
-            "wnba_team": "NYL",
-            "wnba_team_full": "New York Liberty",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Pauline Astier",
-            "position": "G",
-            "status": "current",
-            "wnba_team": "NYL",
-            "wnba_team_full": "New York Liberty",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Marine Fauthoux",
-            "position": "G",
+            "position": "SG",
             "status": "current",
             "wnba_team": "NYL",
             "wnba_team_full": "New York Liberty",
@@ -2181,6 +2177,35 @@
             "confidence": "high"
           },
           {
+            "name": "Pauline Astier",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Marième Badiane",
+            "position": "C",
+            "status": "former",
+            "wnba_team": "MIN",
+            "wnba_team_full": "Minnesota Lynx",
+            "note": "Three games in 2025.",
+            "confidence": "high"
+          }
+        ],
+        "not_on_squad": [
+          {
+            "name": "Marine Fauthoux",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
             "name": "Nell Angloma",
             "position": "F",
             "status": "current",
@@ -2190,29 +2215,11 @@
             "confidence": "high"
           },
           {
-            "name": "Valériane Ayayi",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "PHX",
-            "wnba_team_full": "Phoenix Mercury",
-            "note": null,
-            "confidence": "high"
-          },
-          {
             "name": "Noémie Brochant",
             "position": "F",
             "status": "current",
             "wnba_team": "PHX",
             "wnba_team_full": "Phoenix Mercury",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Carla Leite",
-            "position": "G",
-            "status": "current",
-            "wnba_team": "POR",
-            "wnba_team_full": "Portland Fire",
             "note": null,
             "confidence": "high"
           },
@@ -2226,15 +2233,6 @@
             "confidence": "high"
           },
           {
-            "name": "Marième Badiane",
-            "position": "C",
-            "status": "former",
-            "wnba_team": "MIN",
-            "wnba_team_full": "Minnesota Lynx",
-            "note": "Three games in 2025.",
-            "confidence": "high"
-          },
-          {
             "name": "Inès Pitarch-Granel",
             "position": null,
             "status": "drafted_only",
@@ -2244,7 +2242,7 @@
             "confidence": "high"
           }
         ],
-        "note": "The deepest WNBA representation outside the United States. NOTE: Iliana Rupert is a current WNBA player but is NOT in France's 32-player pool — she withdrew injured. Do not assume she is in Berlin.",
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -2390,10 +2388,8 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 14,
-        "as_of": "2026-07-10",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "status": "final",
+        "player_count": 12,
         "players": [
           {
             "number": "2",
@@ -2409,19 +2405,6 @@
             "wnba": false
           },
           {
-            "number": "3",
-            "name": "Reka Dombai",
-            "position": "SF",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "HUN",
-              "club_name": "KSC Szekszárd"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
             "number": "7",
             "name": "Veronika Kányási",
             "position": "PG",
@@ -2430,6 +2413,19 @@
               "wnba_team": null,
               "club_country": "HUN",
               "club_name": "DVTK"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "8",
+            "name": "Eszter Rátkai",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": "KSC Szekszárd"
             },
             "player_slug": null,
             "wnba": false
@@ -2461,9 +2457,22 @@
             "wnba": false
           },
           {
-            "number": "18",
-            "name": "Aliz Varga",
-            "position": "SF",
+            "number": "11",
+            "name": "Kinga Josepovits",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": null,
+              "club_name": "PEAC-Pécs"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
+          {
+            "number": "13",
+            "name": "Ágnes Török",
+            "position": "PF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
@@ -2472,6 +2481,19 @@
             },
             "player_slug": null,
             "wnba": false
+          },
+          {
+            "number": "14",
+            "name": "Dorka Juhász",
+            "position": "F",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "MIN",
+              "club_country": null,
+              "club_name": null
+            },
+            "player_slug": null,
+            "wnba": true
           },
           {
             "number": "21",
@@ -2487,46 +2509,20 @@
             "wnba": false
           },
           {
-            "number": null,
-            "name": "Tyra Aho",
-            "position": "PG",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "HUN",
-              "club_name": "DVTK"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Barbara Angyal",
-            "position": "PG",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "HUN",
-              "club_name": "Sopron Basket"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Júlia Boros",
+            "number": "22",
+            "name": "Yvonne Turner",
             "position": "G",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_country": "HUN",
-              "club_name": "DVTK"
+              "club_country": null,
+              "club_name": "Valencia Basket"
             },
             "player_slug": null,
             "wnba": false
           },
           {
-            "number": null,
+            "number": "33",
             "name": "Panka Dúl",
             "position": "G",
             "plays_for": {
@@ -2539,71 +2535,39 @@
             "wnba": false
           },
           {
-            "number": null,
-            "name": "Sára Laczkó",
-            "position": "GF",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "HUN",
-              "club_name": "Sopron Basket"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Zsuzsanna Sitku",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "HUN",
-              "club_name": "Sopron Basket"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Ágnes Török",
+            "number": "55",
+            "name": "Judit Barnai",
             "position": "PF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_country": "HUN",
-              "club_name": "PEAC-Pécs"
+              "club_country": null,
+              "club_name": "Ceglédi EKK"
             },
             "player_slug": null,
             "wnba": false
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-08-31",
+        "history": "25 on 06-10, 14 on 07-10, final 12 on 08-31"
       },
       "wnba": {
         "current": 1,
         "former": 1,
         "drafted_only": 1,
         "total_connected": 3,
-        "roster_basis": "pool_25",
-        "as_of": "2026-08-19",
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
           {
             "name": "Dorka Juhász",
-            "position": "C",
+            "position": "F",
             "status": "current",
             "wnba_team": "MIN",
             "wnba_team_full": "Minnesota Lynx",
             "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Yvonne Turner",
-            "position": "G",
-            "status": "former",
-            "wnba_team": "SEA",
-            "wnba_team_full": "Seattle Storm",
-            "note": "American-Hungarian. Phoenix 2017-19, Minnesota and Atlanta 2022, Seattle 2023.",
             "confidence": "high"
           },
           {
@@ -2614,9 +2578,19 @@
             "wnba_team_full": "Phoenix Mercury",
             "note": "42nd overall 2026; rights held.",
             "confidence": "high"
+          },
+          {
+            "name": "Yvonne Turner",
+            "position": "G",
+            "status": "former",
+            "wnba_team": "SEA",
+            "wnba_team_full": "Seattle Storm",
+            "note": "American-Hungarian. Phoenix 2017-19, Minnesota and Atlanta 2022, Seattle 2023.",
+            "confidence": "high"
           }
         ],
-        "note": null,
+        "not_on_squad": [],
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -2807,10 +2781,8 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 13,
-        "as_of": "2026-05-26",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "status": "final",
+        "player_count": 12,
         "players": [
           {
             "number": "5",
@@ -2821,19 +2793,6 @@
               "wnba_team": null,
               "club_country": "KOR",
               "club_name": "Cheongju KB Stars"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": "7",
-            "name": "Park Ji-su",
-            "position": "C",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "KOR",
-              "club_name": "Incheon Shinhan"
             },
             "player_slug": null,
             "wnba": false
@@ -2981,26 +2940,31 @@
             "player_slug": null,
             "wnba": false
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-08-25",
+        "history": "13 on 05-26, final 12 on 08-25 (Park Ji-su excluded, rehab)"
       },
       "wnba": {
         "current": 1,
-        "former": 1,
+        "former": 0,
         "drafted_only": 0,
-        "total_connected": 2,
-        "roster_basis": "pool_13",
-        "as_of": "2026-08-19",
+        "total_connected": 1,
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
           {
-            "name": "Jihyun Park",
-            "position": "F",
+            "name": "Park Ji-hyun",
+            "position": "G",
             "status": "current",
             "wnba_team": "LAS",
             "wnba_team_full": "Los Angeles Sparks",
             "note": "Signed a training-camp contract and made the 2026 Sparks roster.",
             "confidence": "high"
-          },
+          }
+        ],
+        "not_on_squad": [
           {
             "name": "Jisu Park",
             "position": "C",
@@ -3011,7 +2975,7 @@
             "confidence": "high"
           }
         ],
-        "note": "Two unrelated players surnamed Park — an easy and embarrassing conflation.",
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -3648,8 +3612,6 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-27",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
             "number": "1",
@@ -3807,23 +3769,26 @@
             "player_slug": null,
             "wnba": true
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-08-27",
+        "history": "announced 07-26; final confirmed 08-27 after Sami Whitcomb injury withdrawal"
       },
       "wnba": {
-        "current": 8,
+        "current": 7,
         "former": 1,
         "drafted_only": 0,
-        "total_connected": 9,
-        "roster_basis": "final_12",
-        "as_of": "2026-08-19",
+        "total_connected": 8,
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
           {
-            "name": "Ezi Magbegor",
-            "position": "F",
+            "name": "Miela Sowah",
+            "position": "G",
             "status": "current",
-            "wnba_team": "SEA",
-            "wnba_team_full": "Seattle Storm",
+            "wnba_team": "GSV",
+            "wnba_team_full": "Golden State Valkyries",
             "note": null,
             "confidence": "high"
           },
@@ -3837,6 +3802,15 @@
             "confidence": "high"
           },
           {
+            "name": "Stephanie Talbot",
+            "position": "SF",
+            "status": "current",
+            "wnba_team": "LVA",
+            "wnba_team_full": "Las Vegas Aces",
+            "note": null,
+            "confidence": "high"
+          },
+          {
             "name": "Alanna Smith",
             "position": "F",
             "status": "current",
@@ -3846,21 +3820,12 @@
             "confidence": "high"
           },
           {
-            "name": "Stephanie Talbot",
+            "name": "Ezi Magbegor",
             "position": "F",
             "status": "current",
-            "wnba_team": "LVA",
-            "wnba_team_full": "Las Vegas Aces",
+            "wnba_team": "SEA",
+            "wnba_team_full": "Seattle Storm",
             "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Sami Whitcomb",
-            "position": "G",
-            "status": "current",
-            "wnba_team": "PHX",
-            "wnba_team_full": "Phoenix Mercury",
-            "note": "One outlet said Toronto; Phoenix re-signed her in April 2026.",
             "confidence": "high"
           },
           {
@@ -3874,21 +3839,12 @@
           },
           {
             "name": "Chloe Bibby",
-            "position": "F",
+            "position": "PF",
             "status": "current",
             "wnba_team": "MIN",
             "wnba_team_full": "Minnesota Lynx",
             "note": "Basketball Australia's release still says Chicago; she signed with Minnesota.",
             "confidence": "high"
-          },
-          {
-            "name": "Alex Fowler",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "NYL",
-            "wnba_team_full": "New York Liberty",
-            "note": "Developmental contract signed May 2026; still-rostered status unconfirmed.",
-            "confidence": "medium"
           },
           {
             "name": "Alex Wilson",
@@ -3900,7 +3856,18 @@
             "confidence": "high"
           }
         ],
-        "note": "Zitina Aokuso, Isabelle Bourne and Steph Reid have no WNBA connection.",
+        "not_on_squad": [
+          {
+            "name": "Sami Whitcomb",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
+            "note": "One outlet said Toronto; Phoenix re-signed her in April 2026.",
+            "confidence": "high"
+          }
+        ],
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -4040,8 +4007,6 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-25",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
             "number": "4",
@@ -4199,23 +4164,26 @@
             "player_slug": null,
             "wnba": false
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-08-25",
+        "history": "19 on 07-30, final 12 on 08-25"
       },
       "wnba": {
-        "current": 3,
-        "former": 2,
+        "current": 4,
+        "former": 1,
         "drafted_only": 0,
         "total_connected": 5,
-        "roster_basis": "pool_19",
-        "as_of": "2026-08-19",
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
           {
-            "name": "Julie Allemand",
-            "position": "G",
+            "name": "Antonia Delaere",
+            "position": "SF",
             "status": "current",
-            "wnba_team": "TOR",
-            "wnba_team_full": "Toronto Tempo",
+            "wnba_team": "MIN",
+            "wnba_team_full": "Minnesota Lynx",
             "note": null,
             "confidence": "high"
           },
@@ -4229,21 +4197,21 @@
             "confidence": "high"
           },
           {
-            "name": "Antonia Delaere",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "MIN",
-            "wnba_team_full": "Minnesota Lynx",
-            "note": null,
-            "confidence": "high"
-          },
-          {
             "name": "Julie Vanloo",
-            "position": "G",
-            "status": "former",
+            "position": "PG",
+            "status": "current",
             "wnba_team": "NYL",
             "wnba_team_full": "New York Liberty",
             "note": "Hardship contract May 2026, waived after five games; previously Washington and Golden State/Las Vegas.",
+            "confidence": "high"
+          },
+          {
+            "name": "Julie Allemand",
+            "position": "PG",
+            "status": "current",
+            "wnba_team": "TOR",
+            "wnba_team_full": "Toronto Tempo",
+            "note": null,
             "confidence": "high"
           },
           {
@@ -4256,7 +4224,8 @@
             "confidence": "high"
           }
         ],
-        "note": "Belgian media confirm exactly three Belgians in the WNBA as of August 2026.",
+        "not_on_squad": [],
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -4710,11 +4679,22 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 20,
-        "as_of": "2026-07-22",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "status": "final",
+        "player_count": 12,
         "players": [
+          {
+            "number": "1",
+            "name": "Elif İstanbulluoğlu",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_country": "USA",
+              "club_name": "Louisville Cardinals"
+            },
+            "player_slug": null,
+            "wnba": false
+          },
           {
             "number": "2",
             "name": "Sevgi Uzun",
@@ -4768,19 +4748,6 @@
             "wnba": false
           },
           {
-            "number": "10",
-            "name": "Alperi Onar",
-            "position": "PG",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "TUR",
-              "club_name": "Fenerbahçe"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
             "number": "11",
             "name": "Elif Bayram",
             "position": "PF",
@@ -4794,14 +4761,14 @@
             "wnba": false
           },
           {
-            "number": "12",
-            "name": "Zeynep Şevval Gül",
+            "number": "15",
+            "name": "Tilbe Şenyürek",
             "position": "PF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_country": "TUR",
-              "club_name": "Fenerbahçe"
+              "club_country": "ESP",
+              "club_name": "Spar Girona"
             },
             "player_slug": null,
             "wnba": false
@@ -4870,131 +4837,21 @@
             },
             "player_slug": null,
             "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Ayşenaz Harma",
-            "position": "PF",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "TUR",
-              "club_name": "ÇBK Mersin"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Berfin Sertoğlu",
-            "position": "SG",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "TUR",
-              "club_name": "Emlak Konut"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Ceren Akpınar",
-            "position": "PG",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "TUR",
-              "club_name": "Emlak Konut"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Tuana Vural",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "TUR",
-              "club_name": "Fenerbahçe"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Manolya Kurtulmuş",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "TUR",
-              "club_name": "Fenerbahçe"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Sude Yılmaz",
-            "position": "SF",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "TUR",
-              "club_name": "Galatasaray"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Tilbe Şenyürek",
-            "position": "PF",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "ESP",
-              "club_name": "Spar Girona"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Elif İstanbulluoğlu",
-            "position": "PF",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "USA",
-              "club_name": "Louisville Cardinals"
-            },
-            "player_slug": null,
-            "wnba": false
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-09-02",
+        "history": "20 on 07-22, final 12 on 09-02"
       },
       "wnba": {
-        "current": 1,
+        "current": 0,
         "former": 1,
         "drafted_only": 0,
-        "total_connected": 2,
-        "roster_basis": "pool_20",
-        "as_of": "2026-08-19",
+        "total_connected": 1,
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
-          {
-            "name": "Kennedy Burke",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "CON",
-            "wnba_team_full": "Connecticut Sun",
-            "note": "American-born, holds Türkiye's naturalised slot; 2024 WNBA champion with New York. She took the naturalised place over Teaira McCowan, who is not in this pool.",
-            "confidence": "high"
-          },
           {
             "name": "Sevgi Uzun",
             "position": "G",
@@ -5005,7 +4862,8 @@
             "confidence": "high"
           }
         ],
-        "note": null,
+        "not_on_squad": [],
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -5212,10 +5070,8 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 19,
-        "as_of": "2026-04-14",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
+        "status": "final",
+        "player_count": 12,
         "players": [
           {
             "number": "1",
@@ -5225,7 +5081,7 @@
               "type": "club",
               "wnba_team": null,
               "club_country": "CHN",
-              "club_name": "Sichuan Yuanda"
+              "club_name": "Sichuan Yuanda Meile"
             },
             "player_slug": null,
             "wnba": false
@@ -5242,19 +5098,6 @@
             },
             "player_slug": null,
             "wnba": false
-          },
-          {
-            "number": "14",
-            "name": "Li Yueru",
-            "position": "C",
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": "DAL",
-              "club_country": null,
-              "club_name": null
-            },
-            "player_slug": null,
-            "wnba": true
           },
           {
             "number": "15",
@@ -5303,20 +5146,7 @@
               "type": "club",
               "wnba_team": null,
               "club_country": "CHN",
-              "club_name": "Sichuan Yuanda"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Liu Bei",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Shanxi Flame"
+              "club_name": "Sichuan Yuanda Meile"
             },
             "player_slug": null,
             "wnba": false
@@ -5330,19 +5160,6 @@
               "wnba_team": null,
               "club_country": "CHN",
               "club_name": "Shanxi Flame"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Liu Yutong",
-            "position": "C",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Shanghai Swordfish"
             },
             "player_slug": null,
             "wnba": false
@@ -5375,34 +5192,8 @@
           },
           {
             "number": null,
-            "name": "Wang Jiaqi",
-            "position": "PG",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Wuhan Shengfan"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
             "name": "Chen Mingling",
-            "position": "FC",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Guangdong Vermilion Birds"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Zhang Mingzhu",
-            "position": "C",
+            "position": "F/C",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
@@ -5420,70 +5211,38 @@
               "type": "club",
               "wnba_team": null,
               "club_country": "CHN",
-              "club_name": "Sichuan Yuanda"
+              "club_name": "Sichuan Yuanda Meile"
             },
             "player_slug": null,
             "wnba": false
           },
           {
             "number": null,
-            "name": "Li Xingnuo",
-            "position": "C",
+            "name": "Li Yuan",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Beijing Normal University"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Zhang Zihan",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Beijing Normal University"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Deng Yuting",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "USA",
-              "club_name": "Oklahoma State Cowgirls"
+              "club_country": null,
+              "club_name": "Sichuan Yuanda Meile"
             },
             "player_slug": null,
             "wnba": false
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-09-02",
+        "history": "19 on 04-14, final 12 on 09-02"
       },
       "wnba": {
-        "current": 2,
+        "current": 1,
         "former": 0,
-        "drafted_only": 1,
-        "total_connected": 3,
-        "roster_basis": "proxy_training_camp",
-        "as_of": "2026-08-19",
-        "confidence": "medium",
+        "drafted_only": 0,
+        "total_connected": 1,
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
+        "confidence": "high",
         "players": [
-          {
-            "name": "Li Yueru",
-            "position": "C",
-            "status": "current",
-            "wnba_team": "DAL",
-            "wnba_team_full": "Dallas Wings",
-            "note": null,
-            "confidence": "high"
-          },
           {
             "name": "Han Xu",
             "position": "C",
@@ -5491,6 +5250,17 @@
             "wnba_team": "NYL",
             "wnba_team_full": "New York Liberty",
             "note": "Returned on a camp contract April 2026 after two years away.",
+            "confidence": "high"
+          }
+        ],
+        "not_on_squad": [
+          {
+            "name": "Li Yueru",
+            "position": "C",
+            "status": "current",
+            "wnba_team": "DAL",
+            "wnba_team_full": "Dallas Wings",
+            "note": null,
             "confidence": "high"
           },
           {
@@ -5503,7 +5273,7 @@
             "confidence": "medium"
           }
         ],
-        "note": "No squad announced. Based on China's April 2026 national training-camp roster.",
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -5645,8 +5415,6 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-29",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
             "number": "1",
@@ -5663,7 +5431,7 @@
           },
           {
             "number": "2",
-            "name": "Julie Pospíšilová",
+            "name": "Julie Pospíšilová",
             "position": "SF",
             "plays_for": {
               "type": "club",
@@ -5804,26 +5572,31 @@
             "player_slug": null,
             "wnba": false
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-08-29",
+        "history": "21 on 05-15, final 12 on 08-29"
       },
       "wnba": {
-        "current": 2,
+        "current": 1,
         "former": 0,
         "drafted_only": 0,
-        "total_connected": 2,
-        "roster_basis": "pool_16",
-        "as_of": "2026-08-19",
+        "total_connected": 1,
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
           {
             "name": "Eliška Joklová",
-            "position": "G",
+            "position": "PG",
             "status": "current",
             "wnba_team": "MIN",
             "wnba_team_full": "Minnesota Lynx",
             "note": "FIBA still lists her married name's predecessor, Hamzová. Same player.",
             "confidence": "high"
-          },
+          }
+        ],
+        "not_on_squad": [
           {
             "name": "Emma Čechová",
             "position": "F",
@@ -5834,7 +5607,7 @@
             "confidence": "high"
           }
         ],
-        "note": "The first Czech players in the WNBA in sixteen years.",
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -5986,8 +5759,6 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-31",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
             "number": "0",
@@ -6017,7 +5788,7 @@
           },
           {
             "number": "6",
-            "name": "Francesca Pasa",
+            "name": "Francesca Pasa",
             "position": "G",
             "plays_for": {
               "type": "club",
@@ -6082,7 +5853,7 @@
           },
           {
             "number": "14",
-            "name": "Sara Madera",
+            "name": "Sara Madera",
             "position": "PF",
             "plays_for": {
               "type": "club",
@@ -6145,33 +5916,36 @@
             "player_slug": null,
             "wnba": false
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-08-31",
+        "history": "18 on 07-28, final 12 on 08-31"
       },
       "wnba": {
         "current": 2,
         "former": 1,
         "drafted_only": 0,
         "total_connected": 3,
-        "roster_basis": "pool_19",
-        "as_of": "2026-08-19",
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
           {
-            "name": "Cecilia Zandalasini",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "GSV",
-            "wnba_team_full": "Golden State Valkyries",
-            "note": null,
-            "confidence": "high"
-          },
-          {
             "name": "Costanza Verona",
-            "position": "G",
+            "position": "SG",
             "status": "current",
             "wnba_team": "DAL",
             "wnba_team_full": "Dallas Wings",
             "note": "The Wings suspended her contract so she could join Italy for the World Cup.",
+            "confidence": "high"
+          },
+          {
+            "name": "Cecilia Zandalasini",
+            "position": "SF",
+            "status": "current",
+            "wnba_team": "GSV",
+            "wnba_team_full": "Golden State Valkyries",
+            "note": null,
             "confidence": "high"
           },
           {
@@ -6184,7 +5958,8 @@
             "confidence": "high"
           }
         ],
-        "note": null,
+        "not_on_squad": [],
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
@@ -6447,8 +6222,6 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-31",
-        "source": "https://en.wikipedia.org/wiki/2026_FIBA_Women%27s_Basketball_World_Cup_squads",
         "players": [
           {
             "number": "4",
@@ -6518,7 +6291,7 @@
           {
             "number": "9",
             "name": "Kiki Iriafen",
-            "position": "F",
+            "position": "PF",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "WAS",
@@ -6606,23 +6379,89 @@
             "player_slug": null,
             "wnba": true
           }
-        ]
+        ],
+        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
+        "announced": "2026-08-31",
+        "history": "announced 08-06; Wilson + Plum withdrew 08-31, replaced by Citron + Iriafen"
       },
       "wnba": {
         "current": 12,
         "former": 0,
         "drafted_only": 0,
         "total_connected": 12,
-        "roster_basis": "final_12",
-        "as_of": "2026-08-31",
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
           {
-            "name": "Aliyah Boston",
-            "position": "C",
+            "name": "Paige Bueckers",
+            "position": "G",
             "status": "current",
-            "wnba_team": "IND",
-            "wnba_team_full": "Indiana Fever",
+            "wnba_team": "DAL",
+            "wnba_team_full": "Dallas Wings",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Sonia Citron",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "WAS",
+            "wnba_team_full": "Washington Mystics",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Rhyne Howard",
+            "position": "SF",
+            "status": "current",
+            "wnba_team": "ATL",
+            "wnba_team_full": "Atlanta Dream",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Kahleah Copper",
+            "position": "G/F",
+            "status": "current",
+            "wnba_team": "PHX",
+            "wnba_team_full": "Phoenix Mercury",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Chelsea Gray",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "LVA",
+            "wnba_team_full": "Las Vegas Aces",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Kiki Iriafen",
+            "position": "PF",
+            "status": "current",
+            "wnba_team": "WAS",
+            "wnba_team_full": "Washington Mystics",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Breanna Stewart",
+            "position": "PF",
+            "status": "current",
+            "wnba_team": "NYL",
+            "wnba_team_full": "New York Liberty",
+            "note": null,
+            "confidence": "high"
+          },
+          {
+            "name": "Napheesa Collier",
+            "position": "SF",
+            "status": "current",
+            "wnba_team": "MIN",
+            "wnba_team_full": "Minnesota Lynx",
             "note": null,
             "confidence": "high"
           },
@@ -6645,88 +6484,26 @@
             "confidence": "high"
           },
           {
-            "name": "Chelsea Gray",
-            "position": "G",
+            "name": "Aliyah Boston",
+            "position": "C",
             "status": "current",
-            "wnba_team": "LVA",
-            "wnba_team_full": "Las Vegas Aces",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Paige Bueckers",
-            "position": "G",
-            "status": "current",
-            "wnba_team": "DAL",
-            "wnba_team_full": "Dallas Wings",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Napheesa Collier",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "MIN",
-            "wnba_team_full": "Minnesota Lynx",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Breanna Stewart",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "NYL",
-            "wnba_team_full": "New York Liberty",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Kahleah Copper",
-            "position": "G",
-            "status": "current",
-            "wnba_team": "PHX",
-            "wnba_team_full": "Phoenix Mercury",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Rhyne Howard",
-            "position": "G",
-            "status": "current",
-            "wnba_team": "ATL",
-            "wnba_team_full": "Atlanta Dream",
+            "wnba_team": "IND",
+            "wnba_team_full": "Indiana Fever",
             "note": null,
             "confidence": "high"
           },
           {
             "name": "Angel Reese",
-            "position": "F",
+            "position": "PF",
             "status": "current",
             "wnba_team": "ATL",
             "wnba_team_full": "Atlanta Dream",
             "note": null,
             "confidence": "high"
-          },
-          {
-            "name": "Sonia Citron",
-            "position": "G",
-            "status": "current",
-            "wnba_team": "WAS",
-            "wnba_team_full": "Washington Mystics",
-            "note": null,
-            "confidence": "high"
-          },
-          {
-            "name": "Kiki Iriafen",
-            "position": "F",
-            "status": "current",
-            "wnba_team": "WAS",
-            "wnba_team_full": "Washington Mystics",
-            "note": null,
-            "confidence": "high"
           }
         ],
-        "note": "All twelve play in the WNBA. Citron and Iriafen (both Washington) replaced Plum and Wilson on 2026-08-31. Plum moved to Phoenix and Reese to Atlanta in 2026 — do not print Sparks or Sky.",
+        "not_on_squad": [],
+        "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
             "claim": null,
