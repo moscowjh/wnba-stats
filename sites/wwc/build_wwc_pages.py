@@ -424,8 +424,36 @@ WNBA_PROMO_HTML = (
 )
 
 
-def shell(path, title, body, description, extra_head=""):
-    """One page. `path` is both the canonical URL and the nav highlight."""
+SOCIAL_BRAND = "stats at a glance"
+#: Short form for card headlines only — the full FIBA name is what
+#: `<title>` carries, and a card has no room for both.
+WC = "Women’s World Cup"
+
+
+def social_title(what):
+    """The card headline. NOT the page title — they are different surfaces.
+
+    `<title>` is the Google result, and "Spain — FIBA Women’s Basketball World
+    Cup 2026" is exactly right there: long, keyword-bearing, unambiguous. A link
+    preview is not that. iMessage renders the title bold above the bare domain
+    and shows NO description at all, so the same string wraps to three lines,
+    leads with "FIBA", and on the landing page trailed off into "— a guide",
+    which reads as a disclaimer rather than an offer.
+
+    Brand first, subject second (Jason, 2026-09-02). The trade-off, recorded so
+    it is a choice and not an accident: every card now opens with the same 17
+    characters, so if a platform truncates hard the distinguishing half is what
+    it drops. Accepted because the domain under the title already says
+    statsataglance, and repetition across a set of forwarded links is the point.
+    """
+    return f"{SOCIAL_BRAND} | {what}"
+
+
+def shell(path, title, body, description, extra_head="", social=None):
+    """One page. `path` is both the canonical URL and the nav highlight.
+
+    `social` overrides the card headline only; it never touches `<title>`.
+    """
     nav = "".join(
         f'<a href="{p}"{" class=\"on\"" if p == path else ""}>{esc(l)}</a>'
         for p, l in nav_items())
@@ -444,7 +472,8 @@ def shell(path, title, body, description, extra_head=""):
     # missing PNG previews worse than no image, and these platforms cache hard.
     # Drop the file in and the next build starts emitting the full card with no
     # code change here.
-    social = "\n".join(seo.social_tags(WWC, path, title, description))
+    social = "\n".join(
+        seo.social_tags(WWC, path, social or title, description))
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -634,7 +663,8 @@ def page_games(rows, teams, results, box_ids):
     # would not underline — the smallest visible symptom of the three.
     return shell(GAMES_PATH, f"Schedule — {TOURNAMENT_NAME} 2026", "".join(out),
                  "Every game of the 2026 FIBA Women's Basketball World Cup "
-                 "in Berlin, with tip times in US Eastern and Berlin local.")
+                 "in Berlin, with tip times in US Eastern and Berlin local.",
+                 social=social_title(f"{WC} Schedule"))
 
 
 def game_cell(row, results, box_ids):
@@ -688,7 +718,8 @@ def page_teams_index(doc):
         out.append("</div>")
     return shell("/teams/", f"Teams — {TOURNAMENT_NAME} 2026", "".join(out),
                  "All 16 teams at the 2026 FIBA Women's Basketball World Cup, "
-                 "by group, with their WNBA connections.")
+                 "by group, with their WNBA connections.",
+                 social=social_title(f"{WC} Teams"))
 
 
 # ══ Team page ═════════════════════════════════════════════════════════════
@@ -1046,7 +1077,8 @@ def page_team(t, rows, teams, results, box_ids, published):
             f'{n if n else "no"} current WNBA player{"s" if n != 1 else ""}.')
     return shell(f"/teams/{team_slug(t)}/",
                  f'{t["name"]} — {TOURNAMENT_NAME} 2026',
-                 "".join(out), desc, extra_head=team_jsonld(t))
+                 "".join(out), desc, extra_head=team_jsonld(t),
+                 social=social_title(f'{t["name"]} at the {WC}'))
 
 
 def team_jsonld(t):
@@ -1134,7 +1166,8 @@ time the procedure separates one team out, it <b>starts again from the top</b>
 for whoever is still tied.</p>''')
     return shell("/groups/", f"Groups — {TOURNAMENT_NAME} 2026", "".join(out),
                  "Group tables, fixtures and the route to the quarter-finals "
-                 "at the 2026 FIBA Women's Basketball World Cup.")
+                 "at the 2026 FIBA Women's Basketball World Cup.",
+                 social=social_title(f"{WC} Groups"))
 
 
 def standings_table(doc, group, results, complete=True):
@@ -1528,7 +1561,8 @@ before, carries {wnba_on_squad(ger)} WNBA players on its roster.</p>
     return shell(GUIDE_PATH, f"{TOURNAMENT_NAME} 2026 — a guide", body,
                  "What the Women\u2019s Basketball World Cup is, who is playing, "
                  "and the six rules differences that matter if you follow the "
-                 "WNBA.")
+                 "WNBA.",
+                 social=social_title("Women\u2019s Basketball World Cup"))
 
 
 #: "qualified only ONCE before" reads as English; "only 1 before" reads as a
@@ -1836,7 +1870,8 @@ def page_boxscore(box, rows_by_id, teams, published):
     return shell(f'/games/{box["game_id"]}/',
                  f"{title} \u2014 {TOURNAMENT_NAME} 2026", "".join(out),
                  f"Full box score: {title}, "
-                 f"{DAYNAME.get(row['date'], row['date'])} in Berlin.")
+                 f"{DAYNAME.get(row['date'], row['date'])} in Berlin.",
+                 social=social_title(f"{title} \u2014 {WC}"))
 
 
 def load_boxscores(preview):
