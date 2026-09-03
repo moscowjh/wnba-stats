@@ -105,7 +105,8 @@
     "ESP.wnba.gustafson": "The wnba block carried 'Megan Gustafson'. The squad and the Spanish federation both say Megan DiLeo. Same player, married name.",
     "KOR.roster.romanisation": "The 2026-09-02 capture gave Ahn Hye-ji, Choi Yi-saem, Kang Yi-seul and Kang Yu-rim. Wikipedia re-romanised all four to An He-ji, Choi I-saem, Kang Lee-seul and Kang Yoo-lim on 2026-09-03, and renumbered the squad. The newer capture wins. The four are joined by an EXPLICIT alias table in ingest_squads.py, not by a matcher: 'Kang Yi-seul' and 'Kang Yu-rim' are both Kang, and a surname heuristic that guessed wrong would have swapped two players' ages and heights with nothing to show for it.",
     "CHN.roster.numbers": "China was renumbered between the 09-02 and 09-03 captures (eight of twelve). Names were unaffected. The squads page is edited hourly this close to tip — re-capture, never assume yesterday's numbers hold.",
-    "TUR.wnba.burke": "Kennedy Burke was counted as a non-WNBA player because the squad source lists her Turkish club, ÇBK Mersin. She is currently active for Connecticut — 36 games in our own 2026 box scores. A source's single Club column cannot express a player who has both."
+    "TUR.wnba.burke": "Kennedy Burke was counted as a non-WNBA player because the squad source lists her Turkish club, ÇBK Mersin. She is currently active for Connecticut — 36 games in our own 2026 box scores. A source's single Club column cannot express a player who has both.",
+    "CZE.profile.cechova": "The profile named Emma Čechová alongside Eliška Joklová as a 2026 Minnesota Lynx signing. The signing is real, but she tore her ACL in May playing for Minnesota and is not on Czechia's squad for Berlin (Jason, 2026-09-03), so naming her in a tournament profile read as a player who would be there. Joklová keeps the claim on her own: she is still the first Czech player in the WNBA in sixteen years."
   },
   "teams": [
     {
@@ -977,7 +978,7 @@
           }
         ]
       },
-      "profile": "Germany's only other appearance in the World Cup was when it hosted in 1998. That year the team was eliminated in the group phase. The squad features four WNBA players, though unfortunately not superstar Satou Sabally who recovering from a concussion. Olaf Lange coaches them now: he is married to Sandy Brondello, who coaches Australia.",
+      "profile": "Germany's only other appearance in the World Cup was when it hosted in 1998. That year the team was eliminated in the group phase. The squad features four WNBA players, though unfortunately not superstar Satou Sabally who is recovering from a concussion. Olaf Lange coaches them now: he is married to Sandy Brondello, who coaches Australia.",
       "profile_status": "draft"
     },
     {
@@ -6178,7 +6179,7 @@
           }
         ]
       },
-      "profile": "Czechia have not played a World Cup since 2014, and the last time they reached the podium, in 2010, they were hosting. Eliška Joklová and Emma Čechová joined the Minnesota Lynx in 2026, the first Czech players in the WNBA in sixteen years.",
+      "profile": "Czechia have not played a World Cup since 2014, and the last time they reached the podium, in 2010, they were hosting. Eliška Joklová joined the Minnesota Lynx in 2026, the first Czech player in the WNBA in sixteen years.",
       "profile_status": "draft"
     },
     {
