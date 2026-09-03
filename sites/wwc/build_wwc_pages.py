@@ -2296,15 +2296,7 @@ def page_leaders(lb, teams, published):
         for _, title, unit, rows in lb["boards"]:
             out.append(leader_card(title, unit, rows, teams, published))
         out.append('</div>')
-        # Stated, not left as an absence. A reader who scans five counting
-        # boards and finds no shooting percentages should learn that this was
-        # decided, and why, in one line.
-        out.append('<div class="cnote">Counting stats only — no shooting '
-                   'percentages. Over a group stage this short a player who '
-                   'goes 5-for-8 in one game would top every percentage board '
-                   'there is, so those boards say more about sample size than '
-                   'about shooting. Totals are shown beside each average, and '
-                   'games played on every row, for the same reason.</div>')
+        out.append(gp_caption(lb))
 
     return shell(LEADERS_PATH, f"Leaders — {TOURNAMENT_NAME} 2026",
                  "".join(out),
@@ -2316,6 +2308,37 @@ def page_leaders(lb, teams, published):
                  extra_head=("" if n else
                              '<meta name="robots" content="noindex,follow">\n'),
                  social=social_title(f"{WC} Leaders"))
+
+
+def gp_caption(lb):
+    """What the ranking means, and — once it matters — why GP varies.
+
+    The first sentence is unconditional: the board is ordered on a rate, and
+    the divisor is printed on every row. A reader should never have to work
+    out which number the order came from.
+
+    The second appears only once the field has actually spread, and it is the
+    honest disclosure behind the §3 decision to rank on the average. Group
+    play is three games for everyone; from the knockouts on, a team eliminated
+    in the group stage stops at three while a finalist plays six or seven, so
+    a player can top a per-game board having played barely half as many games
+    as the rival below her. That is what ranking on a rate MEANS rather than a
+    defect in it — ranking on totals would simply invert the bias, rewarding
+    survivors for having played more — but it reads as an error to anyone who
+    has not noticed the GP column, which is precisely who this line is for.
+
+    The trigger is the measured spread among ranked players, not a date and
+    not a round number of group games: it says something only when there is
+    something to say, in any state the tournament passes through.
+    """
+    gps = [r["gp"] for _, _, _, rows in lb["boards"] for r in rows]
+    if not gps:
+        return ""
+    spread = ("" if max(gps) - min(gps) < 2 else
+              " A team\u2019s run ends when it is eliminated, so a player can "
+              "lead on fewer games than someone still in the tournament.")
+    return (f'<div class="cnote">Ranked on the per-game average. Games played '
+            f'(GP) is shown for every player.{spread}</div>')
 
 
 def leader_card(title, unit, rows, teams, published):

@@ -222,6 +222,36 @@ def run(teams):
             bad.append("the 'through N games' heading is wrong or missing")
         return bad
 
+    # ── 4b. The GP caption says something only when there is something ────
+    @case("the GP caption states the ranking basis whenever a board renders")
+    def _():
+        boxes = [game("g1", [player("Bea Both", pts=20)])]
+        lb = B.compute_leaders(boxes, teams, log=lambda *a: None)
+        html = B.page_leaders(lb, teams, set())
+        if "Games played (GP) is shown for every player" not in html:
+            return ["a board rendered without saying what it is ranked on"]
+        return []
+
+    @case("the elimination clause appears only once GP actually spreads")
+    def _():
+        # Everyone level: nothing to explain, so nothing is said.
+        level = [game("g1", [player("Ann A", pts=20), player("Bea B", pts=10)])]
+        lb = B.compute_leaders(level, teams, log=lambda *a: None)
+        bad = []
+        if "still in the tournament" in B.page_leaders(lb, teams, set()):
+            bad.append("explained a spread that does not exist yet")
+        # A three-game player against a one-game player: the knockout shape.
+        spread = [game("g1", [player("Ann A", pts=20), player("Bea B", pts=30)]),
+                  game("g2", [player("Ann A", pts=20)]),
+                  game("g3", [player("Ann A", pts=20)])]
+        lb = B.compute_leaders(spread, teams, log=lambda *a: None)
+        html = B.page_leaders(lb, teams, set())
+        if "still in the tournament" not in html:
+            bad.append("a 3-vs-1 games-played spread went unexplained — this "
+                       "is the finals-day board where a knocked-out player "
+                       "tops the average")
+        return bad
+
     # ── 5. What normalises together, and what must not ────────────────────
     @case("two ENCODINGS of one name aggregate to one player")
     def _():
