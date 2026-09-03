@@ -2250,7 +2250,18 @@ def compute_leaders(boxes, teams, preview=False, log=print):
             log(f"  {title}: {dropped} player(s) held off this board — a null "
                 f"{cat} means a partial sum, not a zero")
 
-    return {"games": len(finals), "fixture": bool(fixtures), "boards": boards}
+    # `games` counts box scores; `populated` counts RANKABLE ROWS, and it is
+    # the latter that decides whether the tab exists. The two come apart in a
+    # case that will really happen: FIBA marks a game final before its box
+    # score carries player statistics, so a build lands one final box with
+    # empty (or all-null) player lists. Gating on `games` there would raise
+    # the tab over five empty tables — precisely the "a tab leading to an
+    # empty board is worse than no tab" failure the whole delay existed to
+    # avoid, arriving through the back door. Gate on the rows the page
+    # actually renders.
+    populated = any(rows for _, _, _, rows in boards)
+    return {"games": len(finals), "populated": populated,
+            "fixture": bool(fixtures), "boards": boards}
 
 
 def page_leaders(lb, teams, published):
@@ -2278,12 +2289,24 @@ def page_leaders(lb, teams, published):
             'page exists to exercise the leaders template before FIBA '
             'publishes anything. It is never published.</div>')
 
-    if not n:
+    if not lb["populated"]:
         out.append('<h2 class="sec">Leaders</h2>')
-        out.append('<p class="prose">No games have been played yet. Tournament '
-                   'leaders appear here as soon as the first box score is '
-                   'final — the first game tips on '
-                   '<b>Friday 4 September</b>.</p>')
+        if n:
+            # Games are final but their box scores carry no player statistics
+            # yet. Say which of the two states this is — "no games have been
+            # played" would be a false statement about a tournament in
+            # progress, and correct-or-blank applies to prose too.
+            played = "1 game" if n == 1 else f"{n} games"
+            out.append(f'<p class="prose">{esc(played.capitalize())} '
+                       f'{"has" if n == 1 else "have"} been played, but the '
+                       f'box scores do not carry player statistics yet. '
+                       f'Tournament leaders appear here as soon as they do.'
+                       f'</p>')
+        else:
+            out.append('<p class="prose">No games have been played yet. '
+                       'Tournament leaders appear here as soon as the first '
+                       'box score is final — the first game tips on '
+                       '<b>Friday 4 September</b>.</p>')
         out.append(f'<div class="next"><b>In the meantime:</b> the '
                    f'<a href="/teams/">sixteen squads</a> are published in '
                    f'full, and the <a href="{GAMES_PATH}">schedule</a> carries '
@@ -2305,7 +2328,7 @@ def page_leaders(lb, teams, published):
                   f"World Cup in Berlin." if n else
                   "Tournament leaders for the 2026 FIBA Women's Basketball "
                   "World Cup in Berlin, published as games are played."),
-                 extra_head=("" if n else
+                 extra_head=("" if lb["populated"] else
                              '<meta name="robots" content="noindex,follow">\n'),
                  social=social_title(f"{WC} Leaders"))
 
@@ -2418,7 +2441,7 @@ def main():
     # why the tab is gated on final BOX SCORES rather than on results.
     global _LEADERS_IN_NAV
     lb = compute_leaders(boxes, teams, args.preview)
-    _LEADERS_IN_NAV = bool(lb["games"])
+    _LEADERS_IN_NAV = lb["populated"]
 
     # Both front-door candidates route through the same two names, so the
     # landing page is written to index.html and the other to its own path
@@ -2448,7 +2471,7 @@ def main():
     # empty it also ships `noindex` (see `page_leaders`), so the gap between
     # "not advertised" and "not indexable" is closed rather than assumed.
     write(pub / "leaders" / "index.html", page_leaders(lb, teams, published))
-    if lb["games"] and not lb["fixture"]:
+    if lb["populated"] and not lb["fixture"]:
         paths.append(LEADERS_PATH)
 
     for box in boxes:

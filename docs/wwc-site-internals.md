@@ -85,13 +85,29 @@ showing the total and the games played makes that *visible* rather than hiding
 it behind a minimum-games rule we would then have to defend — the same
 instinct as the standings table's "Provisional" label.
 
-The tab **gates on final box scores, not on `results.json`.** Results and box
-scores arrive from different places and can lag each other (`game_cell()`
-already assumes this), so a results gate could raise the tab over an empty
-board — the exact failure the delay existed to avoid. Gating on the data the
-page ranks means the tab appears by itself the moment the first game is final,
+The tab **gates on rankable rows** — not on the clock, not on
+`results.json`, and not even on the count of final box scores. Each rejected
+candidate fails on the same axis, one step closer in:
+
+- *Results* and box scores arrive from different places and can lag each
+  other (`game_cell()` already assumes this), so a results gate raises the
+  tab while there is nothing to rank.
+- *Final box scores* looked like the right gate and is not: FIBA can mark a
+  game final before its box score carries player statistics, and a box with
+  empty or all-null player lists would light the tab over five empty tables.
+  So would a game whose every stat is null, which the null rule empties by
+  design.
+
+`compute_leaders()` therefore returns `populated` — did any board get a row —
+alongside `games`, and `populated` is what drives the nav, the sitemap and the
+`noindex`. The tab appears by itself the moment there is something on it,
 which also removes the deploy-timing question: merging before the tournament
 changes nothing visible.
+
+The empty state distinguishes its two causes rather than flattening them. "No
+games have been played yet" is a false statement about a tournament in
+progress, so a run with final box scores but no statistics says *that*
+instead. Correct-or-blank applies to prose.
 
 The page is **emitted on every run, including empty**, so the URL never 404s
 and the empty state is a rendered artifact rather than an unlooked-at branch.

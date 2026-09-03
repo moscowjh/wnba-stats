@@ -222,6 +222,44 @@ def run(teams):
             bad.append("the 'through N games' heading is wrong or missing")
         return bad
 
+    @case("a FINAL box score with no player stats does NOT raise the tab")
+    def _():
+        # The lag case: FIBA marks a game final before the box score carries
+        # player statistics. Gating the nav on games-played rather than on
+        # rankable rows would put the tab up over five empty tables — the
+        # exact failure the whole Sep-4 delay existed to avoid, arriving by
+        # the back door.
+        boxes = [{"game_id": "g1", "status": "final", "teams": [
+            {"schedule_key": HOME, "score": 0, "linescore": [0, 0, 0, 0],
+             "players": []}]}]
+        lb = B.compute_leaders(boxes, teams, log=lambda *a: None)
+        bad = []
+        if lb["games"] != 1:
+            bad.append("the final box score was not counted at all")
+        if lb["populated"]:
+            bad.append("reports itself populated with zero rankable rows — "
+                       "main() would light the nav tab")
+        html = B.page_leaders(lb, teams, set())
+        if "<table" in html:
+            bad.append("rendered empty tables instead of the empty state")
+        if 'content="noindex' not in html:
+            bad.append("an empty board is indexable")
+        if "No games have been played yet" in html:
+            bad.append("claims no games have been played during a tournament "
+                       "in progress — correct-or-blank applies to prose too")
+        return bad
+
+    @case("an all-null box score is treated the same as an absent one")
+    def _():
+        # Every stat null: the null rule alone empties all five boards, so
+        # the tab must not appear on the strength of the game existing.
+        nulls = dict.fromkeys(("pts", "reb", "ast", "stl", "blk"), None)
+        boxes = [game("g1", [player("Nel Null", **nulls)])]
+        lb = B.compute_leaders(boxes, teams, log=lambda *a: None)
+        if lb["populated"]:
+            return ["a box score of pure nulls counts as a populated board"]
+        return []
+
     # ── 4b. The GP caption says something only when there is something ────
     @case("the GP caption states the ranking basis whenever a board renders")
     def _():
