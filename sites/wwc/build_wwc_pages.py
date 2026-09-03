@@ -1039,14 +1039,17 @@ def note_cell(p, status_by_name):
        where the loser goes (Kennedy Burke, ÇBK Mersin). Mostly empty today,
        because the source lists only the WNBA side for those players — empty,
        not invented.
-    3. NCAA history — WE DO NOT HAVE IT, and the pages ship without it.
+    3. NCAA history — we do not have it, and the pages ship without it.
        Jason, 2026-09-03: "In an ideal world, we'd have time to research those
        former NCAA connections... At t-minus-36, we do not." It has no field in
-       the schema; a backlog row records the gap. Note that several players'
-       CURRENT club IS an NCAA program (Auburn, TCU, Louisville, Kansas State,
-       UCF, Wisconsin, Sam Houston, Fresno State) and renders in the Club
-       column like any other club. That is a current club, not a former
-       affiliation, and must never be relabelled as one.
+       the schema and is not getting one for this tournament; the aspiration
+       was retired rather than parked as a backlog item that would just sit
+       there. Note that several players' CURRENT club IS an NCAA program
+       (Auburn, TCU, Louisville, Kansas State, UCF, Wisconsin, Sam Houston,
+       Fresno State) and renders in the Club column like any other club. That
+       is not a gap being papered over: for a college player on a national
+       team it is her main affiliation, and the Club column is where it
+       belongs.
 
     The raw `note` field is MIXED-PURPOSE and cannot ship wholesale: of the 41
     notes in the file, roughly a third are internal provenance and hedging
