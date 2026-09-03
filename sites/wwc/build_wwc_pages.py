@@ -303,8 +303,17 @@ SITE_CSS = f"""\
   .prose a:hover{{text-decoration:underline}}
   .cnote{{color:var(--muted);font-size:11.5px;line-height:1.6;margin-top:4px}}
   .cnote b{{color:var(--text)}}
-  .wn{{color:var(--accent);font-size:10px;border:1px solid var(--accent);
-    padding:0 4px;border-radius:2px;white-space:nowrap}}
+  /* The WNBA marker. Strengthened 2026-09-03 when the Club column made it
+     the thing the eye is meant to find down a twelve-row table — heavier box,
+     600 weight, a tint of the accent behind it. The HUE is untouched on
+     purpose: Option C (2026-08-23) makes --accent the only token allowed to
+     diverge between the two sites, so a second blue is not available. */
+  .wn{{color:var(--accent);font-size:10px;border:1.5px solid var(--accent);
+    padding:1px 5px;border-radius:2px;white-space:nowrap;font-weight:600;
+    background:color-mix(in srgb, var(--accent) 10%, transparent)}}
+  /* The generated count line above each roster table. Reads as a caption, not
+     as a heading — the table is the programme, this only says how to read it. */
+  .wnl{{margin:0 0 8px}}
   .tag{{color:var(--muted);font-size:10px;border:1px solid var(--border);padding:0 4px}}
   .pend{{color:var(--muted);font-size:11.5px;line-height:1.6;
     border-left:2px solid var(--border);padding-left:9px;margin-top:9px}}
@@ -796,86 +805,88 @@ def coach_block(t):
     return "".join(out)
 
 
-def wnba_block(t, published):
-    """The WNBA connection — the retention bridge, and half the reason this
-    site exists. Names link to our OWN player pages wherever we publish one."""
-    w = t["wnba"]
-    current = [p for p in w["players"] if p["status"] == "current"]
-    n = wnba_on_squad(t)
-    head = (f'WNBA connection <span class="mu">— {n} current '
-            f'player{"s" if n != 1 else ""}</span>')
-    out = [f'<h2 class="sec">{head}</h2>']
-    if current:
-        rows = ['<table><tr><th>Player</th><th>Pos</th>'
-                '<th>WNBA team</th></tr>']
-        for p in current:
-            href = player_href(p["name"], published)
-            name = (f'<a href="{href}" {CROSS_SITE} style="font-weight:500;'
-                    f'color:var(--text)">{esc(p["name"])}</a>' if href
-                    else f'<span style="font-weight:500">{esc(p["name"])}</span>')
-            team = (f'<span class="wn">{esc(p["wnba_team"])}</span> '
-                    f'<span class="mu" style="font-size:10.5px">'
-                    f'{esc(p["wnba_team_full"])}</span>'
-                    if p["wnba_team"] else '<span class="mu">—</span>')
-            rows.append(f'<tr><td>{name}</td>'
-                        f'<td class="mu" style="width:34px">'
-                        f'{esc(p["position"] or "")}</td>'
-                        f'<td style="width:170px">{team}</td></tr>')
-        rows.append("</table>")
-        out.append(table_scroll("".join(rows)))
-    else:
-        out.append('<div class="mu">No current WNBA players.</div>')
-
-    other = [p for p in w["players"] if p["status"] != "current"]
-    if other:
-        bits = []
-        for p in other:
-            label = "former" if p["status"] == "former" else "drafted"
-            team = f', {esc(p["wnba_team"])}' if p["wnba_team"] else ""
-            bits.append(f'<b>{esc(p["name"])}</b> ({label}{team})')
-        out.append(f'<div class="cnote" style="margin-top:6px">Also: '
-                   f'{", ".join(bits)}.</div>')
-
-    if w["roster_basis"].startswith("proxy"):
-        # China, Germany, Nigeria. No squad has been announced at all, so
-        # the list above is inference from nationality — say so plainly
-        # rather than letting it read as a call-up.
-        out.append('<div class="pend">No squad has been announced. The names '
-                   'above are this country\'s current WNBA players, not a '
-                   'confirmed call-up list.</div>')
-    return "".join(out)
-
-
 def wnba_on_squad(t):
     """How many WNBA players this team is bringing.
 
-    Reads the SQUAD once we have one, and falls back to the curated
-    country-level `wnba.current` only while we do not.
+    Reads the SQUAD, always. The country-level `wnba.current` fallback is gone
+    (2026-09-03): `ingest_squads.py` now derives every roster row's `wnba` flag
+    from the curated `wnba.players` block for all sixteen teams, so there is no
+    longer a team whose squad cannot answer this.
 
-    The distinction became visible the moment real rosters landed
-    (2026-08-31) and it is not pedantic: `wnba.current` counts a country's
-    WNBA players, the squad counts the ones actually travelling, and the two
-    diverge as soon as anybody is cut. On the day rosters were merged, EIGHT
-    of fourteen teams disagreed — France's card said 11 while its own table
-    showed 8 badges, and Hungary's said 1 after Dorka Juhász was cut from a
-    pool of 25 down to 14. A reader who clicks the card can count the rows,
-    so the card has to be the number they will arrive at.
+    The distinction was never pedantic: `wnba.current` counts a country's WNBA
+    players, the squad counts the ones actually travelling, and the two diverge
+    as soon as anybody is cut. On the day real rosters landed (2026-08-31)
+    EIGHT of fourteen teams disagreed — France's card said 11 while its own
+    table showed 8 badges, and Hungary's said 0 above a table naming Dorka
+    Juhász, who had not been cut at all. A reader who clicks the card can count
+    the rows, so the card has to be the number they will arrive at.
 
-    The curated block stays authoritative for WHO is connected and how
-    (current / former / drafted), which is what the roster table renders
-    against; this is only the headline count.
+    Since 2026-09-03 the roster table is the ONLY place these players are
+    listed, and its count line comes from the same rows that render the badges
+    — see `roster_block`, which refuses to emit a table where the two disagree.
     """
-    players = (t.get("roster") or {}).get("players") or []
-    if players:
-        return sum(1 for p in players if p.get("wnba"))
-    return t["wnba"]["current"]
+    return sum(1 for p in t["roster"]["players"] if p.get("wnba"))
+
+
+def wnba_count_line(team_name, n, total):
+    """The generated sentence above the roster table, or '' at zero.
+
+    Generated, never typed, and derived from the same list that renders the
+    badges. This sentence and the badges are the two halves of the bug this
+    table replaces: a hand-maintained headline above a table reading a
+    different source is how Hungary published "0 current players" over a row
+    naming Dorka Juhász. One table can only count itself.
+    """
+    if not n:
+        return ""
+    verb = "player is" if n == 1 else "players are"
+    word = CARDINAL.get(n, str(n))
+    if n == total:
+        return f"All {word} {team_name} {verb} in the WNBA."
+    return f"{word.capitalize()} {team_name} {verb} in the WNBA."
+
+
+#: One roster table, eight columns (2026-09-03). The separate "WNBA
+#: connection" grid it replaces printed the same twelve names twice on the USA
+#: page, eight of twelve again on France, seven on Australia — the split only
+#: ever earned its keep on teams with few WNBA players, and it cost a whole
+#: class of bug in exchange.
+#:
+#: Order is the SPINE first — Pos / No. / Name / Club — so that the columns
+#: which survive a 380px phone without scrolling are the ones that identify a
+#: player and say where she plays. Age / Height / Ctr. / Note are the
+#: scrollable tail. NOTE: handoff §2 lists the source table's own order
+#: (Age and Height before Club); §6 asks for Club in the spine and names the
+#: tail explicitly. §6 wins here because Club is the column the redesign is
+#: built around, and burying it past the fold contradicts the point.
+#:
+#: Each entry is (header, key, css class, extra <td> style). Every column
+#: except Name renders only when at least one player on THIS team has a
+#: value — see `roster_block`.
+ROSTER_COLUMNS = [
+    ("Pos.", "pos", "mu", "width:38px"),
+    ("No.", "no", "mu num", "width:34px"),
+    ("Name", "name", "", ""),
+    ("Club", "club", "", "min-width:120px"),
+    ("Age", "age", "mu num", "width:34px"),
+    ("Height", "height", "mu", "width:64px;white-space:nowrap"),
+    ("Ctr.", "ctr", "mu tla", "width:38px"),
+    ("Note", "note", "mu", "white-space:normal;min-width:140px"),
+]
 
 
 def roster_block(t, published):
-    """Provisional rosters are a PERMANENT design state, not a transient one.
-    FIBA rosters need not be final until just before the tournament, and as
-    of this build it is 2 final / 10 pool / 4 not announced. The treatment is
-    designed, not bolted on."""
+    """ONE table. It is the programme.
+
+    Jason, 2026-09-03: "This is the program that most people who are watching
+    it don't have." So this is not a data dump beside the prose — it is the
+    thing a viewer cannot get anywhere else, and every column is here because
+    a viewer watching a game wants it.
+
+    Provisional rosters remain a PERMANENT design state, not a transient one:
+    FIBA rosters need not be final until just before the tournament, and two
+    of sixteen teams have no published squad at all.
+    """
     r = t["roster"]
     label = {"final": "final 12",
              "pool": f'provisional — {r["player_count"]}-player pool',
@@ -883,45 +894,49 @@ def roster_block(t, published):
     out = [f'<h2 class="sec">Roster <span class="mu">— {esc(label)}</span></h2>']
 
     if r["players"]:
-        # `roster.players[].wnba` is a tri-state flag meaning "has a WNBA
-        # connection", which is NOT the same as "plays there now" — Belgium
-        # marks Meesseman and Vanloo true while `wnba.players` records both
-        # as former. Cross-reference by name so a former player is never
-        # badged as current.
         status_by_name = {p["name"]: p for p in t["wnba"]["players"]}
-        cells = [(p, wnba_team_cell(p, status_by_name),
-                  club_cell(p), note_cell(p, status_by_name))
+        cells = [roster_cells(p, status_by_name, published)
                  for p in r["players"]]
 
         # Optional columns render PER TEAM, only when at least one player on
         # THIS team has a value. A column of twelve identical dashes reads as
-        # broken rather than as honest, and `plays_for.club_name` is null for
-        # every player in the file today — so "Other club" would be exactly
-        # that on all three teams that have rosters. This way each column
-        # appears as its data lands, team by team, and no page ever shows a
-        # wholly empty one. Same lifecycle logic the standings table uses,
-        # where W/L/PF/PA do not exist until a game has been played.
-        show_club = any(c for _, _, c, _ in cells)
-        show_note = any(n for _, _, _, n in cells)
+        # broken rather than as honest. Nigeria (no published squad) and
+        # Puerto Rico (a squad our own data holds better than the source) are
+        # not in the Wikipedia capture, so they simply have no Age, Height or
+        # Ctr. column — the tables that DO have the data are not held back to
+        # match, and neither team is stubbed, placeholdered or dropped. Same
+        # lifecycle logic the standings table uses, where W/L/PF/PA do not
+        # exist until a game has been played.
+        cols = [c for c in ROSTER_COLUMNS
+                if c[1] == "name" or any(x[c[1]] for x in cells)]
 
-        head = ['<table><tr><th>Player</th><th>WNBA team</th>']
-        if show_club:
-            head.append("<th>Other club</th>")
-        if show_note:
-            head.append("<th>Note</th>")
-        head.append("</tr>")
-        rows = head
-        for p, wnba_cell, club, note in cells:
-            rows.append(f'<tr><td>{roster_name(p, published)}</td>'
-                        f'<td>{wnba_cell or DASH}</td>')
-            if show_club:
-                rows.append(f'<td>{club or DASH}</td>')
-            if show_note:
-                rows.append(f'<td class="mu" style="white-space:normal;'
-                            f'min-width:140px">{note or DASH}</td>')
-            rows.append("</tr>")
-        rows.append("</table>")
-        out.append(table_scroll("".join(rows)))
+        head = "".join(f"<th>{h}</th>" for h, *_ in cols)
+        body = []
+        for x in cells:
+            tds = []
+            for _, key, klass, style in cols:
+                attrs = (f' class="{klass}"' if klass else "") + \
+                        (f' style="{style}"' if style else "")
+                tds.append(f'<td{attrs}>{x[key] or DASH}</td>')
+            body.append(f"<tr>{''.join(tds)}</tr>")
+        table = f"<table><tr>{head}</tr>{''.join(body)}</table>"
+
+        # The regression test for the bug this table replaces, asserted at the
+        # point of render rather than trusted. The count line and the badges
+        # must be one number; if they are not, the page is the Hungary page
+        # again and it is better to fail the build than to publish it.
+        n = sum(1 for x in cells if x["is_wnba"])
+        badges = table.count('class="wn"')
+        if badges != n:
+            raise SystemExit(
+                f'{t["code"]}: roster table renders {badges} WNBA badges but '
+                f'the count line claims {n} — these are the same players and '
+                f'must be one number')
+
+        line = wnba_count_line(t["name"], n, len(cells))
+        if line:
+            out.append(f'<div class="cnote wnl"><b>{esc(line)}</b></div>')
+        out.append(table_scroll(table))
     elif r["status"] == "pool":
         out.append(f'<div class="mu">FIBA has published a '
                    f'{r["player_count"]}-name pool; the individual names are '
@@ -934,88 +949,112 @@ def roster_block(t, published):
         out.append('<div class="pend">A pool, not a squad — it will be cut to '
                    '12 before the tournament. Nothing here should be read as a '
                    'confirmed selection.</div>')
+    if t["wnba"]["roster_basis"].startswith("proxy"):
+        # Nigeria. No squad has been announced at all, so the names are
+        # inference from nationality and camp invitations — say so plainly
+        # rather than letting the table read as a call-up. This caveat used to
+        # hang off the WNBA connection block; it moved here when that block was
+        # removed, because deleting a section must not delete its warning.
+        out.append('<div class="pend">No squad has been announced. These are '
+                   'the players connected to this team, not a confirmed '
+                   'call-up list.</div>')
     return "".join(out)
 
 
+def roster_cells(p, status_by_name, published):
+    """One row's worth of rendered cells. Reads fields; does not derive them.
+
+    Everything that needed normalising — the name join, the club, the WNBA
+    flag, the country code — was settled by `ingest_squads.py` under a human,
+    once, with a hard failure available. Doing it here would mean doing it on
+    every build, silently, where a missed join renders as a blank cell that
+    looks like honest absence.
+    """
+    pf = p["plays_for"]
+    is_wnba = bool(p.get("wnba"))
+    return {
+        "pos": esc(p["position"] or ""),
+        "no": esc(str(p["number"])) if p.get("number") is not None else "",
+        "name": roster_name(p, published),
+        "club": club_cell(p),
+        "age": esc(str(p["age"])) if p.get("age") is not None else "",
+        "height": esc(p.get("height") or ""),
+        "ctr": esc(pf.get("club_country") or ""),
+        "note": note_cell(p, status_by_name),
+        "is_wnba": is_wnba,
+    }
+
+
+def club_cell(p):
+    """Where she plays. One column, and the emphasis of the whole table.
+
+    A current WNBA player shows the three-letter team code boxed in the site
+    accent — the `.wn` badge that already marks WNBA everywhere on this site.
+    No new colour token: Option C (2026-08-23) makes `--accent` the only token
+    allowed to diverge between the two sites, so this badge got a heavier box
+    and weight rather than a second blue.
+
+    Everyone else shows her club, plainly. That subordinates a European
+    player's club to her WNBA team for the handful who have both, and it is an
+    accepted trade-off — Jason, 2026-09-03: "My site is mainly for a US
+    audience, so I can live with it." The club that loses is not dropped; it
+    moves to the Note column, which is why that column exists.
+    """
+    pf = p["plays_for"]
+    if p.get("wnba"):
+        team = pf.get("wnba_team")
+        return (f'<span class="wn">{esc(team)} (WNBA)</span>' if team
+                else '<span class="wn">WNBA</span>')
+    return esc(pf.get("club_name") or "")
+
+
 def roster_name(p, published):
-    # `is not None`, not truthiness: 0 is a real jersey number and a common
-    # one, and a falsy test silently drops it.
-    number = (f'<span class="mu num" style="font-size:10.5px">'
-              f'{WWC.jersey_prefix}{esc(str(p["number"]))}</span> '
-              if p.get("number") is not None else "")
+    """The name, linked to OUR player page wherever we publish one.
+
+    The jersey number used to be printed here as a prefix; it has its own
+    column since 2026-09-03.
+    """
     href = player_href(p["name"], published)
     if href:
-        return (f'{number}<a href="{href}" {CROSS_SITE} style="font-weight:500;'
+        return (f'<a href="{href}" {CROSS_SITE} style="font-weight:500;'
                 f'color:var(--text)">{esc(p["name"])}</a>')
-    return f'{number}<span style="font-weight:500">{esc(p["name"])}</span>'
+    return f'<span style="font-weight:500">{esc(p["name"])}</span>'
 
 
 DASH = '<span class="mu">—</span>'
 STATUS_LABEL = {"former": "former", "drafted_only": "drafted"}
 
 
-def wnba_team_cell(p, status_by_name):
-    """The WNBA team badge, or '' when there is no current WNBA tie.
-
-    The `wnba.players` block wins over `roster.players[].wnba`, and that is
-    deliberate: the two disagree inside the same file. Six roster entries
-    carry `wnba: false` while the wnba block lists five of them as CURRENT
-    (Bibby, Borlase, Fowler, Linskens, Delaere), and Belgium's block records
-    Meesseman and Vanloo as former while their roster rows say true. The
-    schema doc makes `wnba.players` the authoritative side — the three counts
-    derive from it and the validator asserts they agree — so the denormalised
-    roster boolean is read only for names the wnba block has never heard of.
-    This is not inference; it is preferring the file's verified block to its
-    own stale copy. The flags themselves still want fixing.
-
-    A FORMER player gets no badge here — she is not on a WNBA team. Her
-    history belongs in the Note column, which is exactly what splitting one
-    "Plays for" cell into three columns buys.
-    """
-    rec = status_by_name.get(p["name"])
-    if rec and rec["status"] == "current":
-        team = rec.get("wnba_team") or p["plays_for"].get("wnba_team")
-        return (f'<span class="wn">{esc(team)}</span>' if team
-                else '<span class="wn">WNBA</span>')
-    if not rec and p.get("wnba"):
-        team = p["plays_for"].get("wnba_team")
-        return (f'<span class="wn">{esc(team)}</span>' if team
-                else '<span class="wn">WNBA</span>')
-    return ""
-
-
-def club_cell(p):
-    """The non-WNBA club, or ''. Correct-or-blank.
-
-    Round 1 printed the literal word 'club' for every non-WNBA player, which
-    reads like a value and told the reader nothing. `plays_for.club_name` is
-    null for EVERY player in the reference data today, so this column does
-    not render at all yet — see the per-team gate in `roster_block`.
-    """
-    club = p["plays_for"].get("club_name")
-    if not club:
-        return ""
-    country = p["plays_for"].get("club_country")
-    suffix = (f' <span class="mu" style="font-size:10.5px">'
-              f'{esc(country)}</span>' if country else "")
-    return f"{esc(club)}{suffix}"
-
-
 def note_cell(p, status_by_name):
     """Short reader-facing context, or ''.
 
-    Two sources, in order. A former/drafted status is synthesised here
-    because it is a fact about the player that the WNBA-team column can no
-    longer carry once that column means "plays there now".
+    Jason, 2026-09-03: "Those former WNBA team or NCAAWB affiliations are
+    important." Two of the three sources exist; the third does not.
 
-    The `note` field itself is MIXED-PURPOSE and cannot be shipped wholesale:
-    of the 41 notes in the file, roughly a third are internal provenance and
-    hedging ("Not 'Megan DiLeo'", "Basketball Australia's release still says
-    Chicago", "still-rostered status unconfirmed") rather than prose for a
-    reader. Publishing those would leak our working notes onto a team page.
-    Until an editorial pass splits them, only the synthesised status ships —
-    which is why `NOTE_FIELD_IS_READER_SAFE` is False and is a switch rather
-    than a deletion: the moment the pass happens, this is one flag.
+    1. FORMER / DRAFTED WNBA — synthesised from `wnba.players[].status`,
+       because it is a fact about the player that the Club column can no
+       longer carry once that column means "plays there now".
+    2. The OTHER club, for a player who has both a WNBA team and a club
+       abroad. The capture's single Club column cannot express both; this is
+       where the loser goes (Kennedy Burke, ÇBK Mersin). Mostly empty today,
+       because the source lists only the WNBA side for those players — empty,
+       not invented.
+    3. NCAA history — WE DO NOT HAVE IT, and the pages ship without it.
+       Jason, 2026-09-03: "In an ideal world, we'd have time to research those
+       former NCAA connections... At t-minus-36, we do not." It has no field in
+       the schema; a backlog row records the gap. Note that several players'
+       CURRENT club IS an NCAA program (Auburn, TCU, Louisville, Kansas State,
+       UCF, Wisconsin, Sam Houston, Fresno State) and renders in the Club
+       column like any other club. That is a current club, not a former
+       affiliation, and must never be relabelled as one.
+
+    The raw `note` field is MIXED-PURPOSE and cannot ship wholesale: of the 41
+    notes in the file, roughly a third are internal provenance and hedging
+    ("Not 'Megan DiLeo'", "Basketball Australia's release still says Chicago")
+    rather than prose for a reader. Publishing those would leak our working
+    notes onto a team page. Until an editorial pass splits them, only the
+    synthesised status ships — which is why `NOTE_FIELD_IS_READER_SAFE` is
+    False and is a switch rather than a deletion.
     """
     rec = status_by_name.get(p["name"])
     bits = []
@@ -1024,6 +1063,9 @@ def note_cell(p, status_by_name):
         team = rec.get("wnba_team_full") or rec.get("wnba_team")
         bits.append(f'{label.capitalize()} {esc(team)}' if team
                     else f'{label.capitalize()} WNBA')
+    other = p["plays_for"].get("other_club")
+    if other:
+        bits.append(f"Also {esc(other)}")
     if NOTE_FIELD_IS_READER_SAFE and rec and rec.get("note"):
         bits.append(esc(rec["note"]))
     return " · ".join(bits)
@@ -1067,7 +1109,10 @@ def page_team(t, rows, teams, results, box_ids, published):
     if t.get("profile"):
         out.append(f'<div class="ed">{esc(t["profile"])}</div>')
     out.append(coach_block(t))
-    out.append(wnba_block(t, published))
+    # ONE roster table since 2026-09-03. The separate "WNBA connection" grid
+    # that used to sit here is gone: on the USA page it printed the same twelve
+    # names the roster printed, and its hand-maintained headline count read a
+    # different source from the table below it.
     out.append(roster_block(t, published))
     out.append(fixtures_block(t, rows, teams, results, box_ids))
 

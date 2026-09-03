@@ -1,0 +1,9 @@
+# Corrections applied ON TOP OF wikipedia-squads-2026-09-03.tsv, which stays a
+# VERBATIM capture. Never edit the capture — a source you have quietly corrected
+# can no longer be re-captured and diffed. Apply these after ingest.
+#
+# Columns: team	name	field	value	reason
+MLI	Aicha Coulibaly	height	6 ft 0 in	Wikipedia's squad table says 5 ft 9 in; her own Wikipedia bio and her WNBA player page both say 6 ft 0 in. Jason 2026-09-03: the taller figure is the plausible one. Two sources beat one.
+TUR	Kennedy Burke	club	Connecticut Sun	The squad table lists her Turkish club, ÇBK Mersin. She is a CURRENTLY ACTIVE WNBA player — verified against our own data, not asserted: 36 games for CON in player_box_2026.csv, and we publish her page at /players/kennedy-burke/. She plays for both; the Club column shows the WNBA side.
+TUR	Kennedy Burke	club_country	United States	Follows the club override.
+TUR	Kennedy Burke	other_club	ÇBK Mersin	Her Turkish club moves to the Note column rather than being dropped.

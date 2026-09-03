@@ -110,8 +110,17 @@
   .prose a:hover{text-decoration:underline}
   .cnote{color:var(--muted);font-size:11.5px;line-height:1.6;margin-top:4px}
   .cnote b{color:var(--text)}
-  .wn{color:var(--accent);font-size:10px;border:1px solid var(--accent);
-    padding:0 4px;border-radius:2px;white-space:nowrap}
+  /* The WNBA marker. Strengthened 2026-09-03 when the Club column made it
+     the thing the eye is meant to find down a twelve-row table — heavier box,
+     600 weight, a tint of the accent behind it. The HUE is untouched on
+     purpose: Option C (2026-08-23) makes --accent the only token allowed to
+     diverge between the two sites, so a second blue is not available. */
+  .wn{color:var(--accent);font-size:10px;border:1.5px solid var(--accent);
+    padding:1px 5px;border-radius:2px;white-space:nowrap;font-weight:600;
+    background:color-mix(in srgb, var(--accent) 10%, transparent)}
+  /* The generated count line above each roster table. Reads as a caption, not
+     as a heading — the table is the programme, this only says how to read it. */
+  .wnl{margin:0 0 8px}
   .tag{color:var(--muted);font-size:10px;border:1px solid var(--border);padding:0 4px}
   .pend{color:var(--muted);font-size:11.5px;line-height:1.6;
     border-left:2px solid var(--border);padding-left:9px;margin-top:9px}
@@ -226,8 +235,8 @@ Olympics), <a href="/teams/australia/">Australia</a> (Asia Cup champions), <a hr
 World Cup runners-up) and <a href="/teams/belgium/">Belgium</a> (EuroBasket champions). All of them return experienced lineups that have played together
 internationally. Every team’s full record is on its own page — see
 <a href="/teams/">Teams</a>.</p>
-<p class="prose"><b>50 current WNBA players are in this field</b>,
-spread across 14 of the 16 teams. The US roster is the
+<p class="prose"><b>51 current WNBA players are in this field</b>,
+spread across 15 of the 16 teams. The US roster is the
 most star-studded, with <a href="https://wnba.statsataglance.com/players/napheesa-collier/" target="_blank" rel="noopener">Napheesa Collier</a>, <a href="https://wnba.statsataglance.com/players/breanna-stewart/" target="_blank" rel="noopener">Breanna Stewart</a>,
 <a href="https://wnba.statsataglance.com/players/caitlin-clark/" target="_blank" rel="noopener">Caitlin Clark</a> and <a href="https://wnba.statsataglance.com/players/paige-bueckers/" target="_blank" rel="noopener">Paige Bueckers</a> among its names. France,
 which nearly beat the US in Paris in 2024, returns a strong team headlined by

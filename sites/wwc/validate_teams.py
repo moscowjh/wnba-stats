@@ -4,7 +4,7 @@
 Usage: python3 validate_teams.py [teams.json] [schedule.csv]
 Defaults to the paths used in sites/wwc/reference/.
 """
-import csv, json, sys, collections, pathlib
+import csv, json, re, sys, collections, pathlib
 
 HERE = pathlib.Path(__file__).parent
 TEAMS = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else HERE / "reference/wwc2026_teams.json"
@@ -15,9 +15,25 @@ ROUTES = {"host", "continental_cup_champion", "qualifying_tournament"}
 PROFILE_STATUS = {"empty", "draft", "published"}
 
 fails = []
+warns = []
 def check(label, cond, detail=""):
     if not cond:
         fails.append(f"{label}{': ' + str(detail) if detail else ''}")
+
+def warn(label, cond, detail=""):
+    """A house style rule, not a data error.
+
+    Jason, 2026-09-02: the word cap and the future-facing verb list exist to
+    keep a MODEL's drafts honest — "those are useful if the model is doing the
+    writing, but I want the ability to overrule." A human editor overrules
+    them, so they must never fail a build. They are still worth SAYING, because
+    a draft that drifts past them by accident is a different thing from one a
+    person lengthened on purpose.
+
+    The 55 itself was never measured — it was derived from the 380px frame, and
+    the profile rules doc still lists "is 55 the right cap?" as open."""
+    if not cond:
+        warns.append(f"{label}{': ' + str(detail) if detail else ''}")
 
 doc = json.loads(TEAMS.read_text())
 T = doc["teams"]
@@ -77,6 +93,55 @@ for t in T:
     check(f"{c}.wnba: a proxy roster_basis must not claim high confidence",
           not (w["roster_basis"].startswith("proxy") and w["confidence"] == "high"))
 
+# --- roster rows (the one table the team pages render) ---
+# Added 2026-09-03 with the single roster table. Every column on that table is
+# a field checked here, and the LAST check is the important one: it is the
+# regression test for the bug the table replaces. A hand-maintained headline
+# count sitting above a table that read a different source is how Hungary
+# published "0 current players" directly above a row naming Dorka Juhasz. The
+# emitter now derives the count line from the same rows that render the
+# badges and refuses to emit a table where they disagree; this asserts the
+# same equality one layer down, in the data.
+HEIGHT_RE = re.compile(r"^\d+ ft \d+ in$")
+PLAYS_FOR_KEYS = {"type", "wnba_team", "club_name", "club_country", "other_club"}
+for t in T:
+    c = t["code"]
+    for p in t["roster"]["players"]:
+        who = f"{c}.{p['name']}"
+        age = p.get("age")
+        check(f"{who}: age is a plausible integer or null",
+              age is None or (isinstance(age, int) and 15 <= age <= 50), age)
+        h = p.get("height")
+        check(f"{who}: height is ft/in or null",
+              h is None or bool(HEIGHT_RE.match(h)), h)
+        pf = p["plays_for"]
+        check(f"{who}: plays_for carries the full key set",
+              set(pf) == PLAYS_FOR_KEYS, sorted(set(pf) ^ PLAYS_FOR_KEYS))
+        cc = pf["club_country"]
+        check(f"{who}: club_country is a three-letter code or null",
+              cc is None or (len(cc) == 3 and cc.isupper()), cc)
+        # The badge and the flag are one fact. Correct-or-blank: a player
+        # marked WNBA without a team would render a bare "WNBA" box.
+        check(f"{who}: plays_for.type agrees with the wnba flag",
+              (pf["type"] == "wnba") == bool(p["wnba"]), pf["type"])
+        check(f"{who}: a WNBA player has a team code",
+              not (p["wnba"] and not pf["wnba_team"]))
+        check(f"{who}: a non-WNBA player has no team code",
+              not (not p["wnba"] and pf["wnba_team"]), pf["wnba_team"])
+
+    roster_names = {p["name"] for p in t["roster"]["players"]}
+    # note_cell() looks former/drafted players up by name. A name that does
+    # not join renders as a silently missing note, which is indistinguishable
+    # from a player who has no history at all.
+    missing = [p["name"] for p in t["wnba"]["players"] if p["name"] not in roster_names]
+    check(f"{c}: every wnba.players name joins to a roster row", not missing, missing)
+
+    badges = sum(1 for p in t["roster"]["players"] if p["wnba"])
+    current = sum(1 for p in t["wnba"]["players"] if p["status"] == "current")
+    check(f"{c}: badge rows, current players and the headline count are one number",
+          badges == current == t["wnba"]["current"],
+          f"{badges} badges / {current} current / {t['wnba']['current']} headline")
+
 # --- profile rules ---
 for t in T:
     c = t["code"]
@@ -84,10 +149,10 @@ for t in T:
         check(f"{c}: an empty profile_status means an empty profile", t["profile"] == "")
         continue
     words = len(t["profile"].split())
-    check(f"{c}: profile within the 55-word cap", words <= 55, words)
+    warn(f"{c}: profile runs past the 55-word guideline", words <= 55, words)
     lowered = " " + t["profile"].lower()
     for banned in (" will ", " upcoming ", " this week ", " hope", " expect"):
-        check(f"{c}: profile avoids future-facing '{banned.strip()}'", banned not in lowered)
+        warn(f"{c}: profile uses future-facing '{banned.strip()}'", banned not in lowered)
 
 # --- joins against the schedule ---
 rows = [r for r in csv.DictReader(SCHED.open()) if r["phase"] == "group"]
@@ -113,9 +178,17 @@ alloc = collections.Counter(t["qualification"]["city"] for t in T
 check("qualifying-tournament allocation matches the declared summary",
       dict(alloc) == doc["tournament"]["qualification_summary"]["qt_allocation"], dict(alloc))
 
+# Warnings print FIRST, so they are visible above the pass/fail line rather
+# than scrolled off. They never affect the exit code — see warn().
+if warns:
+    print(f"style notes ({len(warns)}) - guidance, not errors; a human editor overrules:")
+    for w_ in warns:
+        print("  ~", w_)
+
 if fails:
     print(f"FAILED ({len(fails)}):")
     for f in fails:
         print("  -", f)
     sys.exit(1)
-print(f"OK - {len(T)} teams, all checks pass")
+print(f"OK - {len(T)} teams, all checks pass"
+      + (f" ({len(warns)} style notes)" if warns else ""))

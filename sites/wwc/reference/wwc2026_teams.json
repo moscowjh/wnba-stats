@@ -1,13 +1,13 @@
 {
   "_schema": {
-    "version": "2.1.0",
-    "generated": "2026-09-02",
+    "version": "2.2.0",
+    "generated": "2026-09-03",
     "note": "One record per team, 16 records. Field set frozen before profile writing. Source of truth for the WWC team pages; all views (spreadsheet, HTML table) are generated from this file and are disposable.",
     "keys": "code is the primary key (FIBA three-letter). schedule_key joins to sites/wwc/reference/wwc_schedule_2026.csv, which uses UPPERCASE full names, not codes. Both are needed; neither alone is sufficient.",
     "sources": "A LIST, not a single URL, following the hooks.json convention. Verbatim quotes are attached where the source stated a figure directly.",
     "derived": "appearances_count and best_finish derive from the editions array wherever editions is non-null. Where editions is null the stored summary is the fallback.",
     "confidence": "high = cross-validated across two independent sources. medium = single source. low = single source that conflicted with something else; re-check before publishing.",
-    "nulls": "null = exists, not researched. [] = researched, genuinely none. Never write a profile claim off a null.",
+    "nulls": "null = exists, not researched. [] = researched, genuinely none. Never write a profile claim off a null. roster.players[].age, .height and .plays_for.club_name/club_country/other_club are null wherever the squad capture does not cover the team (NGR, PUR) or the source has no value; the emitter gates each column per team rather than printing a dash column.",
     "roster_rule": "player_count > 12 means a pool regardless of how the source labels it. FIBA's own tracker mislabels several pools as final. Never write a squad claim off a pool roster without hedging.",
     "wnba": "current / former / drafted_only counts derive from the players array and are validated. roster_basis says what list the block was built from — 'proxy' means no squad has been announced and membership is inference, not fact.",
     "validator": "sites/wwc/validate_teams.py (to be written) - assert 16 records, unique codes, 4 per group, schedule_key matches the schedule CSV, roster.status in enum, editions ranks 1..16."
@@ -102,7 +102,10 @@
     "MLI.coach": "Named Hamchétou Maïga-Ba as head coach on wiki sourcing. No evidence supports it; withdrawn to null. Mali's coach is currently unknown.",
     "KOR.wwc_appearances_count": "Was 16 with a null editions array, on the basis of FIBA's prose article. Correct: 17, from FIBA's Korea History tab, which also supplied every placing. FIBA's article and FIBA's data disagree; the data is right.",
     "HUN.roster.juhasz": "A 2026-08-31 session recorded that Dorka Juhász had been CUT, inferring it from Hungary's list shrinking 25 -> 14. She had not been. The 14 was an interim narrowing (10 July); the final 12 (31 August) has her at No. 14. The inference reached build_wwc_pages.py's wnba_on_squad() docstring and drove the headline count, so the page published '0 current players' above a table naming her. Absence from a scraped list is not evidence of a cut.",
-    "ESP.wnba.gustafson": "The wnba block carried 'Megan Gustafson'. The squad and the Spanish federation both say Megan DiLeo. Same player, married name."
+    "ESP.wnba.gustafson": "The wnba block carried 'Megan Gustafson'. The squad and the Spanish federation both say Megan DiLeo. Same player, married name.",
+    "KOR.roster.romanisation": "The 2026-09-02 capture gave Ahn Hye-ji, Choi Yi-saem, Kang Yi-seul and Kang Yu-rim. Wikipedia re-romanised all four to An He-ji, Choi I-saem, Kang Lee-seul and Kang Yoo-lim on 2026-09-03, and renumbered the squad. The newer capture wins. The four are joined by an EXPLICIT alias table in ingest_squads.py, not by a matcher: 'Kang Yi-seul' and 'Kang Yu-rim' are both Kang, and a surname heuristic that guessed wrong would have swapped two players' ages and heights with nothing to show for it.",
+    "CHN.roster.numbers": "China was renumbered between the 09-02 and 09-03 captures (eight of twelve). Names were unaffected. The squads page is edited hourly this close to tip — re-capture, never assume yesterday's numbers hold.",
+    "TUR.wnba.burke": "Kennedy Burke was counted as a non-WNBA player because the squad source lists her Turkish club, ÇBK Mersin. She is currently active for Connecticut — 36 games in our own 2026 box scores. A source's single Club column cannot express a player who has both."
   },
   "teams": [
     {
@@ -276,11 +279,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Valencia Basket",
               "club_country": "ESP",
-              "club_name": "Valencia Basket"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 22,
+            "height": "5 ft 9 in"
           },
           {
             "number": "4",
@@ -289,11 +295,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Basket Zaragoza",
               "club_country": "ESP",
-              "club_name": "Basket Zaragoza"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 34,
+            "height": "6 ft 0 in"
           },
           {
             "number": "5",
@@ -302,11 +311,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "USK Praha",
               "club_country": "CZE",
-              "club_name": "USK Praha"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 10 in"
           },
           {
             "number": "7",
@@ -315,11 +327,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "AzulMarino Palma",
               "club_country": "ESP",
-              "club_name": "AzulMarino Palma"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 37,
+            "height": "6 ft 4 in"
           },
           {
             "number": "9",
@@ -328,11 +343,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Valencia Basket",
               "club_country": "ESP",
-              "club_name": "Valencia Basket"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 25,
+            "height": "6 ft 0 in"
           },
           {
             "number": "10",
@@ -341,11 +359,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "TOR",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Toronto Tempo",
+              "club_country": "CAN",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 29,
+            "height": "6 ft 3 in"
           },
           {
             "number": "11",
@@ -354,11 +375,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "SEA",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Seattle Storm",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 20,
+            "height": "6 ft 4 in"
           },
           {
             "number": "14",
@@ -367,11 +391,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "NYL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "New York Liberty",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 24,
+            "height": "6 ft 3 in"
           },
           {
             "number": "17",
@@ -380,11 +407,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "PDX",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Portland Fire",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 29,
+            "height": "6 ft 4 in"
           },
           {
             "number": "18",
@@ -393,11 +423,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "WAS",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Washington Mystics",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 22,
+            "height": "5 ft 9 in"
           },
           {
             "number": "20",
@@ -406,11 +439,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Žabiny Brno",
               "club_country": "CZE",
-              "club_name": "Žabiny Brno"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 28,
+            "height": "6 ft 2 in"
           },
           {
             "number": "44",
@@ -419,11 +455,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Spar Girona",
               "club_country": "ESP",
-              "club_name": "Spar Girona"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 20,
+            "height": "5 ft 9 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -551,7 +590,7 @@
           }
         ]
       },
-      "profile": "Spain medalled at three consecutive World Cups and then missed the next one entirely. Iyana Martín Carrión went seventh in the 2026 WNBA draft and turned the Portland Fire down to train with Spain for this tournament, one of several in the squad with WNBA ties.",
+      "profile": "Spain medalled at three consecutive World Cups from 2010-2018, but then missed Australia 2022 entirely. Iyana Martín Carrión went seventh in the 2026 WNBA draft: she and the Fire decided she would remain in Europe this season. She still figures into Portland's future plans and will be joined on the squad by potential future teammate Megan DiLeo.",
       "profile_status": "draft"
     },
     {
@@ -681,11 +720,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Valencia Basket",
               "club_country": "ESP",
-              "club_name": "Valencia Basket"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 31,
+            "height": "5 ft 5 in"
           },
           {
             "number": "3",
@@ -694,11 +736,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Rutronik Stars Keltern",
               "club_country": "GER",
-              "club_name": "Rutronik Stars Keltern"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 9 in"
           },
           {
             "number": "8",
@@ -707,11 +752,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "TOR",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Toronto Tempo",
+              "club_country": "CAN",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 26,
+            "height": "6 ft 2 in"
           },
           {
             "number": "9",
@@ -720,11 +768,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": "Saarlouis Royals"
+              "club_name": "Saarlouis Royals",
+              "club_country": "GER",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 26,
+            "height": "6 ft 0 in"
           },
           {
             "number": "13",
@@ -733,11 +784,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "NYL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "New York Liberty",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 26,
+            "height": "6 ft 4 in"
           },
           {
             "number": "15",
@@ -746,11 +800,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "PDX",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Portland Fire",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 26,
+            "height": "6 ft 3 in"
           },
           {
             "number": "19",
@@ -759,11 +816,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Eisvögel USC Freiburg",
               "club_country": "GER",
-              "club_name": "Eisvögel USC Freiburg"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "5 ft 9 in"
           },
           {
             "number": "20",
@@ -772,11 +832,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "PDX",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Portland Fire",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 22,
+            "height": "6 ft 1 in"
           },
           {
             "number": "21",
@@ -785,11 +848,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Townsville Fire",
               "club_country": "AUS",
-              "club_name": "Townsville Fire"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 32,
+            "height": "6 ft 5 in"
           },
           {
             "number": "22",
@@ -798,11 +864,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "CB Jairis",
               "club_country": "ESP",
-              "club_name": "CB Jairis"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "6 ft 4 in"
           },
           {
             "number": "24",
@@ -811,11 +880,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "AE Sedis Bàsquet",
               "club_country": "ESP",
-              "club_name": "AE Sedis Bàsquet"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 22,
+            "height": "6 ft 3 in"
           },
           {
             "number": "25",
@@ -824,11 +896,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "TCU Horned Frogs",
               "club_country": "USA",
-              "club_name": "TCU Horned Frogs"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 19,
+            "height": "6 ft 1 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -902,7 +977,7 @@
           }
         ]
       },
-      "profile": "Germany have hosted this tournament once before, in 1998, and went out before the quarter-finals. Olaf Lange coaches them now — four seasons on the New York Liberty staff, including the 2024 championship — and he is married to Sandy Brondello, who coaches Australia.",
+      "profile": "Germany's only other appearance in the World Cup was when it hosted in 1998. That year the team was eliminated in the group phase. The squad features four WNBA players, though unfortunately not superstar Satou Sabally who recovering from a concussion. Olaf Lange coaches them now: he is married to Sandy Brondello, who coaches Australia.",
       "profile_status": "draft"
     },
     {
@@ -1103,11 +1178,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Eneos Sunflowers",
               "club_country": "JPN",
-              "club_name": "Eneos Sunflowers"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 26,
+            "height": "5 ft 10 in"
           },
           {
             "number": "3",
@@ -1116,11 +1194,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "CB Avenida",
               "club_country": "ESP",
-              "club_name": "CB Avenida"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "6 ft 0 in"
           },
           {
             "number": "6",
@@ -1129,11 +1210,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Tokyo Healthcare University",
               "club_country": "JPN",
-              "club_name": "Tokyo Healthcare University"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 19,
+            "height": "5 ft 10 in"
           },
           {
             "number": "8",
@@ -1142,11 +1226,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Denso Iris",
               "club_country": "JPN",
-              "club_name": "Denso Iris"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 37,
+            "height": "6 ft 1 in"
           },
           {
             "number": "10",
@@ -1155,11 +1242,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Toyota Antelopes",
               "club_country": "JPN",
-              "club_name": "Toyota Antelopes"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 35,
+            "height": "6 ft 4 in"
           },
           {
             "number": "13",
@@ -1168,11 +1258,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Fujitsu Red Wave",
               "club_country": "JPN",
-              "club_name": "Fujitsu Red Wave"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 33,
+            "height": "5 ft 4 in"
           },
           {
             "number": "14",
@@ -1181,11 +1274,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Toyota Boshoku Sunshine Rabbits",
               "club_country": "JPN",
-              "club_name": "Toyota Boshoku Sunshine Rabbits"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 22,
+            "height": "6 ft 1 in"
           },
           {
             "number": "23",
@@ -1194,11 +1290,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "LVA",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Las Vegas Aces",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 26,
+            "height": "5 ft 4 in"
           },
           {
             "number": "26",
@@ -1207,11 +1306,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Eneos Sunflowers",
               "club_country": "JPN",
-              "club_name": "Eneos Sunflowers"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 20,
+            "height": "5 ft 8 in"
           },
           {
             "number": "27",
@@ -1220,11 +1322,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Fujitsu Red Wave",
               "club_country": "JPN",
-              "club_name": "Fujitsu Red Wave"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 31,
+            "height": "5 ft 8 in"
           },
           {
             "number": "52",
@@ -1233,11 +1338,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Fujitsu Red Wave",
               "club_country": "JPN",
-              "club_name": "Fujitsu Red Wave"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 33,
+            "height": "6 ft 0 in"
           },
           {
             "number": "75",
@@ -1246,11 +1354,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Toyota Boshoku Sunshine Rabbits",
               "club_country": "JPN",
-              "club_name": "Toyota Boshoku Sunshine Rabbits"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 25,
+            "height": "5 ft 9 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -1441,11 +1552,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Auburn Tigers",
               "club_country": "USA",
-              "club_name": "Auburn Tigers"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 22,
+            "height": "5 ft 10 in"
           },
           {
             "number": "1",
@@ -1454,11 +1568,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "ASC Ville de Dakar",
               "club_country": "SEN",
-              "club_name": "ASC Ville de Dakar"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "5 ft 6 in"
           },
           {
             "number": "2",
@@ -1467,11 +1584,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Baloncesto Leganés",
               "club_country": "ESP",
-              "club_name": "Baloncesto Leganés"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "6 ft 1 in"
           },
           {
             "number": "6",
@@ -1480,11 +1600,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Oakland Swish",
               "club_country": "USA",
-              "club_name": "Oakland Swish"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "5 ft 9 in"
           },
           {
             "number": "10",
@@ -1493,11 +1616,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Porta XI Ensino",
               "club_country": "ESP",
-              "club_name": "Porta XI Ensino"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 22,
+            "height": "6 ft 2 in"
           },
           {
             "number": "11",
@@ -1506,11 +1632,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "REG BBC",
               "club_country": "RWA",
-              "club_name": "REG BBC"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 9 in"
           },
           {
             "number": "12",
@@ -1519,11 +1648,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Joventut Badalona",
               "club_country": "ESP",
-              "club_name": "Joventut Badalona"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 26,
+            "height": "6 ft 1 in"
           },
           {
             "number": "13",
@@ -1532,11 +1664,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Adareva Tenerife",
               "club_country": "ESP",
-              "club_name": "Adareva Tenerife"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 22,
+            "height": "6 ft 0 in"
           },
           {
             "number": "22",
@@ -1545,11 +1680,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "ASA Sceaux",
               "club_country": "FRA",
-              "club_name": "ASA Sceaux"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 21,
+            "height": "5 ft 10 in"
           },
           {
             "number": "23",
@@ -1558,11 +1696,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "ATL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Atlanta Dream",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 24,
+            "height": "6 ft 3 in"
           },
           {
             "number": "50",
@@ -1571,11 +1712,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "CB Islas Canarias",
               "club_country": "ESP",
-              "club_name": "CB Islas Canarias"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 5 in"
           },
           {
             "number": "77",
@@ -1584,11 +1728,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "ASVEL Basket",
               "club_country": "FRA",
-              "club_name": "ASVEL Basket"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 30,
+            "height": "6 ft 3 in"
           },
           {
             "number": null,
@@ -1597,11 +1744,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Kenya Ports",
               "club_country": "KEN",
-              "club_name": "Kenya Ports"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 21,
+            "height": "5 ft 5 in"
           },
           {
             "number": null,
@@ -1610,11 +1760,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "USFAS Bamako",
               "club_country": "MLI",
-              "club_name": "USFAS Bamako"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 22,
+            "height": "5 ft 1 in"
           },
           {
             "number": null,
@@ -1623,11 +1776,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Sam Houston Bearkats",
               "club_country": "USA",
-              "club_name": "Sam Houston Bearkats"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "5 ft 7 in"
           },
           {
             "number": null,
@@ -1636,11 +1792,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Free agent",
               "club_country": null,
-              "club_name": "Free agent"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 26,
+            "height": "5 ft 6 in"
           },
           {
             "number": null,
@@ -1649,11 +1808,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Friend's Basketball Association",
               "club_country": "CIV",
-              "club_name": "Friend's Basketball Association"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 26,
+            "height": "5 ft 10 in"
           },
           {
             "number": null,
@@ -1662,11 +1824,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Fresno State Bulldogs",
               "club_country": "USA",
-              "club_name": "Fresno State Bulldogs"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "5 ft 9 in"
           },
           {
             "number": null,
@@ -1675,11 +1840,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "CB Islas Canarias",
               "club_country": "ESP",
-              "club_name": "CB Islas Canarias"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 19,
+            "height": "5 ft 9 in"
           },
           {
             "number": null,
@@ -1688,11 +1856,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "CB Islas Canarias",
               "club_country": "ESP",
-              "club_name": "CB Islas Canarias"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 22,
+            "height": "6 ft 5 in"
           },
           {
             "number": null,
@@ -1701,11 +1872,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "CB Islas Canarias",
               "club_country": "ESP",
-              "club_name": "CB Islas Canarias"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 28,
+            "height": "6 ft 3 in"
           },
           {
             "number": null,
@@ -1714,11 +1888,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "CHI",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Chicago Sky",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 24,
+            "height": "6 ft 0 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -1950,11 +2127,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "PHX",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Phoenix Mercury",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 32,
+            "height": "6 ft 0 in"
           },
           {
             "number": "13",
@@ -1963,11 +2143,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "GSV",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Golden State Valkyries",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 24,
+            "height": "6 ft 2 in"
           },
           {
             "number": "14",
@@ -1976,11 +2159,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "SEA",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Seattle Storm",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 20,
+            "height": "6 ft 6 in"
           },
           {
             "number": "15",
@@ -1989,11 +2175,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "GSV",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Golden State Valkyries",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 29,
+            "height": "5 ft 11 in"
           },
           {
             "number": "20",
@@ -2002,11 +2191,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "PDX",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Portland Fire",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 22,
+            "height": "5 ft 9 in"
           },
           {
             "number": "22",
@@ -2015,11 +2207,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "PF Schio",
               "club_country": "ITA",
-              "club_name": "PF Schio"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 31,
+            "height": "6 ft 3 in"
           },
           {
             "number": "23",
@@ -2028,11 +2223,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "NYL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "New York Liberty",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 31,
+            "height": "5 ft 10 in"
           },
           {
             "number": "28",
@@ -2041,11 +2239,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Beşiktaş",
               "club_country": "TUR",
-              "club_name": "Beşiktaş"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 31,
+            "height": "5 ft 11 in"
           },
           {
             "number": "31",
@@ -2054,11 +2255,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Casademont Zaragoza",
               "club_country": "ESP",
-              "club_name": "Casademont Zaragoza"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "6 ft 3 in"
           },
           {
             "number": "42",
@@ -2067,11 +2271,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "CON",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Connecticut Sun",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 22,
+            "height": "5 ft 11 in"
           },
           {
             "number": "47",
@@ -2080,11 +2287,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "BLMA",
               "club_country": "FRA",
-              "club_name": "BLMA"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 33,
+            "height": "5 ft 7 in"
           },
           {
             "number": "98",
@@ -2093,11 +2303,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "NYL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "New York Liberty",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 24,
+            "height": "5 ft 11 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -2252,7 +2465,7 @@
           }
         ]
       },
-      "profile": "France arrived in Berlin with medals from four consecutive Olympics and a single World Cup medal, a bronze won in 1953. Dominique Malonga of Seattle and Gabby Williams of Golden State head the deepest group of WNBA players outside the United States.",
+      "profile": "France arrives in Berlin with medals in three of the past four Olympics but only a single World Cup medal, a bronze in 1953. In the Gold Medal game at the Paris 2024 Olympics, they came within one possession of defeating the US. Gabby Williams of Golden State leads the deepest group of WNBA players outside the United States.",
       "profile_status": "draft"
     },
     {
@@ -2398,11 +2611,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Valencia Basket",
               "club_country": "ESP",
-              "club_name": "Valencia Basket"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 28,
+            "height": "6 ft 4 in"
           },
           {
             "number": "7",
@@ -2411,11 +2627,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "DVTK",
               "club_country": "HUN",
-              "club_name": "DVTK"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "5 ft 10 in"
           },
           {
             "number": "8",
@@ -2424,11 +2643,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": "KSC Szekszárd"
+              "club_name": "KSC Szekszárd",
+              "club_country": "HUN",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 19,
+            "height": "5 ft 10 in"
           },
           {
             "number": "9",
@@ -2437,11 +2659,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "PEAC-Pécs",
               "club_country": "HUN",
-              "club_name": "PEAC-Pécs"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "5 ft 6 in"
           },
           {
             "number": "10",
@@ -2450,11 +2675,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "DVTK",
               "club_country": "HUN",
-              "club_name": "DVTK"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 9 in"
           },
           {
             "number": "11",
@@ -2463,11 +2691,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": "PEAC-Pécs"
+              "club_name": "PEAC-Pécs",
+              "club_country": "HUN",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 18,
+            "height": "6 ft 5 in"
           },
           {
             "number": "13",
@@ -2476,11 +2707,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "PEAC-Pécs",
               "club_country": "HUN",
-              "club_name": "PEAC-Pécs"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 28,
+            "height": "6 ft 0 in"
           },
           {
             "number": "14",
@@ -2489,11 +2723,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "MIN",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Minnesota Lynx",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 26,
+            "height": "6 ft 5 in"
           },
           {
             "number": "21",
@@ -2502,11 +2739,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "DVTK",
               "club_country": "HUN",
-              "club_name": "DVTK"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "5 ft 10 in"
           },
           {
             "number": "22",
@@ -2515,11 +2755,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": "Valencia Basket"
+              "club_name": "Valencia Basket",
+              "club_country": "ESP",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 38,
+            "height": "5 ft 10 in"
           },
           {
             "number": "33",
@@ -2528,11 +2771,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "PEAC-Pécs",
               "club_country": "HUN",
-              "club_name": "PEAC-Pécs"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 25,
+            "height": "5 ft 10 in"
           },
           {
             "number": "55",
@@ -2541,11 +2787,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": "Ceglédi EKK"
+              "club_name": "Ceglédi EKK",
+              "club_country": "HUN",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 32,
+            "height": "6 ft 2 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -2600,7 +2849,7 @@
           }
         ]
       },
-      "profile": "Hungary have not played a World Cup since 1998, one of the longest absences in the field. Dorka Juhász of the Minnesota Lynx is the one familiar name for an American audience; Phoenix drafted Eszter Rátkai in 2026, though she has yet to play.",
+      "profile": "Hungary have not played a World Cup since 1998, one of the longest absences in the field. Dorka Juhász of the Minnesota Lynx is familar to US fans: she also played collegiately at Ohio State and UConn. Phoenix drafted point guard Eszter Rátkai in 2026. Since she elected to remain in Europe this season, the World Cup will be the first opportunity for most WNBA fans to see the nineteen year-old in action.",
       "profile_status": "draft"
     },
     {
@@ -2785,30 +3034,148 @@
         "player_count": 12,
         "players": [
           {
-            "number": "5",
-            "name": "Heo Ye-eun",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "KOR",
-              "club_name": "Cheongju KB Stars"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": "9",
+            "number": "1",
             "name": "Park Ji-hyun",
             "position": "G",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "LAS",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Los Angeles Sparks",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 25,
+            "height": "6 ft 1 in"
+          },
+          {
+            "number": "2",
+            "name": "Heo Ye-eun",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Cheongju KB Stars",
+              "club_country": "KOR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 23,
+            "height": "5 ft 6 in"
+          },
+          {
+            "number": "3",
+            "name": "Kang Lee-seul",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Asan Woori Bank Woori Won",
+              "club_country": "KOR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 32,
+            "height": "5 ft 11 in"
+          },
+          {
+            "number": "5",
+            "name": "An He-ji",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Busan BNK Sum",
+              "club_country": "KOR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 5 in"
+          },
+          {
+            "number": "6",
+            "name": "Choi I-saem",
+            "position": "PF",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Busan BNK Sum",
+              "club_country": "KOR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 32,
+            "height": "6 ft 0 in"
+          },
+          {
+            "number": "8",
+            "name": "Jeong Hyun",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Bucheon Hana Bank",
+              "club_country": "KOR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 20,
+            "height": "5 ft 10 in"
+          },
+          {
+            "number": "9",
+            "name": "Lee So-hee",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Busan BNK Sum",
+              "club_country": "KOR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 26,
+            "height": "5 ft 7 in"
+          },
+          {
+            "number": "10",
+            "name": "Kang Yoo-lim",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Samsung Life Blueminx",
+              "club_country": "KOR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 9 in"
+          },
+          {
+            "number": "11",
+            "name": "Park So-hee",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Bucheon Hana Bank",
+              "club_country": "KOR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 23,
+            "height": "5 ft 10 in"
           },
           {
             "number": "12",
@@ -2817,11 +3184,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Samsung Life Blueminx",
               "club_country": "KOR",
-              "club_name": "Samsung Life Blueminx"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 22,
+            "height": "5 ft 11 in"
           },
           {
             "number": "39",
@@ -2830,115 +3200,30 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Incheon Shinhan",
               "club_country": "KOR",
-              "club_name": "Incheon Shinhan"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 20,
+            "height": "5 ft 10 in"
           },
           {
-            "number": null,
-            "name": "Ahn Hye-ji",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "KOR",
-              "club_name": "Busan BNK Sum"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Park So-hee",
-            "position": "PG",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "KOR",
-              "club_name": "Bucheon Hana Bank"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Lee So-hee",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "KOR",
-              "club_name": "Busan BNK Sum"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Kang Yu-rim",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "KOR",
-              "club_name": "Samsung Life Blueminx"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Kang Yi-seul",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "KOR",
-              "club_name": "Asan Woori Bank Woori Won"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Choi Yi-saem",
-            "position": "PF",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "KOR",
-              "club_name": "Busan BNK Sum"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Jeong Hyun",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "KOR",
-              "club_name": "Bucheon Hana Bank"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
+            "number": "77",
             "name": "Jin An",
             "position": "C",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Bucheon Hana Bank",
               "club_country": "KOR",
-              "club_name": "Bucheon Hana Bank"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 30,
+            "height": "6 ft 0 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -3128,12 +3413,15 @@
             "position": null,
             "plays_for": {
               "type": "wnba",
-              "wnba_team": null,
+              "wnba_team": "ATL",
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3143,10 +3431,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3156,10 +3447,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3169,10 +3463,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3182,10 +3479,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3195,10 +3495,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3208,10 +3511,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3221,10 +3527,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3234,10 +3543,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3247,10 +3559,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3260,10 +3575,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3273,10 +3591,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3286,10 +3607,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3299,10 +3623,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3312,10 +3639,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3325,10 +3655,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -3338,10 +3671,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           }
         ]
       },
@@ -3620,11 +3956,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "GSV",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Golden State Valkyries",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 26,
+            "height": "5 ft 9 in"
           },
           {
             "number": "2",
@@ -3633,11 +3972,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "SEA",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Seattle Storm",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 24,
+            "height": "5 ft 10 in"
           },
           {
             "number": "4",
@@ -3646,11 +3988,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Sydney Flames",
               "club_country": "AUS",
-              "club_name": "Sydney Flames"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 32,
+            "height": "5 ft 9 in"
           },
           {
             "number": "6",
@@ -3659,11 +4004,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "LVA",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Las Vegas Aces",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 32,
+            "height": "6 ft 2 in"
           },
           {
             "number": "11",
@@ -3672,11 +4020,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "DAL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Dallas Wings",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 29,
+            "height": "6 ft 3 in"
           },
           {
             "number": "12",
@@ -3685,11 +4036,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Tasmania Jewels",
               "club_country": "AUS",
-              "club_name": "Tasmania Jewels"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 30,
+            "height": "5 ft 5 in"
           },
           {
             "number": "13",
@@ -3698,11 +4052,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "SEA",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Seattle Storm",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 27,
+            "height": "6 ft 4 in"
           },
           {
             "number": "20",
@@ -3711,11 +4068,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "ATL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Atlanta Dream",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 21,
+            "height": "5 ft 11 in"
           },
           {
             "number": "22",
@@ -3724,11 +4084,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Adelaide Lightning",
               "club_country": "AUS",
-              "club_name": "Adelaide Lightning"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "6 ft 3 in"
           },
           {
             "number": "23",
@@ -3737,11 +4100,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Townsville Fire",
               "club_country": "AUS",
-              "club_name": "Townsville Fire"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 25,
+            "height": "6 ft 4 in"
           },
           {
             "number": "34",
@@ -3750,11 +4116,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Sydney Flames",
               "club_country": "AUS",
-              "club_name": "Sydney Flames"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 25,
+            "height": "6 ft 2 in"
           },
           {
             "number": "55",
@@ -3763,11 +4132,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "MIN",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Minnesota Lynx",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 28,
+            "height": "6 ft 0 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -3877,7 +4249,7 @@
           }
         ]
       },
-      "profile": "Australia lost three Olympic finals to the United States between 2000 and 2008. Sandy Brondello has coached the Opals since 2017 and won WNBA championships with Phoenix and New York along the way; she is married to Olaf Lange, who coaches Germany.",
+      "profile": "Australia lost three Olympic finals to the United States between 2000 and 2008. Sandy Brondello has coached the Opals since 2017 and won WNBA championships with Phoenix and New York. The team features a formidable crew from the WNBA including 2025 co-Defensive Player of the Year, Alanna Smith.",
       "profile_status": "draft"
     },
     {
@@ -4015,11 +4387,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Joventut Badalona",
               "club_country": "ESP",
-              "club_name": "Joventut Badalona"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "5 ft 7 in"
           },
           {
             "number": "5",
@@ -4028,11 +4403,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Kansas State Wildcats",
               "club_country": "USA",
-              "club_name": "Kansas State Wildcats"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 21,
+            "height": "6 ft 0 in"
           },
           {
             "number": "6",
@@ -4041,11 +4419,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "MIN",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Minnesota Lynx",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 32,
+            "height": "6 ft 0 in"
           },
           {
             "number": "11",
@@ -4054,11 +4435,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Fenerbahçe",
               "club_country": "TUR",
-              "club_name": "Fenerbahçe"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 33,
+            "height": "6 ft 4 in"
           },
           {
             "number": "13",
@@ -4067,11 +4451,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "PHX",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Phoenix Mercury",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 29,
+            "height": "6 ft 4 in"
           },
           {
             "number": "22",
@@ -4080,11 +4467,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "ASVEL Basket",
               "club_country": "FRA",
-              "club_name": "ASVEL Basket"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 29,
+            "height": "6 ft 0 in"
           },
           {
             "number": "25",
@@ -4093,11 +4483,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Basket Landes",
               "club_country": "FRA",
-              "club_name": "Basket Landes"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 26,
+            "height": "6 ft 1 in"
           },
           {
             "number": "31",
@@ -4106,11 +4499,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "CS Rapid București",
               "club_country": "ROU",
-              "club_name": "CS Rapid București"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 25,
+            "height": "5 ft 10 in"
           },
           {
             "number": "34",
@@ -4119,11 +4515,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "CB Jairis",
               "club_country": "ESP",
-              "club_name": "CB Jairis"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 26,
+            "height": "6 ft 1 in"
           },
           {
             "number": "35",
@@ -4132,11 +4531,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "NYL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "New York Liberty",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 33,
+            "height": "5 ft 8 in"
           },
           {
             "number": "55",
@@ -4145,11 +4547,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "TOR",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Toronto Tempo",
+              "club_country": "CAN",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 30,
+            "height": "5 ft 9 in"
           },
           {
             "number": "71",
@@ -4158,11 +4563,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Wisconsin Badgers",
               "club_country": "USA",
-              "club_name": "Wisconsin Badgers"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 20,
+            "height": "5 ft 10 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -4235,7 +4643,7 @@
           }
         ]
       },
-      "profile": "Fourth at the 2018 World Cup, fourth in Paris: Belgium have twice finished one game short of a podium. Their coach is American. Mike Thibault won the 2019 WNBA title with Emma Meesseman as Finals MVP, then took this job in 2025 and won EuroBasket at the first attempt.",
+      "profile": "Fourth at the 2018 World Cup and fourth at the 2024 Paris Olympics: Belgium have twice finished one game short of a medal on the biggest stage. Mike Thibault who won the 2019 WNBA title with Emma Meesseman as Finals MVP, took the Belgian head-coaching job in 2025 and won EuroBasket at the first attempt. Meesseman is a former WNBA all-star who played for Washington, Chicago and New York.",
       "profile_status": "draft"
     },
     {
@@ -4363,10 +4771,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4376,10 +4787,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4389,10 +4803,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4402,10 +4819,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4415,10 +4835,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4428,10 +4851,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4441,10 +4867,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4454,10 +4883,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4467,10 +4899,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4480,10 +4915,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4493,10 +4931,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           },
           {
             "number": null,
@@ -4506,10 +4947,13 @@
               "type": null,
               "wnba_team": null,
               "club_country": null,
-              "club_name": null
+              "club_name": null,
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": null,
+            "height": null
           }
         ]
       },
@@ -4551,7 +4995,7 @@
           }
         ]
       },
-      "profile": "Puerto Rico won their first World Cup game in 2022 and reached the quarter-finals the same week. Nobody in the current pool plays in the WNBA, though Imani McGee-Stafford went tenth in the 2016 draft and Arella Guirantes twenty-second in 2021.",
+      "profile": "Puerto Rico won their first World Cup game in 2022 and reached the quarter-finals the same week. Nobody on this year's squad plays in the WNBA, though Imani McGee-Stafford went tenth in the 2016 draft and Arella Guirantes twenty-second in 2021.",
       "profile_status": "draft"
     },
     {
@@ -4689,11 +5133,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Louisville Cardinals",
               "club_country": "USA",
-              "club_name": "Louisville Cardinals"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 21,
+            "height": "6 ft 2 in"
           },
           {
             "number": "2",
@@ -4702,11 +5149,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Galatasaray",
               "club_country": "TUR",
-              "club_name": "Galatasaray"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 28,
+            "height": "5 ft 10 in"
           },
           {
             "number": "4",
@@ -4715,11 +5165,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Fenerbahçe",
               "club_country": "TUR",
-              "club_name": "Fenerbahçe"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 33,
+            "height": "6 ft 0 in"
           },
           {
             "number": "6",
@@ -4728,11 +5181,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Galatasaray",
               "club_country": "TUR",
-              "club_name": "Galatasaray"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 25,
+            "height": "5 ft 9 in"
           },
           {
             "number": "8",
@@ -4741,11 +5197,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Galatasaray",
               "club_country": "TUR",
-              "club_name": "Galatasaray"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 33,
+            "height": "5 ft 9 in"
           },
           {
             "number": "11",
@@ -4754,11 +5213,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Galatasaray",
               "club_country": "TUR",
-              "club_name": "Galatasaray"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "6 ft 1 in"
           },
           {
             "number": "15",
@@ -4767,11 +5229,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Spar Girona",
               "club_country": "ESP",
-              "club_name": "Spar Girona"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 31,
+            "height": "6 ft 2 in"
           },
           {
             "number": "17",
@@ -4780,11 +5245,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Galatasaray",
               "club_country": "TUR",
-              "club_name": "Galatasaray"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "5 ft 7 in"
           },
           {
             "number": "20",
@@ -4793,24 +5261,30 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "ÇBK Mersin",
               "club_country": "TUR",
-              "club_name": "ÇBK Mersin"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 31,
+            "height": "6 ft 1 in"
           },
           {
             "number": "22",
             "name": "Kennedy Burke",
             "position": "G",
             "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "TUR",
-              "club_name": "ÇBK Mersin"
+              "type": "wnba",
+              "wnba_team": "CON",
+              "club_name": "Connecticut Sun",
+              "club_country": "USA",
+              "other_club": "ÇBK Mersin"
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": true,
+            "age": 29,
+            "height": "6 ft 1 in"
           },
           {
             "number": "30",
@@ -4819,11 +5293,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Emlak Konut",
               "club_country": "TUR",
-              "club_name": "Emlak Konut"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "6 ft 2 in"
           },
           {
             "number": "33",
@@ -4832,11 +5309,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "ÇBK Mersin",
               "club_country": "TUR",
-              "club_name": "ÇBK Mersin"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 35,
+            "height": "6 ft 6 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -4844,14 +5324,23 @@
         "history": "20 on 07-22, final 12 on 09-02"
       },
       "wnba": {
-        "current": 0,
+        "current": 1,
         "former": 1,
         "drafted_only": 0,
-        "total_connected": 1,
+        "total_connected": 2,
         "roster_basis": "final_squad",
         "as_of": "2026-09-02",
         "confidence": "high",
         "players": [
+          {
+            "name": "Kennedy Burke",
+            "position": "G",
+            "status": "current",
+            "wnba_team": "CON",
+            "wnba_team_full": "Connecticut Sun",
+            "note": null,
+            "confidence": "high"
+          },
           {
             "name": "Sevgi Uzun",
             "position": "G",
@@ -5075,16 +5564,51 @@
         "players": [
           {
             "number": "1",
+            "name": "Zhang Manman",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Jiangsu Phoenix",
+              "club_country": "CHN",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 7 in"
+          },
+          {
+            "number": "4",
+            "name": "Li Yuan",
+            "position": "PG",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Sichuan Yuanda Meile",
+              "club_country": "CHN",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 26,
+            "height": "5 ft 7 in"
+          },
+          {
+            "number": "5",
             "name": "Wang Siyu",
             "position": "G",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Sichuan Yuanda Meile",
               "club_country": "CHN",
-              "club_name": "Sichuan Yuanda Meile"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 30,
+            "height": "5 ft 11 in"
           },
           {
             "number": "6",
@@ -5093,11 +5617,62 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Guangdong Vermilion Birds",
               "club_country": "CHN",
-              "club_name": "Guangdong Vermilion Birds"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "5 ft 11 in"
+          },
+          {
+            "number": "9",
+            "name": "Tang Ziting",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Sichuan Yuanda Meile",
+              "club_country": "CHN",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 26,
+            "height": "6 ft 3 in"
+          },
+          {
+            "number": "11",
+            "name": "Luo Xinyu",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Jiangsu Phoenix",
+              "club_country": "CHN",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 24,
+            "height": "6 ft 2 in"
+          },
+          {
+            "number": "12",
+            "name": "Chen Yujie",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Shanxi Flame",
+              "club_country": "CHN",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 26,
+            "height": "5 ft 10 in"
           },
           {
             "number": "15",
@@ -5106,24 +5681,30 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "NYL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "New York Liberty",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 26,
+            "height": "6 ft 9 in"
           },
           {
-            "number": "16",
-            "name": "Luo Xinyu",
-            "position": "F",
+            "number": "18",
+            "name": "Chen Mingling",
+            "position": "F/C",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Guangdong Vermilion Birds",
               "club_country": "CHN",
-              "club_name": "Jiangsu Phoenix"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 26,
+            "height": "6 ft 4 in"
           },
           {
             "number": "19",
@@ -5132,11 +5713,30 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Shandong Six Stars",
               "club_country": "CHN",
-              "club_name": "Shandong Six Stars"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 19,
+            "height": "7 ft 3 in"
+          },
+          {
+            "number": "20",
+            "name": "Sun Yu",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Jiangsu Phoenix",
+              "club_country": "CHN",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 22,
+            "height": "6 ft 0 in"
           },
           {
             "number": "31",
@@ -5145,89 +5745,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Sichuan Yuanda Meile",
               "club_country": "CHN",
-              "club_name": "Sichuan Yuanda Meile"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Chen Yujie",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Shanxi Flame"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Zhang Manman",
-            "position": "PG",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Jiangsu Phoenix"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Sun Yu",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Jiangsu Phoenix"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Chen Mingling",
-            "position": "F/C",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Guangdong Vermilion Birds"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Tang Ziting",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": "CHN",
-              "club_name": "Sichuan Yuanda Meile"
-            },
-            "player_slug": null,
-            "wnba": false
-          },
-          {
-            "number": null,
-            "name": "Li Yuan",
-            "position": "PG",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": "Sichuan Yuanda Meile"
-            },
-            "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "6 ft 1 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -5423,11 +5948,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Žabiny Brno",
               "club_country": "CZE",
-              "club_name": "Žabiny Brno"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "5 ft 4 in"
           },
           {
             "number": "2",
@@ -5436,11 +5964,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Flammes Carolo Basket",
               "club_country": "FRA",
-              "club_name": "Flammes Carolo Basket"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "6 ft 0 in"
           },
           {
             "number": "3",
@@ -5449,11 +5980,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "DSK Brandýs",
               "club_country": "CZE",
-              "club_name": "DSK Brandýs"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 35,
+            "height": "6 ft 3 in"
           },
           {
             "number": "4",
@@ -5462,11 +5996,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "USK Praha",
               "club_country": "CZE",
-              "club_name": "USK Praha"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 30,
+            "height": "5 ft 8 in"
           },
           {
             "number": "5",
@@ -5475,11 +6012,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Žabiny Brno",
               "club_country": "CZE",
-              "club_name": "Žabiny Brno"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 28,
+            "height": "6 ft 1 in"
           },
           {
             "number": "7",
@@ -5488,11 +6028,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "USK Praha",
               "club_country": "CZE",
-              "club_name": "USK Praha"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 23,
+            "height": "5 ft 10 in"
           },
           {
             "number": "8",
@@ -5501,11 +6044,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Basket Zaragoza",
               "club_country": "ESP",
-              "club_name": "Basket Zaragoza"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 30,
+            "height": "5 ft 11 in"
           },
           {
             "number": "10",
@@ -5514,11 +6060,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "MIN",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Minnesota Lynx",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 27,
+            "height": "6 ft 0 in"
           },
           {
             "number": "12",
@@ -5527,11 +6076,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Žabiny Brno",
               "club_country": "CZE",
-              "club_name": "Žabiny Brno"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 24,
+            "height": "5 ft 11 in"
           },
           {
             "number": "13",
@@ -5540,11 +6092,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Botaş SK",
               "club_country": "TUR",
-              "club_name": "Botaş SK"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 10 in"
           },
           {
             "number": "16",
@@ -5553,11 +6108,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "USK Praha",
               "club_country": "CZE",
-              "club_name": "USK Praha"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 19,
+            "height": "6 ft 3 in"
           },
           {
             "number": "20",
@@ -5566,11 +6124,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "USK Praha",
               "club_country": "CZE",
-              "club_name": "USK Praha"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 23,
+            "height": "6 ft 5 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -5767,11 +6328,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "PF Schio",
               "club_country": "ITA",
-              "club_name": "PF Schio"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 28,
+            "height": "6 ft 2 in"
           },
           {
             "number": "5",
@@ -5780,11 +6344,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Reyer Venezia",
               "club_country": "ITA",
-              "club_name": "Reyer Venezia"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 21,
+            "height": "5 ft 7 in"
           },
           {
             "number": "6",
@@ -5793,11 +6360,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Reyer Venezia",
               "club_country": "ITA",
-              "club_name": "Reyer Venezia"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 26,
+            "height": "5 ft 9 in"
           },
           {
             "number": "8",
@@ -5806,11 +6376,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "DAL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Dallas Wings",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 27,
+            "height": "5 ft 7 in"
           },
           {
             "number": "9",
@@ -5819,11 +6392,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "GSV",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Golden State Valkyries",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 30,
+            "height": "6 ft 2 in"
           },
           {
             "number": "11",
@@ -5832,11 +6408,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Reyer Venezia",
               "club_country": "ITA",
-              "club_name": "Reyer Venezia"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 29,
+            "height": "6 ft 0 in"
           },
           {
             "number": "13",
@@ -5845,11 +6424,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Reyer Venezia",
               "club_country": "ITA",
-              "club_name": "Reyer Venezia"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "6 ft 4 in"
           },
           {
             "number": "14",
@@ -5858,11 +6440,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Magnolia Basket Campobasso",
               "club_country": "ITA",
-              "club_name": "Magnolia Basket Campobasso"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 26,
+            "height": "6 ft 2 in"
           },
           {
             "number": "18",
@@ -5871,11 +6456,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Reyer Venezia",
               "club_country": "ITA",
-              "club_name": "Reyer Venezia"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 7 in"
           },
           {
             "number": "19",
@@ -5884,11 +6472,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "Reyer Venezia",
               "club_country": "ITA",
-              "club_name": "Reyer Venezia"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "6 ft 0 in"
           },
           {
             "number": "22",
@@ -5897,11 +6488,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "PF Schio",
               "club_country": "ITA",
-              "club_name": "PF Schio"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 27,
+            "height": "6 ft 4 in"
           },
           {
             "number": "55",
@@ -5910,11 +6504,14 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
+              "club_name": "UCF Knights",
               "club_country": "USA",
-              "club_name": "UCF Knights"
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": false
+            "wnba": false,
+            "age": 22,
+            "height": "5 ft 9 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
@@ -6230,11 +6827,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "DAL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Dallas Wings",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 24,
+            "height": "6 ft 0 in"
           },
           {
             "number": "5",
@@ -6243,11 +6843,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "WAS",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Washington Mystics",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 22,
+            "height": "6 ft 1 in"
           },
           {
             "number": "6",
@@ -6256,11 +6859,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "ATL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Atlanta Dream",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 25,
+            "height": "6 ft 2 in"
           },
           {
             "number": "7",
@@ -6269,11 +6875,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "PHX",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Phoenix Mercury",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 32,
+            "height": "6 ft 1 in"
           },
           {
             "number": "8",
@@ -6282,11 +6891,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "LVA",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Las Vegas Aces",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 33,
+            "height": "5 ft 11 in"
           },
           {
             "number": "9",
@@ -6295,11 +6907,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "WAS",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Washington Mystics",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 23,
+            "height": "6 ft 3 in"
           },
           {
             "number": "10",
@@ -6308,11 +6923,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "NYL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "New York Liberty",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 32,
+            "height": "6 ft 3 in"
           },
           {
             "number": "11",
@@ -6321,11 +6939,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "MIN",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Minnesota Lynx",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 29,
+            "height": "6 ft 1 in"
           },
           {
             "number": "12",
@@ -6334,11 +6955,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "IND",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Indiana Fever",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 24,
+            "height": "6 ft 0 in"
           },
           {
             "number": "13",
@@ -6347,11 +6971,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "LVA",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Las Vegas Aces",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 28,
+            "height": "6 ft 0 in"
           },
           {
             "number": "14",
@@ -6360,11 +6987,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "IND",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Indiana Fever",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 24,
+            "height": "6 ft 5 in"
           },
           {
             "number": "15",
@@ -6373,11 +7003,14 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "ATL",
-              "club_country": null,
-              "club_name": null
+              "club_name": "Atlanta Dream",
+              "club_country": "USA",
+              "other_club": null
             },
             "player_slug": null,
-            "wnba": true
+            "wnba": true,
+            "age": 24,
+            "height": "6 ft 3 in"
           }
         ],
         "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",

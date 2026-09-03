@@ -1,0 +1,186 @@
+# Source: https://en.wikipedia.org/wiki/2026_FIBA_Women's_Basketball_World_Cup_squads
+# Captured 2026-09-03 via browser DOM extraction (table.sortable inside table.toccolours).
+# Columns: team	pos	no	name	age	height_ftin	club	club_country
+# Ages are as of 2026-09-04 per the page's own legend. Height ft/in only (metres dropped).
+# NOTE: Korea and China were RENUMBERED and Korea RE-ROMANISED between the 09-02 and
+# 09-03 captures. This page is being edited hourly this close to tip — re-capture, do
+# not assume yesterday's numbers hold.
+team	pos	no	name	age	height	club	club_country
+GER	PG	1	Alexis Peterson	31	5 ft 5 in	Valencia Basket	Spain
+GER	G	3	Alexandra Wilke	29	5 ft 9 in	Rutronik Stars Keltern	Germany
+GER	PF	8	Nyara Sabally	26	6 ft 2 in	Toronto Tempo	Canada
+GER	F	9	Emma Eichmeyer	26	6 ft 0 in	Saarlouis Royals	Germany
+GER	SG	13	Leonie Fiebich	26	6 ft 4 in	New York Liberty	United States
+GER	C	15	Luisa Geiselsöder	26	6 ft 3 in	Portland Fire	United States
+GER	G	19	Britta Daub	27	5 ft 9 in	Eisvögel USC Freiburg	Germany
+GER	PF	20	Frieda Bühner	22	6 ft 1 in	Portland Fire	United States
+GER	PF	21	Marie Gülich	32	6 ft 5 in	Townsville Fire	Australia
+GER	SF	22	Emily Bessoir	24	6 ft 4 in	CB Jairis	Spain
+GER	PG	24	Lina Sontag	22	6 ft 3 in	AE Sedis Bàsquet	Spain
+GER	G	25	Clara Bielefeld	19	6 ft 1 in	TCU Horned Frogs	United States
+JPN	SG	2	Norika Konno	26	5 ft 10 in	Eneos Sunflowers	Japan
+JPN	PF	3	Stephanie Mawuli	27	6 ft 0 in	CB Avenida	Spain
+JPN	SF	6	Otoha Goto	19	5 ft 10 in	Tokyo Healthcare University	Japan
+JPN	C	8	Maki Takada	37	6 ft 1 in	Denso Iris	Japan
+JPN	C	10	Ramu Tokashiki	35	6 ft 4 in	Toyota Antelopes	Japan
+JPN	PG	13	Rui Machida	33	5 ft 4 in	Fujitsu Red Wave	Japan
+JPN	C	14	Azusa Asahina	22	6 ft 1 in	Toyota Boshoku Sunshine Rabbits	Japan
+JPN	SG	23	Mai Yamamoto	26	5 ft 4 in	Las Vegas Aces	United States
+JPN	G	26	Kokoro Tanaka	20	5 ft 8 in	Eneos Sunflowers	Japan
+JPN	SG	27	Saki Hayashi	31	5 ft 8 in	Fujitsu Red Wave	Japan
+JPN	PF	52	Yuki Miyazawa	33	6 ft 0 in	Fujitsu Red Wave	Japan
+JPN	SF	75	Nanako Todo	25	5 ft 9 in	Toyota Boshoku Sunshine Rabbits	Japan
+MLI	F	0	Sira Thienou	22	5 ft 10 in	Auburn Tigers	United States
+MLI	F	1	Foune Sissoko	27	5 ft 6 in	ASC Ville de Dakar	Senegal
+MLI	PF	2	Aminata Sangaré	24	6 ft 1 in	Baloncesto Leganés	Spain
+MLI	C	6	Roukia Doumbia	27	5 ft 9 in	Oakland Swish	United States
+MLI	PF	10	Maimouna Haidara	22	6 ft 2 in	Porta XI Ensino	Spain
+MLI	F	11	Kadidia Maiga	29	5 ft 9 in	REG BBC	Rwanda
+MLI	G	12	Alima Dembélé	26	6 ft 1 in	Joventut Badalona	Spain
+MLI	C	13	Mama Cissé	22	6 ft 0 in	Adareva Tenerife	Spain
+MLI	F	22	Kamita Dabou	21	5 ft 10 in	ASA Sceaux	France
+MLI	PF	23	Sika Koné	24	6 ft 3 in	Atlanta Dream	United States
+MLI	G	50	Djeneba N'Diaye	29	5 ft 5 in	CB Islas Canarias	Spain
+MLI	C	77	Diana Balayera	30	6 ft 3 in	ASVEL Basket	France
+MLI	G		Aminata Samassekou	21	5 ft 5 in	Kenya Ports	Kenya
+MLI	PG		Fatoumata Sanou	22	5 ft 1 in	USFAS Bamako	Mali
+MLI	G		Fanta Koné	24	5 ft 7 in	Sam Houston Bearkats	United States
+MLI	G		Diaba Konaté	26	5 ft 6 in	Free agent	
+MLI	G/F		Djénéba Sangaré	26	5 ft 10 in	Friend's Basketball Association	Ivory Coast
+MLI	G		Diarrah Sissoko	24	5 ft 9 in	Fresno State Bulldogs	United States
+MLI	G		Mama Doumbia	19	5 ft 9 in	CB Islas Canarias	Spain
+MLI	C		Fatoumata Niambélé	22	6 ft 5 in	CB Islas Canarias	Spain
+MLI	C		Mariam Coulibaly	28	6 ft 3 in	CB Islas Canarias	Spain
+MLI	G/F		Aicha Coulibaly	24	5 ft 9 in	Chicago Sky	United States
+ESP	G	2	Elena Buenavida	22	5 ft 9 in	Valencia Basket	Spain
+ESP	PG	4	Mariona Ortiz	34	6 ft 0 in	Basket Zaragoza	Spain
+ESP	G	5	Maite Cazorla	29	5 ft 10 in	USK Praha	Czech Republic
+ESP	SF	7	Alba Torrens	37	6 ft 4 in	AzulMarino Palma	Spain
+ESP	SF	9	Helena Pueyo	25	6 ft 0 in	Valencia Basket	Spain
+ESP	SF	10	María Conde	29	6 ft 3 in	Toronto Tempo	Canada
+ESP	C	11	Awa Fam	20	6 ft 4 in	Seattle Storm	United States
+ESP	C	14	Raquel Carrera	24	6 ft 3 in	New York Liberty	United States
+ESP	C	17	Megan DiLeo	29	6 ft 4 in	Portland Fire	United States
+ESP	PG	18	Alicia Flórez	22	5 ft 9 in	Washington Mystics	United States
+ESP	C	20	Paula Ginzo	28	6 ft 2 in	Žabiny Brno	Czech Republic
+ESP	PG	44	Iyana Martín	20	5 ft 9 in	Spar Girona	Spain
+FRA	SF	11	Valériane Ayayi	32	6 ft 0 in	Phoenix Mercury	United States
+FRA	F	13	Janelle Salaün	24	6 ft 2 in	Golden State Valkyries	United States
+FRA	C	14	Dominique Malonga	20	6 ft 6 in	Seattle Storm	United States
+FRA	SF	15	Gabby Williams	29	5 ft 11 in	Golden State Valkyries	United States
+FRA	PG	20	Carla Leite	22	5 ft 9 in	Portland Fire	United States
+FRA	C	22	Marième Badiane	31	6 ft 3 in	PF Schio	Italy
+FRA	SG	23	Marine Johannès	31	5 ft 10 in	New York Liberty	United States
+FRA	SG	28	Mamignan Touré	31	5 ft 11 in	Beşiktaş	Turkey
+FRA	C	31	Aminata Gueye	24	6 ft 3 in	Casademont Zaragoza	Spain
+FRA	G	42	Leïla Lacan	22	5 ft 11 in	Connecticut Sun	United States
+FRA	PG	47	Romane Bernies	33	5 ft 7 in	BLMA	France
+FRA	G	98	Pauline Astier	24	5 ft 11 in	New York Liberty	United States
+HUN	C	2	Virág Kiss	28	6 ft 4 in	Valencia Basket	Spain
+HUN	PG	7	Veronika Kányási	27	5 ft 10 in	DVTK	Hungary
+HUN	G	8	Eszter Rátkai	19	5 ft 10 in	KSC Szekszárd	Hungary
+HUN	G	9	Ágnes Studer	27	5 ft 6 in	PEAC-Pécs	Hungary
+HUN	PG	10	Nina Aho	29	5 ft 9 in	DVTK	Hungary
+HUN	C	11	Kinga Josepovits	18	6 ft 5 in	PEAC-Pécs	Hungary
+HUN	PF	13	Ágnes Török	28	6 ft 0 in	PEAC-Pécs	Hungary
+HUN	F	14	Dorka Juhász	26	6 ft 5 in	Minnesota Lynx	United States
+HUN	SG	21	Réka Lelik	27	5 ft 10 in	DVTK	Hungary
+HUN	G	22	Yvonne Turner	38	5 ft 10 in	Valencia Basket	Spain
+HUN	G	33	Panka Dúl	25	5 ft 10 in	PEAC-Pécs	Hungary
+HUN	PF	55	Judit Barnai	32	6 ft 2 in	Ceglédi EKK	Hungary
+KOR	G	1	Park Ji-hyun	25	6 ft 1 in	Los Angeles Sparks	United States
+KOR	G	2	Heo Ye-eun	23	5 ft 6 in	Cheongju KB Stars	South Korea
+KOR	F	3	Kang Lee-seul	32	5 ft 11 in	Asan Woori Bank Woori Won	South Korea
+KOR	G	5	An He-ji	29	5 ft 5 in	Busan BNK Sum	South Korea
+KOR	PF	6	Choi I-saem	32	6 ft 0 in	Busan BNK Sum	South Korea
+KOR	F	8	Jeong Hyun	20	5 ft 10 in	Bucheon Hana Bank	South Korea
+KOR	F	9	Lee So-hee	26	5 ft 7 in	Busan BNK Sum	South Korea
+KOR	F	10	Kang Yoo-lim	29	5 ft 9 in	Samsung Life Blueminx	South Korea
+KOR	PG	11	Park So-hee	23	5 ft 10 in	Bucheon Hana Bank	South Korea
+KOR	F	12	Lee Hae-ran	22	5 ft 11 in	Samsung Life Blueminx	South Korea
+KOR		39	Hong Yu-sun	20	5 ft 10 in	Incheon Shinhan	South Korea
+KOR	C	77	Jin An	30	6 ft 0 in	Bucheon Hana Bank	South Korea
+AUS	G	1	Miela Sowah	26	5 ft 9 in	Golden State Valkyries	United States
+AUS	G	2	Jade Melbourne	24	5 ft 10 in	Seattle Storm	United States
+AUS	SG	4	Alex Wilson	32	5 ft 9 in	Sydney Flames	Australia
+AUS	SF	6	Stephanie Talbot	32	6 ft 2 in	Las Vegas Aces	United States
+AUS	F	11	Alanna Smith	29	6 ft 3 in	Dallas Wings	United States
+AUS	PG	12	Stephanie Reid	30	5 ft 5 in	Tasmania Jewels	Australia
+AUS	F	13	Ezi Magbegor	27	6 ft 4 in	Seattle Storm	United States
+AUS	G	20	Isobel Borlase	21	5 ft 11 in	Atlanta Dream	United States
+AUS	PF	22	Zitina Aokuso	27	6 ft 3 in	Adelaide Lightning	Australia
+AUS	F	23	Alex Fowler	25	6 ft 4 in	Townsville Fire	Australia
+AUS	F	34	Isabelle Bourne	25	6 ft 2 in	Sydney Flames	Australia
+AUS	PF	55	Chloe Bibby	28	6 ft 0 in	Minnesota Lynx	United States
+BEL	PG	4	Elise Ramette	27	5 ft 7 in	Joventut Badalona	Spain
+BEL	PF	5	Nastja Claessens	21	6 ft 0 in	Kansas State Wildcats	United States
+BEL	SF	6	Antonia Delaere	32	6 ft 0 in	Minnesota Lynx	United States
+BEL	PF	11	Emma Meesseman	33	6 ft 4 in	Fenerbahçe	Turkey
+BEL	C	13	Kyara Linskens	29	6 ft 4 in	Phoenix Mercury	United States
+BEL	SF	22	Bethy Mununga	29	6 ft 0 in	ASVEL Basket	France
+BEL	C	25	Becky Massey	26	6 ft 1 in	Basket Landes	France
+BEL	SF	31	Maxuella Lisowa-Mbaka	25	5 ft 10 in	CS Rapid București	Romania
+BEL	C	34	Billie Massey	26	6 ft 1 in	CB Jairis	Spain
+BEL	PG	35	Julie Vanloo	33	5 ft 8 in	New York Liberty	United States
+BEL	PG	55	Julie Allemand	30	5 ft 9 in	Toronto Tempo	Canada
+BEL	F	71	Alicia Courthiau	20	5 ft 10 in	Wisconsin Badgers	United States
+TUR	PF	1	Elif İstanbulluoğlu	21	6 ft 2 in	Louisville Cardinals	United States
+TUR	SG	2	Sevgi Uzun	28	5 ft 10 in	Galatasaray	Turkey
+TUR	PG	4	Olcay Çakır	33	6 ft 0 in	Fenerbahçe	Turkey
+TUR	SF	6	Gökşen Fitik	25	5 ft 9 in	Galatasaray	Turkey
+TUR	SG	8	Ayşe Cora	33	5 ft 9 in	Galatasaray	Turkey
+TUR	PF	11	Elif Bayram	24	6 ft 1 in	Galatasaray	Turkey
+TUR	PF	15	Tilbe Şenyürek	31	6 ft 2 in	Spar Girona	Spain
+TUR	PG	17	Derin Erdoğan	24	5 ft 7 in	Galatasaray	Turkey
+TUR	SF	20	Sinem Ataş	31	6 ft 1 in	ÇBK Mersin	Turkey
+TUR	G	22	Kennedy Burke	29	6 ft 1 in	ÇBK Mersin	Turkey
+TUR	PF	30	Melek Uzunoğlu	24	6 ft 2 in	Emlak Konut	Turkey
+TUR	C	33	Esra Ural	35	6 ft 6 in	ÇBK Mersin	Turkey
+CHN	PG	1	Zhang Manman	29	5 ft 7 in	Jiangsu Phoenix	China
+CHN	PG	4	Li Yuan	26	5 ft 7 in	Sichuan Yuanda Meile	China
+CHN	G	5	Wang Siyu	30	5 ft 11 in	Sichuan Yuanda Meile	China
+CHN	F	6	Yang Shuyu	24	5 ft 11 in	Guangdong Vermilion Birds	China
+CHN	G	9	Tang Ziting	26	6 ft 3 in	Sichuan Yuanda Meile	China
+CHN	F	11	Luo Xinyu	24	6 ft 2 in	Jiangsu Phoenix	China
+CHN	F	12	Chen Yujie	26	5 ft 10 in	Shanxi Flame	China
+CHN	C	15	Han Xu	26	6 ft 9 in	New York Liberty	United States
+CHN	F/C	18	Chen Mingling	26	6 ft 4 in	Guangdong Vermilion Birds	China
+CHN	C	19	Zhang Ziyu	19	7 ft 3 in	Shandong Six Stars	China
+CHN	F	20	Sun Yu	22	6 ft 0 in	Jiangsu Phoenix	China
+CHN	F	31	Jia Saiqi	27	6 ft 1 in	Sichuan Yuanda Meile	China
+CZE	PG	1	Kateřina Zeithammerová	24	5 ft 4 in	Žabiny Brno	Czech Republic
+CZE	SF	2	Julie Pospíšilová	27	6 ft 0 in	Flammes Carolo Basket	France
+CZE	PF	3	Alena Hanušová	35	6 ft 3 in	DSK Brandýs	Czech Republic
+CZE	SG	4	Gabriela Andělová	30	5 ft 8 in	USK Praha	Czech Republic
+CZE	PF	5	Natálie Stoupalová	28	6 ft 1 in	Žabiny Brno	Czech Republic
+CZE	G	7	Petra Malíková	23	5 ft 10 in	USK Praha	Czech Republic
+CZE	SF	8	Veronika Voráčková	30	5 ft 11 in	Basket Zaragoza	Spain
+CZE	PG	10	Eliška Joklová	27	6 ft 0 in	Minnesota Lynx	United States
+CZE	PG	12	Monika Fučíková	24	5 ft 11 in	Žabiny Brno	Czech Republic
+CZE	SG	13	Petra Holešínská	29	5 ft 10 in	Botaş SK	Turkey
+CZE	C	16	Kateřina Kalná	19	6 ft 3 in	USK Praha	Czech Republic
+CZE	C	20	Natálie Koucká	23	6 ft 5 in	USK Praha	Czech Republic
+ITA	PF	0	Jasmine Keys	28	6 ft 2 in	PF Schio	Italy
+ITA	SG	5	Matilde Villa	21	5 ft 7 in	Reyer Venezia	Italy
+ITA	G	6	Francesca Pasa	26	5 ft 9 in	Reyer Venezia	Italy
+ITA	SG	8	Costanza Verona	27	5 ft 7 in	Dallas Wings	United States
+ITA	SF	9	Cecilia Zandalasini	30	6 ft 2 in	Golden State Valkyries	United States
+ITA	SG	11	Francesca Pan	29	6 ft 0 in	Reyer Venezia	Italy
+ITA	C	13	Lorela Cubaj	27	6 ft 4 in	Reyer Venezia	Italy
+ITA	PF	14	Sara Madera	26	6 ft 2 in	Magnolia Basket Campobasso	Italy
+ITA	PG	18	Mariella Santucci	29	5 ft 7 in	Reyer Venezia	Italy
+ITA	SG	19	Martina Fassina	27	6 ft 0 in	Reyer Venezia	Italy
+ITA	C	22	Olbis Andrè	27	6 ft 4 in	PF Schio	Italy
+ITA	G	55	Vittoria Blasigh	22	5 ft 9 in	UCF Knights	United States
+USA	G	4	Paige Bueckers	24	6 ft 0 in	Dallas Wings	United States
+USA	G	5	Sonia Citron	22	6 ft 1 in	Washington Mystics	United States
+USA	SF	6	Rhyne Howard	25	6 ft 2 in	Atlanta Dream	United States
+USA	G/F	7	Kahleah Copper	32	6 ft 1 in	Phoenix Mercury	United States
+USA	G	8	Chelsea Gray	33	5 ft 11 in	Las Vegas Aces	United States
+USA	PF	9	Kiki Iriafen	23	6 ft 3 in	Washington Mystics	United States
+USA	PF	10	Breanna Stewart	32	6 ft 3 in	New York Liberty	United States
+USA	SF	11	Napheesa Collier	29	6 ft 1 in	Minnesota Lynx	United States
+USA	G	12	Caitlin Clark	24	6 ft 0 in	Indiana Fever	United States
+USA	G	13	Jackie Young	28	6 ft 0 in	Las Vegas Aces	United States
+USA	C	14	Aliyah Boston	24	6 ft 5 in	Indiana Fever	United States
+USA	PF	15	Angel Reese	24	6 ft 3 in	Atlanta Dream	United States
