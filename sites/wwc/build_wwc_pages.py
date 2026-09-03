@@ -60,6 +60,7 @@ import csv
 import dataclasses
 import json
 import shutil
+import unicodedata
 from collections import OrderedDict
 from html import escape as esc
 
@@ -76,6 +77,12 @@ from config import (GUIDE_IS_LANDING, GUIDE_TAB_LABEL, TOURNAMENT_NAME,
 # GUIDE_IS_LANDING cannot leave a stale link behind.
 GUIDE_PATH = "/" if GUIDE_IS_LANDING else "/guide/"
 GAMES_PATH = "/games/" if GUIDE_IS_LANDING else "/"
+#: Leaders is never a front-door candidate, so it is a plain constant rather
+#: than a derived one — but it is still a constant. The Games page shipped a
+#: canonical pointing at the home page for three days because a path literal
+#: was typed once and then the front door moved (2026-08-29); nothing on this
+#: site writes a surface path by hand any more.
+LEADERS_PATH = "/leaders/"
 
 REF = WWC.site_dir / "reference"
 TEAMS_JSON = REF / "wwc2026_teams.json"
@@ -88,6 +95,14 @@ BOXSCORE_DIR = WWC.data_dir / "boxscores"
 #: rule — "if I deleted this, could a machine get it back?" No: it is
 #: hand-written to exercise the template before FIBA publishes anything.
 BOXSCORE_FIXTURE = REF / "boxscore_fixture.json"
+#: A SECOND fixture, and a different job: three fabricated finals across five
+#: teams, so the Leaders aggregation is exercised over MULTIPLE games. One
+#: game cannot test what Leaders is actually made of — a games-played column,
+#: a total beside an average, or the rule that a null excludes a player from
+#: one board and not the rest. Same rules as the single fixture: `--preview`
+#: only, `_fixture: true` on every game, banner on every page it reaches, and
+#: a hard build failure if one ever reaches an aggregate on a real run.
+LEADERS_FIXTURE = REF / "leaders_fixture.json"
 
 
 # ══ Data ══════════════════════════════════════════════════════════════════
@@ -357,6 +372,30 @@ SITE_CSS = f"""\
     font-family:{SANS}}}
   details.inl .body b{{color:var(--accent);font-weight:600}}
   .legend{{font-size:11.5px;color:var(--muted);margin:2px 0 10px}}
+  /* ── Leaders ────────────────────────────────────────────────────────── */
+  /* Five cards in one auto-fill grid, the shape the WNBA site's Leaders tab
+     already uses, so a reader who knows one site is not relearning the other.
+     No new colour: the card is --surface on --border like every other card
+     here, and the heading takes --accent. minmax(272px) means three across at
+     the 900px body and exactly one across on a 375px phone, at full width.
+
+     No table-scroll wrapper, and the reason is the name cell WRAPS rather
+     than fits: only `th` carries nowrap site-wide, and the four headers are
+     Player / GP / Tot / PPG. So the longest name in the field ("Pallas
+     Kunaiyi-Akpanah", 22 chars) reflows onto a second line inside the card
+     instead of pushing the numbers off a phone. Do not add nowrap to these
+     cells — that is what would turn a wrap into an overflow. */
+  .lgrid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));
+    gap:7px;margin:4px 0 2px}}
+  .lcard{{background:var(--surface);border:1px solid var(--border);
+    padding:9px 11px 3px}}
+  .lcard h3{{color:var(--accent);font-size:11px;letter-spacing:.8px;
+    text-transform:uppercase;font-weight:700;margin-bottom:1px}}
+  .lcard table{{font-size:11.5px}}
+  .lcard td,.lcard th{{padding:4px 3px}}
+  .lcard tr:last-child td{{border-bottom:none}}
+  .lcard .tla{{font-size:10px}}
+  .lrk{{color:var(--muted);display:inline-block;min-width:15px}}
   /* ── Box score ──────────────────────────────────────────────────────── */
   .bx-hd{{display:flex;align-items:center;gap:12px;margin:6px 0 2px}}
   .bx-hd .side{{flex:1}}
@@ -396,14 +435,37 @@ SITE_CSS = f"""\
 PAGE_CSS = (chrome.tokens_css(WWC.accent) + SITE_CSS
             + chrome.SCROLL_FADE_CSS + chrome.SITE_FOOTER_CSS)
 
-# Nav is a list of (path, label), front door first. Leaders is DELIBERATELY
-# ABSENT until Sep 4 — it is counting stats over games that have not been
-# played, and a tab that leads to an empty board on launch day is worse than
-# no tab at all.
+#: Whether the nav carries a Leaders entry. Set ONCE by `main()`, before any
+#: page is rendered, from whether this run actually has final box scores to
+#: rank — never from the calendar, and never from `results.json`.
+#:
+#: Results and box scores arrive from different places and can lag each other
+#: (`game_cell()` already assumes this and refuses to link a score to a box
+#: page that is not being emitted). Gating the tab on results would therefore
+#: put up a Leaders tab over an empty board — the exact thing that kept this
+#: tab off the 31 August launch. Gating it on the data the page RANKS means
+#: the tab cannot appear before there is something on it.
+#:
+#: Module state rather than a parameter because `shell()` builds the nav for
+#: every page and threading a flag through six page functions to say one thing
+#: about the whole run is more code and more places to get it wrong. It is
+#: assigned exactly once, in `main()`, above every `write()` call.
+_LEADERS_IN_NAV = False
+
+
+# Nav is a list of (path, label), front door first. Leaders is the only
+# CONDITIONAL entry: it was deliberately absent until 4 September, and it now
+# appears by itself the moment the first game goes final rather than on a date
+# somebody has to remember. The same data-driven lifecycle `game_cell()` and
+# the standings table already use, applied to navigation — which is also what
+# removes the deploy-timing question, since merging this before the tournament
+# changes nothing visible.
 def nav_items():
     guide = (GUIDE_PATH, GUIDE_TAB_LABEL)
     games = (GAMES_PATH, "Games")
     middle = [("/teams/", "Teams"), ("/groups/", "Groups")]
+    if _LEADERS_IN_NAV:
+        middle.append((LEADERS_PATH, "Leaders"))
     # The front door leads. When Guide is landing it opens the nav; when
     # Games is landing, Guide returns to the trailing explainer slot the
     # WNBA site's "Key" tab occupies.
@@ -1938,7 +2000,349 @@ def load_boxscores(preview):
             boxes.append(json.loads(path.read_text(encoding="utf-8")))
     if preview and BOXSCORE_FIXTURE.exists():
         boxes.append(json.loads(BOXSCORE_FIXTURE.read_text(encoding="utf-8")))
+    if preview and LEADERS_FIXTURE.exists():
+        boxes.extend(json.loads(
+            LEADERS_FIXTURE.read_text(encoding="utf-8"))["games"])
     return boxes
+
+
+# ══ Leaders ═══════════════════════════════════════════════════════════════
+
+#: The five boards, in render order: (stat key, card title, per-game label).
+#:
+#: COUNTING STATS ONLY — no FG%, 3P%, FT%, eFG%, TS%, or any other rate. That
+#: is a product decision, not an omission (Product Brief line 71): over a
+#: three-to-eight game group stage a 5-for-8 shooter leads every percentage
+#: board there is. It also moots qualification thresholds entirely, which is
+#: exactly where the open questions were hardest. The page states it in one
+#: muted line so it does not read as something we forgot.
+LEADER_BOARDS = [("pts", "Scoring", "PPG"), ("reb", "Rebounds", "RPG"),
+                 ("ast", "Assists", "APG"), ("stl", "Steals", "SPG"),
+                 ("blk", "Blocks", "BPG")]
+
+#: Top 10 per board, matching the WNBA site's Leaders tab so the two sites
+#: read alike. Ties at the cut line are truncated there too (`nlargest(10)`).
+LEADER_TOP_N = 10
+
+
+def _name_key(name):
+    """The identity a box-score name aggregates under.
+
+    There is NO player id in the box-score format — the join is
+    (schedule_key, name) and nothing else — so this is the whole of a
+    player's identity across games, and every WNBA `athlete_id` lesson
+    (incident 2026-08-04) applies here with no id to fall back on.
+
+    It normalises ENCODING and nothing else: NFC, the three space characters
+    that are not a space, collapsed runs, case. Those are the same string
+    written differently, and merging them is safe — U+00A0 alone broke every
+    name join in the 2026-09-02 roster capture, silently.
+
+    It deliberately does NOT try to be clever about spelling. Korea was
+    re-romanised between two Wikipedia pulls a day apart (Kang Yi-seul → Kang
+    Lee-seul); no normaliser joins those, and one that tried would sooner or
+    later merge two different people. Real spelling drift splits a player in
+    two here, which is why `report_name_joins()` exists — the guard is a loud
+    report, not a hopeful match.
+    """
+    s = unicodedata.normalize("NFC", str(name))
+    # Spelled as escapes, never as the literal characters. This is the
+    # guard against invisible characters; writing it IN invisible
+    # characters is one editor away from becoming a silent no-op.
+    for ch in ("\u00a0", "\u2007", "\u202f"):
+        s = s.replace(ch, " ")
+    return " ".join(s.split()).casefold()
+
+
+def _competition_ranks(vals):
+    """Places for a ranked list, ties sharing the higher place: 1, 1, 3.
+
+    ⚠️ SECOND COPY. `build_stats_page._competition_ranks` is the first, and
+    the two must stay in step — a duplicated tie rule on two sites is exactly
+    how the 2026-08-25 leader-tie bug happened (Clark and Thomas, 290 assists
+    apiece, rendered 1 and 2 on the card while both player pages said "1st",
+    which then failed the morning validation and gated the daily post).
+
+    Copied rather than shared on purpose, and only for now: promoting it to
+    `core/` moves the golden-check surface, which is not a thing to do the day
+    before a tournament. Unifying the two is a backlog row for after the Cup.
+
+    Equality is exact on the unrounded value, as it is there. Two players who
+    merely display the same tenth are not tied and keep separate places.
+    """
+    places, prev_val, prev_place = [], None, 0
+    for pos, v in enumerate(vals, start=1):
+        place = prev_place if (prev_val is not None and v == prev_val) else pos
+        places.append(place)
+        prev_val, prev_place = v, place
+    return places
+
+
+def aggregate_box_players(finals):
+    """Sum every final box score into one record per (team, player).
+
+    Two rules do the real work here, and both are silent-wrong-data guards
+    rather than conveniences:
+
+    **A null is not a zero.** The box-score format's own contract says a stat
+    the feed does not carry must be null, never 0, so that the template renders
+    an em dash and a null makes the TEAM total null rather than a quiet
+    undercount. Summing nulls as zero on a *displayed leaderboard* would
+    reproduce precisely the undercount that rule exists to prevent, one level
+    further from anyone able to notice. So a null does not add zero: it marks
+    that category tainted for that player, and `compute_leaders()` drops her
+    from that board rather than ranking her on a partial sum. Per category —
+    a missing steal costs her the steals board and nothing else.
+
+    **Games played is appearances, not games in the window.** A player who
+    appears in two of three finals has GP 2. A DNP row of all-nulls removes
+    itself from all five boards through the rule above, with no special case.
+    """
+    players = {}
+    nameless = []
+    for box in finals:
+        for side in box["teams"]:
+            key = side["schedule_key"]
+            for p in side.get("players", []):
+                raw = (p.get("name") or "").strip()
+                if not raw:
+                    # Rankable identity is the NAME here; there is nothing
+                    # else. A nameless row cannot be aggregated at all, so say
+                    # so rather than ranking a player called "".
+                    nameless.append((box["game_id"], key))
+                    continue
+                rec = players.setdefault((key, _name_key(raw)), {
+                    "name": raw, "team": key, "spellings": set(),
+                    "gp": 0, "tot": {c: 0 for c, _, _ in LEADER_BOARDS},
+                    "null": set(),
+                })
+                rec["spellings"].add(raw)
+                rec["gp"] += 1
+                for cat, _, _ in LEADER_BOARDS:
+                    v = p.get(cat)
+                    if v is None:
+                        rec["null"].add(cat)
+                    else:
+                        rec["tot"][cat] += v
+    return players, nameless
+
+
+def report_name_joins(players, teams, nameless, log):
+    """The (schedule_key, name) join, checked out loud. REPORTS, never fails.
+
+    A legitimately unrostered player — a late replacement, an injury call-up —
+    must not take the site down on a match day, so nothing here raises. It
+    prints, and the step log is the instrument. Read it.
+
+    Two different symptoms of the one failure:
+
+    - **One player, several spellings.** Only reachable when two spellings
+      normalise together, i.e. an encoding difference. Reported because a
+      source that is drifting in a way we CAN absorb is a source that will
+      shortly drift in a way we cannot.
+    - **A box-score name that is not on that team's roster.** This is where
+      real spelling drift surfaces: a re-romanised name splits into two
+      records, the roster matches one of them, and the other is printed here.
+
+    Teams whose roster is a pool or unannounced get one line saying there is
+    nothing to check against, rather than twelve lines of noise that would
+    train everyone to skip the section.
+    """
+    rosters = {k: {_name_key(p["name"]) for p in t["roster"]["players"]}
+               for k, t in teams.items()}
+    # Whether an unmatched name is ALARMING depends on what it is being
+    # checked against. Mali's roster is a 22-name pool and Nigeria's is
+    # inferred from nationality and camp invitations, so a name missing from
+    # either is close to expected; a name missing from the USA's final twelve
+    # is not. Carrying that on the line means the reader does not have to
+    # remember which teams are which at 6am on a match day.
+    provisional = {
+        k: (t["roster"]["status"] != "final"
+            or t["wnba"]["roster_basis"].startswith("proxy"))
+        for k, t in teams.items()}
+    unmatched, no_roster, drift = {}, set(), []
+    for (key, nk), rec in sorted(players.items()):
+        if len(rec["spellings"]) > 1:
+            drift.append((key, sorted(rec["spellings"])))
+        if not rosters.get(key):
+            no_roster.add(key)
+        elif nk not in rosters[key]:
+            unmatched.setdefault(key, []).append(rec["name"])
+
+    log(f"leaders: {len(players)} players across "
+        f"{len({r['team'] for r in players.values()})} teams")
+    for gid, key in nameless:
+        log(f"  !! {key} in {gid}: a box-score row carries no name — "
+            f"excluded from every board")
+    for key, spellings in drift:
+        log(f"  !! {key}: one player, {len(spellings)} spellings merged on "
+            f"encoding — {' / '.join(spellings)}")
+    for key in sorted(no_roster):
+        log(f"  -- {key}: no published roster to check names against")
+    for key, names in sorted(unmatched.items()):
+        qual = (" (roster is provisional, so this is expected)"
+                if provisional.get(key) else "")
+        log(f"  !! {key}: {len(names)} box-score name(s) not on the roster{qual}"
+            f" — {', '.join(names)}")
+    if not (nameless or drift or unmatched):
+        log("  every box-score name matches a rostered player")
+
+
+def compute_leaders(boxes, teams, preview=False, log=print):
+    """The five boards, from every FINAL box score this run holds.
+
+    Returns the whole page's input, including the empty case: `games` is 0
+    before a ball is bounced and `boards` is then empty, which is a state the
+    page renders rather than a state it avoids.
+
+    Ranked on the unrounded per-game average, displayed to a tenth, with GP on
+    every row and the total beside the average. That combination is the answer
+    to the small-sample problem: on 5 September the PPG leader is whoever had
+    the single best game, and showing the total and the games played beside it
+    makes that VISIBLE rather than hiding it behind a minimum-games rule we
+    would then have to defend. Same instinct as the standings table's
+    "Provisional" label. No qualification threshold is needed, which keeps the
+    hardest open question closed.
+    """
+    finals = [b for b in boxes if b.get("status") == "final"]
+
+    # A fixture must never reach an aggregate. The box-score PAGE banners
+    # itself because a page is one game and says on its face what it is; a
+    # leaderboard is a blend, and one synthetic game mixed into real ones
+    # produces a board that is wrong in a way no banner can undo and no reader
+    # can decompose. So: banner in --preview, hard failure in a normal build.
+    # This is the same fail-loud posture as the WNBA fetch and `load_schedule`'s
+    # duplicate-id assertion — the cost of stopping is a rebuild, the cost of
+    # continuing is a published leaderboard nobody can trust.
+    fixtures = [b["game_id"] for b in finals if b.get("_fixture")]
+    if fixtures and not preview:
+        raise SystemExit(
+            f"REFUSING TO BUILD: synthetic fixture box score(s) {fixtures} "
+            f"reached compute_leaders on a non-preview run. A fixture may "
+            f"render its own page under --preview, where it banners itself; "
+            f"it may never be summed into a leaderboard. Check "
+            f"sites/wwc/data/boxscores/ for a stray fixture file.")
+
+    players, nameless = aggregate_box_players(finals)
+    if finals:
+        report_name_joins(players, teams, nameless, log)
+
+    boards = []
+    for cat, title, unit in LEADER_BOARDS:
+        # The average is computed ONCE, here, and the same number is both
+        # ranked on and rendered. Computing it twice — once for the sort key,
+        # once for the cell — is two renderings of one fact, which is the
+        # trap the team pages collapsed two tables to escape on 2026-09-03.
+        # Ranking on the unrounded value and displaying it to a tenth is the
+        # WNBA board's behaviour, so two players who merely PRINT the same
+        # tenth are not tied and keep separate places.
+        rows = [{"name": r["name"], "team": r["team"], "gp": r["gp"],
+                 "total": r["tot"][cat], "avg": r["tot"][cat] / r["gp"]}
+                # The null rule, applied. Excluded from THIS board only.
+                for r in players.values() if cat not in r["null"]]
+        rows.sort(key=lambda x: (-x["avg"], -x["total"], x["name"]))
+        top = rows[:LEADER_TOP_N]
+        for place, x in zip(_competition_ranks([x["avg"] for x in top]), top):
+            x["place"] = place
+        boards.append((cat, title, unit, top))
+        dropped = len(players) - len(rows)
+        if dropped:
+            log(f"  {title}: {dropped} player(s) held off this board — a null "
+                f"{cat} means a partial sum, not a zero")
+
+    return {"games": len(finals), "fixture": bool(fixtures), "boards": boards}
+
+
+def page_leaders(lb, teams, published):
+    """The Leaders page, in all three lifecycle states.
+
+    It is EMITTED on every run, including before a ball is bounced, so the URL
+    never 404s and the empty state is a real rendered artifact rather than a
+    branch nobody has looked at. What is conditional is where it is ADVERTISED:
+    `main()` adds it to the nav and the sitemap only once it has something on
+    it, and while it is empty the page carries `noindex`. The whole Phase 1 bet
+    is a search bet, and a thin empty page is the one kind Google should not be
+    finding — it is the same correct-or-blank rule applied to a crawler instead
+    of a reader.
+    """
+    n = lb["games"]
+    out = []
+    if lb["fixture"]:
+        # Reachable only under --preview: `compute_leaders` refuses to blend a
+        # fixture on any other run. A leaderboard is more screenshottable than
+        # a box score, so it says what it is on its face too.
+        out.append(
+            '<div class="path" style="border-color:var(--neg);color:var(--neg)">'
+            '<b>SYNTHETIC TEST DATA.</b> These boards are computed from '
+            'fabricated box scores — not real games, not predictions. This '
+            'page exists to exercise the leaders template before FIBA '
+            'publishes anything. It is never published.</div>')
+
+    if not n:
+        out.append('<h2 class="sec">Leaders</h2>')
+        out.append('<p class="prose">No games have been played yet. Tournament '
+                   'leaders appear here as soon as the first box score is '
+                   'final — the first game tips on '
+                   '<b>Friday 4 September</b>.</p>')
+        out.append(f'<div class="next"><b>In the meantime:</b> the '
+                   f'<a href="/teams/">sixteen squads</a> are published in '
+                   f'full, and the <a href="{GAMES_PATH}">schedule</a> carries '
+                   f'every tip time in US Eastern and Berlin local.</div>')
+    else:
+        games = "1 game" if n == 1 else f"{n} games"
+        out.append(f'<h2 class="sec">Tournament leaders '
+                   f'<span class="mu">— through {esc(games)}</span></h2>')
+        out.append('<div class="lgrid">')
+        for _, title, unit, rows in lb["boards"]:
+            out.append(leader_card(title, unit, rows, teams, published))
+        out.append('</div>')
+        # Stated, not left as an absence. A reader who scans five counting
+        # boards and finds no shooting percentages should learn that this was
+        # decided, and why, in one line.
+        out.append('<div class="cnote">Counting stats only — no shooting '
+                   'percentages. Over a group stage this short a player who '
+                   'goes 5-for-8 in one game would top every percentage board '
+                   'there is, so those boards say more about sample size than '
+                   'about shooting. Totals are shown beside each average, and '
+                   'games played on every row, for the same reason.</div>')
+
+    return shell(LEADERS_PATH, f"Leaders — {TOURNAMENT_NAME} 2026",
+                 "".join(out),
+                 (f"Points, rebounds, assists, steals and blocks leaders "
+                  f"through {n} games at the 2026 FIBA Women's Basketball "
+                  f"World Cup in Berlin." if n else
+                  "Tournament leaders for the 2026 FIBA Women's Basketball "
+                  "World Cup in Berlin, published as games are played."),
+                 extra_head=("" if n else
+                             '<meta name="robots" content="noindex,follow">\n'),
+                 social=social_title(f"{WC} Leaders"))
+
+
+def leader_card(title, unit, rows, teams, published):
+    """One board. Four columns: player, GP, total, average.
+
+    The name is the link, to OUR WNBA player page where we publish one — the
+    same bridge `roster_name()` and `box_name()` carry, and the reason this
+    site exists. The team code stays plain text: two competing links in one
+    narrow cell is worse than one obvious one.
+    """
+    head = (f'<tr><th>Player</th><th class="r">GP</th>'
+            f'<th class="r">Tot</th><th class="r">{esc(unit)}</th></tr>')
+    body = []
+    for r in rows:
+        t = teams[r["team"]]
+        href = player_href(r["name"], published)
+        name = (f'<a href="{href}" {CROSS_SITE} style="font-weight:500;'
+                f'color:var(--text)">{esc(r["name"])}</a>' if href else
+                f'<span style="font-weight:500">{esc(r["name"])}</span>')
+        body.append(
+            f'<tr><td><span class="lrk num">{r["place"]}.</span> {name} '
+            f'<span class="tla mu">{t["flag"]} {esc(t["code"])}</span></td>'
+            f'<td class="r num mu">{r["gp"]}</td>'
+            f'<td class="r num">{r["total"]}</td>'
+            f'<td class="r num"><b>{r["avg"]:.1f}</b></td></tr>')
+    return (f'<div class="lcard"><h3>{esc(title)}</h3>'
+            f'<table>{head}{"".join(body)}</table></div>')
 
 
 # ══ Emit ══════════════════════════════════════════════════════════════════
@@ -1975,7 +2379,7 @@ def main():
     # that got re-keyed, would sit in the output forever and keep being
     # deployed. The emitter owns this directory: clear the generated trees
     # each run.
-    for sub in ("teams", "groups", "key", "guide", "games"):
+    for sub in ("teams", "groups", "key", "guide", "games", "leaders"):
         shutil.rmtree(pub / sub, ignore_errors=True)
     pub.mkdir(parents=True, exist_ok=True)
 
@@ -1984,6 +2388,14 @@ def main():
     rows_by_id = {r["game_id"]: r for r in rows}
     boxes = load_boxscores(args.preview)
     box_ids = {b["game_id"] for b in boxes}
+
+    # Leaders is computed BEFORE any page is written, because whether it
+    # exists changes the nav on every one of them. `_LEADERS_IN_NAV` is
+    # assigned here and nowhere else — see the comment on the constant for
+    # why the tab is gated on final BOX SCORES rather than on results.
+    global _LEADERS_IN_NAV
+    lb = compute_leaders(boxes, teams, args.preview)
+    _LEADERS_IN_NAV = bool(lb["games"])
 
     # Both front-door candidates route through the same two names, so the
     # landing page is written to index.html and the other to its own path
@@ -2005,6 +2417,16 @@ def main():
     write(pub / "groups" / "index.html",
           page_groups(doc, rows, teams, results, box_ids))
     paths.append("/groups/")
+
+    # Always emitted, including empty: the URL never 404s and the empty state
+    # is a rendered artifact rather than a branch nobody has seen. It enters
+    # the SITEMAP only once it has something on it — and never on fixture
+    # data, the same line the fixture box scores are held behind. While it is
+    # empty it also ships `noindex` (see `page_leaders`), so the gap between
+    # "not advertised" and "not indexable" is closed rather than assumed.
+    write(pub / "leaders" / "index.html", page_leaders(lb, teams, published))
+    if lb["games"] and not lb["fixture"]:
+        paths.append(LEADERS_PATH)
 
     for box in boxes:
         gid = box["game_id"]
@@ -2051,6 +2473,9 @@ def main():
     print(f"WWC pages -> {pub}: {len(paths)} in sitemap "
           f"({len(doc['teams'])} teams, {len(rows)} games, "
           f"{len(boxes)} box scores)")
+    print(f"  leaders: {'nav + ' if _LEADERS_IN_NAV else 'empty state, '}"
+          f"{lb['games']} final box score(s)"
+          f"{', FIXTURE data' if lb['fixture'] else ''}")
     if args.preview:
         print("  --preview: wrote to preview/ (gitignored, never deployed); "
               "fixture EXCLUDED from sitemap")

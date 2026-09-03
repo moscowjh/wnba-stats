@@ -164,6 +164,30 @@
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
   details.inl .body b{color:var(--accent);font-weight:600}
   .legend{font-size:11.5px;color:var(--muted);margin:2px 0 10px}
+  /* ── Leaders ────────────────────────────────────────────────────────── */
+  /* Five cards in one auto-fill grid, the shape the WNBA site's Leaders tab
+     already uses, so a reader who knows one site is not relearning the other.
+     No new colour: the card is --surface on --border like every other card
+     here, and the heading takes --accent. minmax(272px) means three across at
+     the 900px body and exactly one across on a 375px phone, at full width.
+
+     No table-scroll wrapper, and the reason is the name cell WRAPS rather
+     than fits: only `th` carries nowrap site-wide, and the four headers are
+     Player / GP / Tot / PPG. So the longest name in the field ("Pallas
+     Kunaiyi-Akpanah", 22 chars) reflows onto a second line inside the card
+     instead of pushing the numbers off a phone. Do not add nowrap to these
+     cells — that is what would turn a wrap into an overflow. */
+  .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));
+    gap:7px;margin:4px 0 2px}
+  .lcard{background:var(--surface);border:1px solid var(--border);
+    padding:9px 11px 3px}
+  .lcard h3{color:var(--accent);font-size:11px;letter-spacing:.8px;
+    text-transform:uppercase;font-weight:700;margin-bottom:1px}
+  .lcard table{font-size:11.5px}
+  .lcard td,.lcard th{padding:4px 3px}
+  .lcard tr:last-child td{border-bottom:none}
+  .lcard .tla{font-size:10px}
+  .lrk{color:var(--muted);display:inline-block;min-width:15px}
   /* ── Box score ──────────────────────────────────────────────────────── */
   .bx-hd{display:flex;align-items:center;gap:12px;margin:6px 0 2px}
   .bx-hd .side{flex:1}

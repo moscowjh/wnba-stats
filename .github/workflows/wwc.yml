@@ -141,6 +141,23 @@ jobs:
       - name: Validate standings ranking
         run: python sites/wwc/validate_standings.py
 
+      # The Leaders aggregation, checked against fabricated box scores. Third
+      # validator, same reasoning as the second: it gates the CODE, not the
+      # JSON. Both failures it guards render a page that looks entirely normal
+      # — a name that drifted between games splits one player into two and
+      # both halves fall off the board, and a null summed as a zero publishes
+      # an undercount as a total. Nothing downstream would catch either.
+      #
+      # Runs BEFORE the build so neither can reach public/, and it needs no
+      # network and no results: the fixtures are built in-script.
+      - name: Validate leaders aggregation
+        run: python sites/wwc/validate_leaders.py
+
+      # ⚠️ Read the "leaders:" lines in this step's log on a match day. The
+      # box-score format has NO player id — the join is (schedule_key, name)
+      # — so unmatched names are REPORTED here and nowhere else. They do not
+      # fail the build on purpose: a legitimate late replacement must not take
+      # the site down.
       - name: Build WWC pages
         run: python sites/wwc/build_wwc_pages.py
 

@@ -52,6 +52,7 @@ before the first.
 | `/teams/` | Teams index | 16 cards, grouped, **no tiering**. |
 | `/teams/<slug>/` | Team page | ×16. The main surface. |
 | `/groups/` | Groups | Tables + fixtures + qualification path, merged. |
+| `/leaders/` | Leaders | Always emitted; **in the nav and the sitemap only once a game is final**. |
 | `/games/<game_id>/` | Box score | ×0 today; ~36 once games are played. |
 
 **The front door is a switch, not a layout.** `GUIDE_IS_LANDING` in
@@ -70,10 +71,63 @@ switch stays — it is what keeps every path derived instead of typed — but
 **changing the front door from here is a redirect, not a boolean.** Treat
 `GUIDE_IS_LANDING` as a settled fact the emitter reads, not an open question.
 
-**Leaders is deliberately absent** and ships 4 September, not 31 August. It is
-counting stats (PPG/RPG/APG) over games that have not been played; a tab
-leading to an empty board on launch day is worse than no tab. No rate
-leaderboards at all.
+**Leaders shipped 3 September**, held back from the 31 August launch on the
+reasoning that a tab leading to an empty board is worse than no tab. Counting
+stats only — PPG/RPG/APG/SPG/BPG, and **no rate boards at all**: over a
+three-to-eight game group stage a 5-for-8 shooter tops every percentage board
+there is, which also moots qualification thresholds exactly where they were
+hardest. The page states that in a line rather than leaving it as an absence.
+
+Ranked on the per-game average, with **the total beside it and GP on every
+row**, under a "through N games" heading. That is the answer to the small
+sample: on 5 September the PPG leader is whoever had the single best game, and
+showing the total and the games played makes that *visible* rather than hiding
+it behind a minimum-games rule we would then have to defend — the same
+instinct as the standings table's "Provisional" label.
+
+The tab **gates on final box scores, not on `results.json`.** Results and box
+scores arrive from different places and can lag each other (`game_cell()`
+already assumes this), so a results gate could raise the tab over an empty
+board — the exact failure the delay existed to avoid. Gating on the data the
+page ranks means the tab appears by itself the moment the first game is final,
+which also removes the deploy-timing question: merging before the tournament
+changes nothing visible.
+
+The page is **emitted on every run, including empty**, so the URL never 404s
+and the empty state is a rendered artifact rather than an unlooked-at branch.
+While empty it carries `noindex,follow` and stays out of the sitemap: the
+Phase 1 bet is a search bet and a thin empty page is the one kind Google
+should not be finding. Correct-or-blank, aimed at a crawler.
+
+### Two guards, both against silent wrong data
+
+**There is no player id.** The box-score format's join is
+`(schedule_key, name)` and nothing else, so any spelling drift between games
+splits one player into two and *both halves fall off the board* — no error, no
+blank, just a leaderboard missing the player who should be on it. This is the
+WNBA `athlete_id` lesson (incident 2026-08-04) with nothing to fall back on.
+
+`_name_key()` normalises **encoding only** — NFC, the three non-space spaces,
+runs, case. Those are one string written two ways and merging them is safe;
+U+00A0 alone broke every name join in the 2026-09-02 roster capture. It
+deliberately does **not** guess at spelling: no normaliser joins Korea's
+`Kang Yi-seul` to `Kang Lee-seul`, and one that tried would eventually merge
+two different people, which is worse than a split because a split is
+reportable and a bad merge is not. So real drift is caught by
+`report_name_joins()`, which **reports and never fails** — a late replacement
+must not take the site down on a match day. Read the build step's log.
+
+**A null is not a zero.** A null in a category taints that category for that
+player and drops her from *that board only*; she is not ranked on a partial
+sum, and a missing steal does not cost her the scoring board. Summing nulls as
+zero would reproduce, on a published leaderboard, exactly the undercount the
+format's own null rule exists to prevent.
+
+**A fixture is refused, not bannered.** A box-score page is one game and can
+say on its face what it is; a leaderboard is a blend, and one synthetic game
+mixed into real ones is wrong in a way no banner undoes and no reader can
+decompose. So `compute_leaders()` raises on any `_fixture` box outside
+`--preview`. `validate_leaders.py` gates CI on all of the above.
 
 Fixtures appear on **both** Games and Groups on purpose. "When is my team
 playing" and "who is winning this group" are different questions, and a reader
@@ -331,6 +385,17 @@ should not depend on how it was reached to be honest about itself.
 .venv/bin/python sites/wwc/build_wwc_pages.py --preview  # → preview/, with fixture
 ```
 
+**There are two fixtures, doing different jobs.** `boxscore_fixture.json` is
+one game and exercises the box-score template. `leaders_fixture.json`
+(2026-09-03) is *three* fabricated finals across five teams, because one game
+cannot exercise what Leaders is made of — a games-played column, a total
+beside an average, or the rule that a null excludes a player from one board
+and not the rest. Both carry `_fixture: true` per game, both load only under
+`--preview`, both banner every page they reach, and neither can enter an
+aggregate on a real run: `compute_leaders()` raises rather than banners. The
+leaders fixture's numbers come from a seeded generator and are stated as such
+in its own `_note`.
+
 ### Viewing the built site locally
 
 The site needs a server — its links are root-relative (`/games/`, `/teams/`),
@@ -553,9 +618,17 @@ There is no test suite. What exists:
 
 ```
 .venv/bin/python sites/wwc/validate_teams.py          # 16/16, gates CI
-.venv/bin/python sites/wwc/build_wwc_pages.py         # must print 20 pages
+.venv/bin/python sites/wwc/validate_standings.py      # 7/7 Appendix D examples
+.venv/bin/python sites/wwc/validate_leaders.py        # 15/15, gates CI
+.venv/bin/python sites/wwc/build_wwc_pages.py         # must print 20 in sitemap
 .venv/bin/python sites/wnba/golden_check.py check     # WNBA must not move
 ```
+
+`validate_leaders.py` builds its box scores in-script — no network, no
+results, no live data — which is why the Leaders tab was fully testable
+before a ball was bounced. Its checks were each proved to bite by breaking
+the emitter on a scratch copy and confirming the failure; an assertion nobody
+has watched fail is an assertion nobody has tested.
 
 `golden_check.py` is the whole safety net for the accent-token split: it
 proves `tokens_css("#f5a623")` is byte-identical to the constant it replaced,

@@ -646,6 +646,14 @@ def _competition_ranks(vals):
     """Places for a ranked list of values, ties sharing the higher place:
     1, 1, 3 — not 1, 2, 3.
 
+    ⚠️ SECOND COPY EXISTS. `sites/wwc/build_wwc_pages._competition_ranks` is a
+    verbatim duplicate, added 2026-09-03 with the WWC Leaders tab. Change one
+    and you must change the other: a duplicated tie rule on two sites is how
+    the bug described below happened in the first place, and it is now
+    duplicated on purpose rather than by accident (moving it into `core/`
+    moves the golden-check surface, which was not a thing to do the day before
+    a tournament). Unifying them is a backlog row for after the Cup.
+
     Two players the league calls tied get one number on our board, the way
     stats.wnba.com publishes a duplicated RANK and the way the player-page
     badges have always read (build_player_pages.compute_card_ranks uses
