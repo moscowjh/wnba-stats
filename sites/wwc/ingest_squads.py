@@ -152,7 +152,16 @@ PUBLISH_FIBA_NAME = {
     ("HUN", "Virag Takacs-Kiss"): "Virág Takács-Kiss",
     ("AUS", "Steph Talbot"): "Steph Talbot",
     ("TUR", "Tilbe Senyurek Arslan"): "Tilbe Şenyürek Arslan",
-    ("NGR", "Pallas Kunaiyi"): "Pallas Kunaiyi",
+    # NOT ("NGR", "Pallas Kunaiyi"). It was here for a day. The rule for this
+    # table is that FIBA's form is the player's own CURRENT name, and the
+    # other five entries ADD a name — a married name, a short form she goes
+    # by. Hers SUBTRACTS one, which is the DiLeo shape, and the evidence says
+    # it is a truncation rather than a change: ESPN, Basketball-Reference,
+    # Eurobasket and FIBA's own qualifying-tournament page (player 271903,
+    # "pallas-kunaiyi-akpanah") all carry the full surname. FIBA disagrees
+    # with FIBA. Her override is in the TSV. Check the direction of a rename
+    # before trusting a registration: a name gained is evidence, a name lost
+    # is usually a form field that was too short.
 }
 
 
