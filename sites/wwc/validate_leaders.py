@@ -374,6 +374,72 @@ def run(teams):
             return ["an in-progress game is being ranked as if it were final"]
         return []
 
+    # ── 11. person_id resolution: names change, statistics do not ────────
+    #
+    # The whole point of `resolve_box_names`. FIBA writes box-score names in a
+    # form this site does not publish — ASCII-stripped, and given-name-first
+    # for Korea and China — so the display name is rewritten before anything
+    # reads it. These cases pin the two halves of the guarantee: the rename
+    # HAPPENS, and it moves no number.
+    @case("a box-score line is renamed to the published spelling via person_id")
+    def _():
+        real = teams[HOME]["roster"]["players"][0]
+        boxes = [game("g1", [player("Ascii Strippedname", pts=20,
+                                    person_id=real["person_id"])])]
+        B.resolve_box_names(boxes, teams, lambda *a: None)
+        got = boxes[0]["teams"][0]["players"][0]["name"]
+        if got != real["name"]:
+            return [f"name is {got!r}, expected the published {real['name']!r}"]
+        return []
+
+    @case("renaming by person_id changes no total, average or place")
+    def _():
+        a, b = (teams[HOME]["roster"]["players"][0],
+                teams[HOME]["roster"]["players"][1])
+        def boards_of(rows):
+            boxes = [game("g1", rows)]
+            B.resolve_box_names(boxes, teams, lambda *a: None)
+            lb = B.compute_leaders(boxes, teams, log=lambda *a: None)
+            return [(r["name"], r["total"], r["avg"], r["place"])
+                    for r in board(lb, "Scoring")]
+        # Same two players, same stats; only the incoming SPELLING differs.
+        under_fiba = boards_of([player("Wrongly Spelled", pts=20, person_id=a["person_id"]),
+                                player("Also Wrong", pts=10, person_id=b["person_id"])])
+        under_ours = boards_of([player(a["name"], pts=20, person_id=a["person_id"]),
+                                player(b["name"], pts=10, person_id=b["person_id"])])
+        if under_fiba != under_ours:
+            return [f"the board depends on the incoming spelling: "
+                    f"{under_fiba} vs {under_ours}"]
+        if [r[0] for r in under_ours] != [a["name"], b["name"]]:
+            return [f"names not canonicalised: {[r[0] for r in under_ours]}"]
+        return []
+
+    @case("a line with no person_id keeps its own name and still ranks")
+    def _():
+        # The late-replacement case, and the fixtures. Must not raise, must
+        # not drop her, must not rename her to somebody else.
+        boxes = [game("g1", [player("Late Callup", pts=44)])]
+        B.resolve_box_names(boxes, teams, lambda *a: None)
+        if boxes[0]["teams"][0]["players"][0]["name"] != "Late Callup":
+            return ["an unresolvable line was renamed — it must be left alone"]
+        lb = B.compute_leaders(boxes, teams, log=lambda *a: None)
+        r = row_for(lb, "Scoring", "Late Callup")
+        if not r or r["total"] != 44:
+            return [f"unrostered player missing from the board: {r}"]
+        return []
+
+    @case("an unknown person_id never adopts another player's name")
+    def _():
+        used = {p["person_id"] for t in teams.values()
+                for p in t["roster"]["players"]}
+        boxes = [game("g1", [player("Nobody Known", pts=5,
+                                    person_id=max(used) + 1)])]
+        B.resolve_box_names(boxes, teams, lambda *a: None)
+        got = boxes[0]["teams"][0]["players"][0]["name"]
+        if got != "Nobody Known":
+            return [f"an unmatched id was resolved to {got!r}"]
+        return []
+
     return cases
 
 

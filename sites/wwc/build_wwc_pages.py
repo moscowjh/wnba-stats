@@ -175,6 +175,19 @@ def wnba_player_pages():
 #: different questions and this map is where they meet.
 ALIASES = {
     "Steph Talbot": "stephanie-talbot",
+    # Korean name order, and the one link this site's naming policy costs.
+    # We publish family-name-first; ESPN — and so our own player page — uses
+    # FIBA's given-name-first "Jihyun Park". Without this entry her name
+    # slugifies to `park-ji-hyun`, no such directory exists, and
+    # correct-or-blank silently drops the link on the only Korean player who
+    # has a page to link to.
+    "Park Ji-hyun": "jihyun-park",
+    # Retained as a FALLBACK, not as live wiring. `resolve_box_names` now
+    # rewrites box-score lines to our published spelling via person_id, so
+    # "Megan Gustafson" — FIBA's registration of Megan DiLeo — should no
+    # longer reach this function. It still will for a player whose person_id
+    # is missing from our roster capture, which is exactly when a dead link
+    # would be least noticed.
     "Megan Gustafson": "megan-dileo",
 }
 
@@ -1984,6 +1997,72 @@ def page_boxscore(box, rows_by_id, teams, published):
                  social=social_title(f"{title} \u2014 {WC}"))
 
 
+def resolve_box_names(boxes, teams, log):
+    """Rewrite each box-score line's name to the one this site publishes,
+    matched on FIBA's `person_id`. Returns (resolved, unresolved).
+
+    ── Why this exists ────────────────────────────────────────────────────
+    The names on a FIBA box score are not the names on this site, and that is
+    deliberate. FIBA's player fields are ASCII-stripped — no Johannès, no
+    Juhász, no -ová — and Korean and Chinese players are given-name-first
+    there. We publish the accented, family-name-first forms (Jason,
+    2026-09-03). Without this function the same player would appear as
+    "Zhang Ziyu" on China's roster table and "Ziyu Zhang" on the Leaders
+    board, and `report_name_joins` would print twenty-four "not on the
+    roster" lines every match day — the exact noise its docstring warns
+    trains everyone to skip the section.
+
+    ── Why it is safe, which is the whole point ───────────────────────────
+    `person_id` is FIBA's own key, the one `parse_game` uses to attach a stat
+    line to a roster entry in the first place, and `ingest_squads.py` stores
+    it on every rostered player. So this renames by ID and never by
+    similarity: it cannot merge two players, and it cannot move a statistic
+    from one to another. What a name is allowed to affect here is what a
+    reader SEES; a name has never been allowed to affect what is counted.
+
+    Running BEFORE `aggregate_box_players` also means the aggregation key
+    (`schedule_key`, name) is computed on one canonical spelling per player,
+    so a mid-tournament re-romanisation upstream — Korea had one between two
+    captures a day apart — can no longer split a player's totals in two.
+
+    ── The unresolved case ────────────────────────────────────────────────
+    Reported, never fatal, and the line keeps FIBA's spelling. A late
+    replacement who is genuinely not on the captured roster must not take the
+    site down on a match day, and her stats are correct either way: she is
+    aggregated under her own name, exactly as every player was before this
+    existed. The fixtures have no `person_id` at all and take this path by
+    design, which is what keeps the fallback exercised.
+    """
+    by_id = {p["person_id"]: p["name"]
+             for t in teams.values() for p in t["roster"]["players"]
+             if p.get("person_id")}
+    resolved, unresolved = 0, []
+    for box in boxes:
+        for side in box.get("teams", []):
+            for p in side.get("players", []):
+                want = by_id.get(p.get("person_id"))
+                if want is None:
+                    unresolved.append((side.get("schedule_key"),
+                                       p.get("name") or "(unnamed)"))
+                    continue
+                if want != p.get("name"):
+                    resolved += 1
+                p["name"] = want
+    if resolved:
+        log(f"box names: {resolved} line(s) renamed to the published "
+            f"spelling via person_id")
+    if unresolved:
+        # Summarised, not enumerated. On a real match day this list is empty
+        # or a name or two; the fixtures carry no person_id at all and would
+        # otherwise print sixty-five lines, which is how a log stops being
+        # read. The names are still here — just capped.
+        shown = ", ".join(f"{k}/{n}" for k, n in unresolved[:5])
+        more = f", +{len(unresolved) - 5} more" if len(unresolved) > 5 else ""
+        log(f"  -- {len(unresolved)} box-score line(s) had no person_id on our "
+            f"roster, keeping their own spelling: {shown}{more}")
+    return resolved, unresolved
+
+
 def load_boxscores(preview):
     """Real box scores from `data/`, which a future FIBA fetch writes.
 
@@ -2434,6 +2513,11 @@ def main():
     rows_by_id = {r["game_id"]: r for r in rows}
     boxes = load_boxscores(args.preview)
     box_ids = {b["game_id"] for b in boxes}
+
+    # Names are canonicalised BEFORE anything reads them — before the box-score
+    # pages render them and before `compute_leaders` uses them as an
+    # aggregation key. One choke point, so display and ranking cannot disagree.
+    resolve_box_names(boxes, teams, print)
 
     # Leaders is computed BEFORE any page is written, because whether it
     # exists changes the nav on every one of them. `_LEADERS_IN_NAV` is

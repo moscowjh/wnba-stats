@@ -612,15 +612,84 @@ Round 1 and round 2 mockups also carry annotations addressed to Jason —
 `⚠ HUMAN QA REQUIRED`. **Those are spec notes about components, not copy.**
 None of them ship.
 
+## The roster source — FIBA official, from 2026-09-03
+
+FIBA confirmed the sixteen rosters the day before tip, and the roster data
+moved from a Wikipedia transcription to FIBA's own team pages
+(`sites/wwc/fetch_rosters.py` → `reference/fiba-rosters-2026-09-03.json` →
+`ingest_squads.py` → `wwc2026_teams.json`). None of it runs in CI; the emitter
+reads only the JSON.
+
+What that closed, in one pass: **all sixteen teams are now the official final
+twelve**, with number, position, club, club country, age, height, date of birth
+and `person_id` on every row. Nigeria had been carrying a 17-name squad
+inferred from nationality and camp invitations; Puerto Rico a twelve with no
+numbers, ages or heights at all. Mali went from a 22-name preselection to
+twelve. Seventeen players came off the two pools — including **Aicha Coulibaly
+(Chicago Sky)**, so Mali brings one current WNBA player and not two. Cut players
+are moved to `wnba.not_on_squad`, never deleted.
+
+### `person_id` is the identity; the name is a display field
+
+This is the rule that matters, and it is new. Every FIBA surface we parse —
+`parse_game`, `parse_boxlines`, and now `parse_roster` — is keyed on FIBA's
+`personId`. `fetch_data.py` carries it onto every box-score row and
+`resolve_box_names()` uses it, at one choke point in `main()`, to rewrite each
+box-score line to the name this site publishes **before anything reads it** —
+before the box-score pages render and before `compute_leaders` uses the name as
+an aggregation key.
+
+So the naming policy below cannot move a statistic. A name decides what a
+reader sees; `person_id` decides what is counted. An unresolvable line (a late
+replacement, or the fixtures, which carry no id) keeps its own spelling, is
+reported, and still ranks — pinned by four cases in `validate_leaders.py`,
+including one asserting the whole board is byte-identical under either
+incoming spelling.
+
+### FIBA decides the roster. It does not decide the spelling.
+
+FIBA's `firstName`/`lastName` are **ASCII-stripped** — no Johannès, no Juhász,
+no Şenyürek, no `-ová` — and Korean and Chinese players are given-name-first
+("Jihyun Park", "Manman Zhang"). `uniformName` keeps the diacritics, uppercased,
+which is how we know they are real, and confirms which half is the family name.
+
+Decisions (Jason, 2026-09-03):
+
+- A player who joins an existing roster row **keeps the name already
+  published**: Marine Johannès, Park Ji-hyun, Zhang Ziyu, the Czech squad.
+- Six are published under FIBA's **fuller registration**, because it is also
+  the player's own current name: Şenyürek Arslan, Takács-Kiss, Steph Talbot,
+  Migna Touré, Pallas Kunaiyi, Marie Gülich.
+- **Megan DiLeo is not among them.** FIBA registers her maiden name,
+  Gustafson; she has played as DiLeo since 2023 and the WNBA, ESPN and our own
+  player page use it. Jason: that is FIBA's bureaucracy, not a fact about her
+  name. The override is in `overrides-fiba-2026-09-03.tsv` with its reason.
+
+Cost of the family-name-first choice: exactly one link. ESPN — and so our own
+player page — calls her `jihyun-park`, so `player_href`'s `ALIASES` carries
+`"Park Ji-hyun" → "jihyun-park"`. Without it, correct-or-blank silently drops
+the link on the only Korean player who has a page to link to.
+
+### Heights are converted from centimetres, not read
+
+⚠️ FIBA's `heightInFeetInches` is **floor-truncated** from `heightInCm` — true
+for all 192 players of this field, no exceptions — and understates by up to an
+inch. 192cm renders `6'3"` where the honest round is 6'4". Rounding from cm
+agrees with the Wikipedia capture on 120 of 151 shared players; taking FIBA's
+own string agrees on 69. Never print that field.
+
 ## Known data gaps
 
 | Gap | Scope | Effect on the page |
 |---|---|---|
-| `plays_for.club_name` | every non-WNBA player | roster "Plays for" renders `—` |
 | "Players to watch" | no field exists | section omitted entirely rather than stubbed |
-| `roster.players` detail | 13 of 16 teams | "FIBA has published an N-name pool" |
 | `qualification.link` | 11 teams | all point at the same generic Wikipedia page, so "Wuhan tournament →" is not actually a Wuhan-specific link |
-| `roster.players[].wnba` | 8 rows | stale; superseded at render time by `wnba.players` (above) |
+| `plays_for.other_club` | all but one row | Note column is empty except where an override supplies it — FIBA carries one club per player |
+
+~~`plays_for.club_name` — every non-WNBA player~~ and ~~`roster.players` detail
+— 13 of 16 teams~~: **both closed 2026-09-03** by the FIBA capture above. The
+emitter's per-team column gating is therefore currently a no-op; it is kept
+because the next event's capture will not be this complete.
 
 The "players to watch" gap is the `hooks.json` retrofit trap the sequencing
 plan already flagged: the product brief asks for 1–2 players who *aren't*
@@ -635,7 +704,7 @@ There is no test suite. What exists:
 ```
 .venv/bin/python sites/wwc/validate_teams.py          # 16/16, gates CI
 .venv/bin/python sites/wwc/validate_standings.py      # 7/7 Appendix D examples
-.venv/bin/python sites/wwc/validate_leaders.py        # 15/15, gates CI
+.venv/bin/python sites/wwc/validate_leaders.py        # 23/23, gates CI
 .venv/bin/python sites/wwc/build_wwc_pages.py         # must print 20 in sitemap
 .venv/bin/python sites/wnba/golden_check.py check     # WNBA must not move
 ```

@@ -1,0 +1,20 @@
+# Corrections applied ON TOP OF fiba-rosters-2026-09-03.json, which stays a
+# VERBATIM capture. Never edit the capture — a source you have quietly corrected
+# can no longer be re-captured and diffed against the next one.
+#
+# `name` is FIBA's own spelling ("firstName lastName" from the capture), because
+# that is the key the capture is joined on. `field` is a field of OUR roster
+# record: name, number, position, age, height, club, club_country, other_club.
+#
+# Columns: team	name	field	value	reason
+#
+# NOTE how short this file is compared with overrides-2026-09-03.tsv, the one
+# it replaces. Both of that file's substantive corrections were corrections to
+# WIKIPEDIA, and the official source simply does not need them: it already gave
+# Kennedy Burke's WNBA club, and the height it disagreed with belonged to a
+# player who did not make the final twelve. Only the two things FIBA genuinely
+# cannot express are left.
+
+TUR	Kennedy Burke	other_club	ÇBK Mersin	FIBA carries ONE club per player and chose her WNBA side, Connecticut Sun — which is right for the Club column and is what we would have overridden Wikipedia to say. But she plays for both, and her Turkish club is real and interesting on a Türkiye roster page. FIBA's single Club field cannot hold two, which is exactly why the Note column exists. Carried forward from overrides-2026-09-03.tsv.
+ESP	Megan Gustafson	name	Megan DiLeo	FIBA registers her under her maiden name. She married Ben DiLeo in 2023 and has played under DiLeo since; the WNBA, ESPN and our own player page at /players/megan-dileo/ all use it. Jason 2026-09-03: FIBA not respecting her married name is FIBA's bureaucracy, not a fact about her name. A person's own name beats a registration form. Delete this row to publish FIBA's form instead — and note `player_href`'s ALIASES still maps the box-score spelling "Megan Gustafson" to /megan-dileo/, so her link works either way.
+MLI	Naignouma Coulibaly	name	Naîgnouma Coulibaly	The only genuinely new player in the FIBA capture — she was not on Mali's 22-name preselection, so there was no existing spelling to keep. FIBA's name fields are ASCII-stripped, so its "Naignouma" is not evidence of no accent. Wikipedia's squads page, re-checked 2026-09-03 after it was updated to Mali's final 12, spells her Naîgnouma with a circumflex and gives the same date of birth (1989-05-31), so this is the same player and the accent is real.

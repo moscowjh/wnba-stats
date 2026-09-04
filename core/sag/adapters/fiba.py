@@ -366,3 +366,31 @@ def event_games_url(event_slug):
 def game_url(event_slug, game_id, code_a, code_b):
     return (f"{FIBA_ORIGIN}/en/events/{event_slug}/games/"
             f"{game_id}-{code_a}-{code_b}")
+
+
+def team_url(event_slug, team_slug):
+    return f"{FIBA_ORIGIN}/en/events/{event_slug}/teams/{team_slug}"
+
+
+def parse_roster(payload):
+    """The team page's official roster block, or None.
+
+    The shape FIBA serves is already the shape we want — one dict per player
+    carrying `personId`, `uniformNumber`, `position`, `heightInCm`,
+    `dateOfBirth`, `clubName`, `clubCountryFIBACode`, `isCaptain` and
+    `isOnFinalRoster` — so this returns it VERBATIM rather than projecting it
+    into a narrower record. The projection belongs to whoever is ingesting;
+    a capture that has already thrown a field away cannot be re-read.
+
+    `personId` is the point of this function. Every other FIBA surface we
+    parse (`parse_game`, `parse_boxlines`) is keyed on it, and until the
+    roster carried it too there was no id-based path from a box-score line to
+    a rostered player — only her name, in whatever form FIBA wrote it that
+    day. See `docs/wwc-site-internals.md`.
+
+    ⚠️ `heightInFeetInches` is FLOOR-truncated from `heightInCm`, verified on
+    all 192 players of the 2026 field: 192cm renders `6'3"` where the honest
+    round is 6'4". Convert from `heightInCm` yourself; do not print FIBA's
+    own ft/in string.
+    """
+    return _value_after(payload, '"roster":{"teamId"', "{")

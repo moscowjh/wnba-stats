@@ -274,6 +274,14 @@ def box_players(side, game):
     for pid, stats in box.items():
         r = roster.get(pid, {})
         out.append({
+            # FIBA's stable player id, carried through so the emitter can
+            # resolve this line to a rostered player WITHOUT matching on her
+            # name. It was in hand here all along — `parse_game` keys both the
+            # roster and the box on it — and was thrown away at this line
+            # until 2026-09-03. Names cannot do this job: FIBA writes them
+            # ASCII-stripped and given-name-first, which is not the form this
+            # site publishes, and a name is not an identity anyway.
+            "person_id": pid,
             "number": r.get("number"),
             "name": r.get("name"),
             "position": r.get("position"),

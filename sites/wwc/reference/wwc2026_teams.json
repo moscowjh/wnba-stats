@@ -1,14 +1,14 @@
 {
   "_schema": {
-    "version": "2.2.0",
+    "version": "3.0.0",
     "generated": "2026-09-03",
     "note": "One record per team, 16 records. Field set frozen before profile writing. Source of truth for the WWC team pages; all views (spreadsheet, HTML table) are generated from this file and are disposable.",
     "keys": "code is the primary key (FIBA three-letter). schedule_key joins to sites/wwc/reference/wwc_schedule_2026.csv, which uses UPPERCASE full names, not codes. Both are needed; neither alone is sufficient.",
     "sources": "A LIST, not a single URL, following the hooks.json convention. Verbatim quotes are attached where the source stated a figure directly.",
     "derived": "appearances_count and best_finish derive from the editions array wherever editions is non-null. Where editions is null the stored summary is the fallback.",
     "confidence": "high = cross-validated across two independent sources. medium = single source. low = single source that conflicted with something else; re-check before publishing.",
-    "nulls": "null = exists, not researched. [] = researched, genuinely none. Never write a profile claim off a null. roster.players[].age, .height and .plays_for.club_name/club_country/other_club are null wherever the squad capture does not cover the team (NGR, PUR) or the source has no value; the emitter gates each column per team rather than printing a dash column.",
-    "roster_rule": "player_count > 12 means a pool regardless of how the source labels it. FIBA's own tracker mislabels several pools as final. Never write a squad claim off a pool roster without hedging.",
+    "nulls": "null = exists, not researched. [] = researched, genuinely none. Never write a profile claim off a null. Since 2026-09-03 every roster row on every team carries number, name, position, club, club_country, age, height, person_id and date_of_birth, because the official FIBA capture covers all sixteen teams — the per-team column gating in the emitter is therefore currently a no-op, and is KEPT because the next event's capture will not be this complete. plays_for.other_club stays null except where an override supplies it.",
+    "roster_rule": "The roster is FIBA's `isOnFinalRoster` twelve, read from the official team page — not a count inferred from a source's label. person_id is the primary key of a roster row and the join to the box scores; name is a display field and must never be used as an identity. FIBA's own firstName/lastName are ASCII-stripped and give Korean and Chinese players given-name-first, so the names published here deliberately differ from the capture. See ingest_squads.py.",
     "wnba": "current / former / drafted_only counts derive from the players array and are validated. roster_basis says what list the block was built from — 'proxy' means no squad has been announced and membership is inference, not fact.",
     "validator": "sites/wwc/validate_teams.py (to be written) - assert 16 records, unique codes, 4 per group, schedule_key matches the schedule CSV, roster.status in enum, editions ranks 1..16."
   },
@@ -91,22 +91,10 @@
     }
   },
   "_corrections": {
-    "note": "Facts that were wrong in v1.0.0 and are now fixed. Kept deliberately so they are not reintroduced.",
-    "AUS.coach": "Was 'Paul Goriss'. Correct: Sandy Brondello, Opals head coach since April 2017.",
-    "HUN.coach": "Was 'László Cziczás' (from a stale Wikipedia infobox). Correct: Péter Völgyi since 2025; Cziczás is an assistant.",
-    "USA.wwc_appearances_count": "Was 19, which counted 2026. Correct: 18 completed.",
-    "MLI.wwc_record": "The round-1 team page prototype shows 1 appearance and '15th - 2010'. Correct: 2 appearances, best 11th in 2022.",
-    "ITA.coach_confidence": "Was low. Capobianco confirmed by the Italian federation, contracted through June 2027.",
-    "HUN.wwc_editions": "Fourth appearance was listed as 1990 on a Wikipedia-derived grid. Correct: 1986, from FIBA's Hungary History tab.",
-    "BEL.coach.us_connection": "Called Thibault the WNBA's all-time coaching wins leader. Cheryl Reeve passed him in 2026. A decaying superlative should never have been stored in a data field — the falsifiability rule now applies to us_connection.summary as well.",
-    "MLI.coach": "Named Hamchétou Maïga-Ba as head coach on wiki sourcing. No evidence supports it; withdrawn to null. Mali's coach is currently unknown.",
-    "KOR.wwc_appearances_count": "Was 16 with a null editions array, on the basis of FIBA's prose article. Correct: 17, from FIBA's Korea History tab, which also supplied every placing. FIBA's article and FIBA's data disagree; the data is right.",
-    "HUN.roster.juhasz": "A 2026-08-31 session recorded that Dorka Juhász had been CUT, inferring it from Hungary's list shrinking 25 -> 14. She had not been. The 14 was an interim narrowing (10 July); the final 12 (31 August) has her at No. 14. The inference reached build_wwc_pages.py's wnba_on_squad() docstring and drove the headline count, so the page published '0 current players' above a table naming her. Absence from a scraped list is not evidence of a cut.",
-    "ESP.wnba.gustafson": "The wnba block carried 'Megan Gustafson'. The squad and the Spanish federation both say Megan DiLeo. Same player, married name.",
-    "KOR.roster.romanisation": "The 2026-09-02 capture gave Ahn Hye-ji, Choi Yi-saem, Kang Yi-seul and Kang Yu-rim. Wikipedia re-romanised all four to An He-ji, Choi I-saem, Kang Lee-seul and Kang Yoo-lim on 2026-09-03, and renumbered the squad. The newer capture wins. The four are joined by an EXPLICIT alias table in ingest_squads.py, not by a matcher: 'Kang Yi-seul' and 'Kang Yu-rim' are both Kang, and a surname heuristic that guessed wrong would have swapped two players' ages and heights with nothing to show for it.",
-    "CHN.roster.numbers": "China was renumbered between the 09-02 and 09-03 captures (eight of twelve). Names were unaffected. The squads page is edited hourly this close to tip — re-capture, never assume yesterday's numbers hold.",
-    "TUR.wnba.burke": "Kennedy Burke was counted as a non-WNBA player because the squad source lists her Turkish club, ÇBK Mersin. She is currently active for Connecticut — 36 games in our own 2026 box scores. A source's single Club column cannot express a player who has both.",
-    "CZE.profile.cechova": "The profile named Emma Čechová alongside Eliška Joklová as a 2026 Minnesota Lynx signing. The signing is real, but she tore her ACL in May playing for Minnesota and is not on Czechia's squad for Berlin (Jason, 2026-09-03), so naming her in a tournament profile read as a player who would be there. Joklová keeps the claim on her own: she is still the first Czech player in the WNBA in sixteen years."
+    "roster.source": "Replaced the Wikipedia squads transcription with FIBA's own team pages on 2026-09-03, the day FIBA confirmed the sixteen rosters. This resolved the two teams the Wikipedia table never covered: Nigeria was carrying a 17-name pool inferred from nationality and camp invitations, Puerto Rico a squad with no numbers, ages or heights. Both are now the official twelve.",
+    "roster.cuts": "Mali went from a 22-name preselection to twelve and Nigeria from seventeen; between them seventeen players came off. Aicha Coulibaly (Chicago Sky) is the one that changes a published number — Mali now brings one current WNBA player, not two. She is in wnba.not_on_squad, not deleted.",
+    "roster.height": "Heights are converted from FIBA's heightInCm with a real round. FIBA's own heightInFeetInches field is FLOOR-truncated — true for all 192 players of this field — and understates by up to an inch: 192cm renders 6'3\" where the honest round is 6'4\". Rounding from cm agrees with Wikipedia on 120 of 151 shared players; FIBA's string agrees on 69.",
+    "roster.names": "FIBA's firstName/lastName carry no diacritics and order Korean and Chinese names given-name-first. A player who joins an existing row keeps the name already published (Marine Johannès, Park Ji-hyun, Zhang Ziyu); six are published under FIBA's fuller registration by decision (Şenyürek Arslan, Takács-Kiss, Steph Talbot, Migna Touré, Pallas Kunaiyi, and Marie Gülich unchanged). Megan Gustafson is deliberately NOT among them — FIBA registers her maiden name and she has played as DiLeo since 2023. See overrides-fiba-2026-09-03.tsv."
   },
   "teams": [
     {
@@ -280,14 +268,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Valencia Basket",
+              "club_name": "Valencia Basket Club",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 22,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 271386,
+            "date_of_birth": "2004-03-08"
           },
           {
             "number": "4",
@@ -296,30 +286,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Basket Zaragoza",
+              "club_name": "Casademont Zaragoza",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 34,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 167784,
+            "date_of_birth": "1992-02-28"
           },
           {
             "number": "5",
             "name": "Maite Cazorla",
-            "position": "G",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "USK Praha",
+              "club_name": "ZVVZ USK Praha",
               "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 196090,
+            "date_of_birth": "1997-06-18"
           },
           {
             "number": "7",
@@ -328,14 +322,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "AzulMarino Palma",
+              "club_name": "Azulmarino Mallorca Palma",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 37,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 143554,
+            "date_of_birth": "1989-08-30"
           },
           {
             "number": "9",
@@ -344,14 +340,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Valencia Basket",
-              "club_country": "ESP",
+              "club_name": "Valencia Basket Club",
+              "club_country": "ITA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 25,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 226235,
+            "date_of_birth": "2001-02-13"
           },
           {
             "number": "10",
@@ -367,7 +365,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 29,
-            "height": "6 ft 3 in"
+            "height": "6 ft 2 in",
+            "person_id": 204187,
+            "date_of_birth": "1997-01-14"
           },
           {
             "number": "11",
@@ -383,12 +383,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 20,
-            "height": "6 ft 4 in"
+            "height": "6 ft 5 in",
+            "person_id": 300698,
+            "date_of_birth": "2006-06-17"
           },
           {
             "number": "14",
             "name": "Raquel Carrera",
-            "position": "C",
+            "position": "PF",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "NYL",
@@ -399,7 +401,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 24,
-            "height": "6 ft 3 in"
+            "height": "6 ft 3 in",
+            "person_id": 225137,
+            "date_of_birth": "2001-10-31"
           },
           {
             "number": "17",
@@ -415,12 +419,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 29,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 268901,
+            "date_of_birth": "1996-12-13"
           },
           {
             "number": "18",
             "name": "Alicia Flórez",
-            "position": "PG",
+            "position": "G",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "WAS",
@@ -431,7 +437,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 22,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 300742,
+            "date_of_birth": "2004-04-19"
           },
           {
             "number": "20",
@@ -440,14 +448,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Žabiny Brno",
+              "club_name": "Zabiny Brno",
               "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 28,
-            "height": "6 ft 2 in"
+            "height": "6 ft 3 in",
+            "person_id": 204192,
+            "date_of_birth": "1998-02-16"
           },
           {
             "number": "44",
@@ -463,12 +473,15 @@
             "player_slug": null,
             "wnba": false,
             "age": 20,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 295079,
+            "date_of_birth": "2006-01-18"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-08-31",
-        "history": "21 on 07-24, final 12 on 08-31"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "21 on 07-24, final 12 on 08-31",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 5,
@@ -476,7 +489,7 @@
         "drafted_only": 3,
         "total_connected": 9,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -721,14 +734,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Valencia Basket",
+              "club_name": "Valencia Basket Club",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 31,
-            "height": "5 ft 5 in"
+            "height": "5 ft 7 in",
+            "person_id": 239761,
+            "date_of_birth": "1995-06-20"
           },
           {
             "number": "3",
@@ -744,7 +759,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 195939,
+            "date_of_birth": "1996-09-29"
           },
           {
             "number": "8",
@@ -760,12 +777,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 26,
-            "height": "6 ft 2 in"
+            "height": "6 ft 4 in",
+            "person_id": 217770,
+            "date_of_birth": "2000-02-26"
           },
           {
             "number": "9",
             "name": "Emma Eichmeyer",
-            "position": "F",
+            "position": "SF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
@@ -776,7 +795,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 226758,
+            "date_of_birth": "2000-02-25"
           },
           {
             "number": "13",
@@ -792,7 +813,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 26,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 218988,
+            "date_of_birth": "2000-01-10"
           },
           {
             "number": "15",
@@ -808,12 +831,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 26,
-            "height": "6 ft 3 in"
+            "height": "6 ft 4 in",
+            "person_id": 218969,
+            "date_of_birth": "2000-02-10"
           },
           {
             "number": "19",
             "name": "Britta Daub",
-            "position": "G",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
@@ -824,7 +849,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "5 ft 9 in"
+            "height": "5 ft 10 in",
+            "person_id": 210731,
+            "date_of_birth": "1999-01-20"
           },
           {
             "number": "20",
@@ -840,7 +867,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 22,
-            "height": "6 ft 1 in"
+            "height": "6 ft 2 in",
+            "person_id": 266528,
+            "date_of_birth": "2004-05-28"
           },
           {
             "number": "21",
@@ -856,7 +885,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 32,
-            "height": "6 ft 5 in"
+            "height": "6 ft 5 in",
+            "person_id": 174996,
+            "date_of_birth": "1994-05-28"
           },
           {
             "number": "22",
@@ -865,51 +896,58 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "CB Jairis",
+              "club_name": "Club Jaris",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 24,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 226747,
+            "date_of_birth": "2001-11-19"
           },
           {
             "number": "24",
             "name": "Lina Sontag",
-            "position": "PG",
+            "position": "PF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "AE Sedis Bàsquet",
+              "club_name": "Cadi La Seu",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 22,
-            "height": "6 ft 3 in"
+            "height": "6 ft 3 in",
+            "person_id": 251173,
+            "date_of_birth": "2003-11-24"
           },
           {
             "number": "25",
             "name": "Clara Bielefeld",
-            "position": "G",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "TCU Horned Frogs",
+              "club_name": "Texas Christian University",
               "club_country": "USA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 19,
-            "height": "6 ft 1 in"
+            "height": "6 ft 5 in",
+            "person_id": 316351,
+            "date_of_birth": "2007-08-28"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-09-02",
-        "history": "16 on 07-17, 14 on 08-29, final 12 on 09-02"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "16 on 07-17, 14 on 08-29, final 12 on 09-02",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 4,
@@ -917,7 +955,7 @@
         "drafted_only": 0,
         "total_connected": 4,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -1186,7 +1224,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 259416,
+            "date_of_birth": "2000-05-01"
           },
           {
             "number": "3",
@@ -1195,14 +1235,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "CB Avenida",
+              "club_name": "MEINS Avenida",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 208014,
+            "date_of_birth": "1998-11-25"
           },
           {
             "number": "6",
@@ -1218,7 +1260,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 19,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 342959,
+            "date_of_birth": "2007-02-13"
           },
           {
             "number": "8",
@@ -1234,7 +1278,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 37,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 176909,
+            "date_of_birth": "1989-08-23"
           },
           {
             "number": "10",
@@ -1250,7 +1296,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 35,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 166703,
+            "date_of_birth": "1991-06-11"
           },
           {
             "number": "13",
@@ -1266,7 +1314,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 33,
-            "height": "5 ft 4 in"
+            "height": "5 ft 4 in",
+            "person_id": 189546,
+            "date_of_birth": "1993-03-08"
           },
           {
             "number": "14",
@@ -1282,12 +1332,14 @@
             "player_slug": null,
             "wnba": false,
             "age": 22,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 324737,
+            "date_of_birth": "2003-10-20"
           },
           {
             "number": "23",
             "name": "Mai Yamamoto",
-            "position": "SG",
+            "position": "PG",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "LVA",
@@ -1298,12 +1350,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 26,
-            "height": "5 ft 4 in"
+            "height": "5 ft 4 in",
+            "person_id": 218949,
+            "date_of_birth": "1999-10-23"
           },
           {
             "number": "26",
             "name": "Kokoro Tanaka",
-            "position": "G",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
@@ -1314,7 +1368,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 20,
-            "height": "5 ft 8 in"
+            "height": "5 ft 8 in",
+            "person_id": 318293,
+            "date_of_birth": "2006-01-10"
           },
           {
             "number": "27",
@@ -1330,7 +1386,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 31,
-            "height": "5 ft 8 in"
+            "height": "5 ft 8 in",
+            "person_id": 236949,
+            "date_of_birth": "1995-03-16"
           },
           {
             "number": "52",
@@ -1346,12 +1404,14 @@
             "player_slug": null,
             "wnba": false,
             "age": 33,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 181762,
+            "date_of_birth": "1993-06-02"
           },
           {
             "number": "75",
             "name": "Nanako Todo",
-            "position": "SF",
+            "position": "SG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
@@ -1362,12 +1422,15 @@
             "player_slug": null,
             "wnba": false,
             "age": 25,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 259435,
+            "date_of_birth": "2000-11-29"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-08-20",
-        "history": "14 on 07-27, final on 08-20"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "14 on 07-27, final on 08-20",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 1,
@@ -1375,7 +1438,7 @@
         "drafted_only": 1,
         "total_connected": 4,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -1543,41 +1606,9 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 22,
+        "status": "final",
+        "player_count": 12,
         "players": [
-          {
-            "number": "0",
-            "name": "Sira Thienou",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "Auburn Tigers",
-              "club_country": "USA",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 22,
-            "height": "5 ft 10 in"
-          },
-          {
-            "number": "1",
-            "name": "Foune Sissoko",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "ASC Ville de Dakar",
-              "club_country": "SEN",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 27,
-            "height": "5 ft 6 in"
-          },
           {
             "number": "2",
             "name": "Aminata Sangaré",
@@ -1585,30 +1616,52 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Baloncesto Leganés",
+              "club_name": "Innova-TSN Leganes",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 24,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 237590,
+            "date_of_birth": "2002-02-10"
           },
           {
-            "number": "6",
-            "name": "Roukia Doumbia",
-            "position": "C",
+            "number": "4",
+            "name": "Fatoumata Sanou",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Oakland Swish",
-              "club_country": "USA",
+              "club_name": "l'ASFAS",
+              "club_country": "MLI",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": 27,
-            "height": "5 ft 9 in"
+            "age": 22,
+            "height": "5 ft 1 in",
+            "person_id": 297573,
+            "date_of_birth": "2004-06-30"
+          },
+          {
+            "number": "9",
+            "name": "Djénéba Sangaré",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Garonne Avenir Basket du Marmandais",
+              "club_country": "FRA",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 26,
+            "height": "5 ft 10 in",
+            "person_id": 218419,
+            "date_of_birth": "1999-10-07"
           },
           {
             "number": "10",
@@ -1617,46 +1670,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Porta XI Ensino",
+              "club_name": "CB Cidade de Lugo",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 22,
-            "height": "6 ft 2 in"
-          },
-          {
-            "number": "11",
-            "name": "Kadidia Maiga",
-            "position": "F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "REG BBC",
-              "club_country": "RWA",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 29,
-            "height": "5 ft 9 in"
+            "height": "6 ft 2 in",
+            "person_id": 271074,
+            "date_of_birth": "2004-06-02"
           },
           {
             "number": "12",
             "name": "Alima Dembélé",
-            "position": "G",
+            "position": "PF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Joventut Badalona",
+              "club_name": "Azulmarino Mallorca Palma",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 224432,
+            "date_of_birth": "2000-01-20"
           },
           {
             "number": "13",
@@ -1665,14 +1706,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Adareva Tenerife",
-              "club_country": "ESP",
+              "club_name": "CRBC Canet en Roussillon Basketball Club",
+              "club_country": "FRA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 22,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 271076,
+            "date_of_birth": "2004-09-03"
+          },
+          {
+            "number": "15",
+            "name": "Naîgnouma Coulibaly",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "AS Police",
+              "club_country": "MLI",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 37,
+            "height": "6 ft 3 in",
+            "person_id": 153804,
+            "date_of_birth": "1989-05-31"
           },
           {
             "number": "22",
@@ -1681,14 +1742,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "ASA Sceaux",
+              "club_name": "ASA SCEAUX BASKET FEMININ",
               "club_country": "FRA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 21,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 271080,
+            "date_of_birth": "2004-11-09"
           },
           {
             "number": "23",
@@ -1704,7 +1767,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 24,
-            "height": "6 ft 3 in"
+            "height": "6 ft 3 in",
+            "person_id": 224434,
+            "date_of_birth": "2002-07-13"
           },
           {
             "number": "50",
@@ -1720,7 +1785,27 @@
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "5 ft 5 in"
+            "height": "5 ft 5 in",
+            "person_id": 196635,
+            "date_of_birth": "1997-07-08"
+          },
+          {
+            "number": "52",
+            "name": "Roukia Doumbia",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "University of California, Berkeley",
+              "club_country": "USA",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 27,
+            "height": "5 ft 9 in",
+            "person_id": 209386,
+            "date_of_birth": "1999-05-05"
           },
           {
             "number": "77",
@@ -1729,187 +1814,30 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "ASVEL Basket",
-              "club_country": "FRA",
+              "club_name": "DVTK HUNTHERM",
+              "club_country": "HUN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 30,
-            "height": "6 ft 3 in"
-          },
-          {
-            "number": null,
-            "name": "Aminata Samassekou",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "Kenya Ports",
-              "club_country": "KEN",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 21,
-            "height": "5 ft 5 in"
-          },
-          {
-            "number": null,
-            "name": "Fatoumata Sanou",
-            "position": "PG",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "USFAS Bamako",
-              "club_country": "MLI",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 22,
-            "height": "5 ft 1 in"
-          },
-          {
-            "number": null,
-            "name": "Fanta Koné",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "Sam Houston Bearkats",
-              "club_country": "USA",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 24,
-            "height": "5 ft 7 in"
-          },
-          {
-            "number": null,
-            "name": "Diaba Konaté",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "Free agent",
-              "club_country": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 26,
-            "height": "5 ft 6 in"
-          },
-          {
-            "number": null,
-            "name": "Djénéba Sangaré",
-            "position": "G/F",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "Friend's Basketball Association",
-              "club_country": "CIV",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 26,
-            "height": "5 ft 10 in"
-          },
-          {
-            "number": null,
-            "name": "Diarrah Sissoko",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "Fresno State Bulldogs",
-              "club_country": "USA",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 24,
-            "height": "5 ft 9 in"
-          },
-          {
-            "number": null,
-            "name": "Mama Doumbia",
-            "position": "G",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "CB Islas Canarias",
-              "club_country": "ESP",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 19,
-            "height": "5 ft 9 in"
-          },
-          {
-            "number": null,
-            "name": "Fatoumata Niambélé",
-            "position": "C",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "CB Islas Canarias",
-              "club_country": "ESP",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 22,
-            "height": "6 ft 5 in"
-          },
-          {
-            "number": null,
-            "name": "Mariam Coulibaly",
-            "position": "C",
-            "plays_for": {
-              "type": "club",
-              "wnba_team": null,
-              "club_name": "CB Islas Canarias",
-              "club_country": "ESP",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": 28,
-            "height": "6 ft 3 in"
-          },
-          {
-            "number": null,
-            "name": "Aicha Coulibaly",
-            "position": "G/F",
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": "CHI",
-              "club_name": "Chicago Sky",
-              "club_country": "USA",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": true,
-            "age": 24,
-            "height": "6 ft 0 in"
+            "height": "6 ft 3 in",
+            "person_id": 210143,
+            "date_of_birth": "1996-01-28"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-07-26",
-        "history": "23-player preselection 07-26; NO final squad published"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "23-player preselection 07-26; NO final squad published",
+        "as_of": "2026-09-03"
       },
       "wnba": {
-        "current": 2,
+        "current": 1,
         "former": 0,
         "drafted_only": 0,
-        "total_connected": 2,
+        "total_connected": 1,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -1920,18 +1848,19 @@
             "wnba_team_full": "Atlanta Dream",
             "note": "Drafted 29th overall in 2022 by New York; Chicago 2023, Minnesota 2024, Washington 2024-25, Atlanta since August 2025. Around 95 career games.",
             "confidence": "high"
-          },
+          }
+        ],
+        "not_on_squad": [
           {
             "name": "Aicha Coulibaly",
             "position": "G/F",
             "status": "current",
             "wnba_team": "CHI",
             "wnba_team_full": "Chicago Sky",
-            "note": null,
+            "note": "Not selected for the WWC 2026 final twelve (2026-09-03).",
             "confidence": "high"
           }
         ],
-        "not_on_squad": [],
         "note": "Rebuilt from the announced squad 2026-09-02. `players` covers the TRAVELLING squad only; anyone connected to this country but not selected is kept in `not_on_squad` rather than deleted.",
         "sources": [
           {
@@ -2122,6 +2051,24 @@
         "player_count": 12,
         "players": [
           {
+            "number": "0",
+            "name": "Carla Leite",
+            "position": "PG",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "PDX",
+              "club_name": "Portland Fire",
+              "club_country": "USA",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": true,
+            "age": 22,
+            "height": "5 ft 9 in",
+            "person_id": 297990,
+            "date_of_birth": "2004-04-16"
+          },
+          {
             "number": "11",
             "name": "Valériane Ayayi",
             "position": "SF",
@@ -2135,7 +2082,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 32,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 175628,
+            "date_of_birth": "1994-04-29"
           },
           {
             "number": "13",
@@ -2151,7 +2100,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 24,
-            "height": "6 ft 2 in"
+            "height": "6 ft 2 in",
+            "person_id": 237521,
+            "date_of_birth": "2001-09-05"
           },
           {
             "number": "14",
@@ -2167,12 +2118,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 20,
-            "height": "6 ft 6 in"
+            "height": "6 ft 6 in",
+            "person_id": 298012,
+            "date_of_birth": "2005-11-16"
           },
           {
             "number": "15",
             "name": "Gabby Williams",
-            "position": "SF",
+            "position": "F",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "GSV",
@@ -2183,23 +2136,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 29,
-            "height": "5 ft 11 in"
-          },
-          {
-            "number": "20",
-            "name": "Carla Leite",
-            "position": "PG",
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": "PDX",
-              "club_name": "Portland Fire",
-              "club_country": "USA",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": true,
-            "age": 22,
-            "height": "5 ft 9 in"
+            "height": "5 ft 11 in",
+            "person_id": 216915,
+            "date_of_birth": "1996-09-09"
           },
           {
             "number": "22",
@@ -2208,14 +2147,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "PF Schio",
-              "club_country": "ITA",
+              "club_name": "Besiktas BOA",
+              "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 31,
-            "height": "6 ft 3 in"
+            "height": "6 ft 3 in",
+            "person_id": 183622,
+            "date_of_birth": "1994-11-24"
           },
           {
             "number": "23",
@@ -2231,23 +2172,27 @@
             "player_slug": null,
             "wnba": true,
             "age": 31,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 191610,
+            "date_of_birth": "1995-01-21"
           },
           {
             "number": "28",
-            "name": "Mamignan Touré",
+            "name": "Migna Touré",
             "position": "SG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Beşiktaş",
-              "club_country": "TUR",
+              "club_name": "BA Sparta Praha",
+              "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 31,
-            "height": "5 ft 11 in"
+            "height": "6 ft 0 in",
+            "person_id": 175762,
+            "date_of_birth": "1994-12-19"
           },
           {
             "number": "31",
@@ -2256,30 +2201,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Casademont Zaragoza",
-              "club_country": "ESP",
+              "club_name": "BA Sparta Praha",
+              "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 24,
-            "height": "6 ft 3 in"
-          },
-          {
-            "number": "42",
-            "name": "Leïla Lacan",
-            "position": "G",
-            "plays_for": {
-              "type": "wnba",
-              "wnba_team": "CON",
-              "club_name": "Connecticut Sun",
-              "club_country": "USA",
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": true,
-            "age": 22,
-            "height": "5 ft 11 in"
+            "height": "6 ft 3 in",
+            "person_id": 269523,
+            "date_of_birth": "2002-07-10"
           },
           {
             "number": "47",
@@ -2295,7 +2226,27 @@
             "player_slug": null,
             "wnba": false,
             "age": 33,
-            "height": "5 ft 7 in"
+            "height": "5 ft 7 in",
+            "person_id": 175635,
+            "date_of_birth": "1993-06-27"
+          },
+          {
+            "number": "71",
+            "name": "Leïla Lacan",
+            "position": "G",
+            "plays_for": {
+              "type": "wnba",
+              "wnba_team": "CON",
+              "club_name": "Connecticut Sun",
+              "club_country": "USA",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": true,
+            "age": 22,
+            "height": "6 ft 0 in",
+            "person_id": 271135,
+            "date_of_birth": "2004-06-02"
           },
           {
             "number": "98",
@@ -2311,12 +2262,15 @@
             "player_slug": null,
             "wnba": true,
             "age": 24,
-            "height": "5 ft 11 in"
+            "height": "5 ft 10 in",
+            "person_id": 254398,
+            "date_of_birth": "2002-02-15"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-08-29",
-        "history": "32 on 07-07, final 12 on 08-29"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "32 on 07-07, final 12 on 08-29",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 8,
@@ -2324,7 +2278,7 @@
         "drafted_only": 0,
         "total_connected": 9,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -2607,19 +2561,21 @@
         "players": [
           {
             "number": "2",
-            "name": "Virág Kiss",
+            "name": "Virág Takács-Kiss",
             "position": "C",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Valencia Basket",
+              "club_name": "Valencia Basket Club",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 28,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 204217,
+            "date_of_birth": "1998-04-12"
           },
           {
             "number": "7",
@@ -2628,30 +2584,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "DVTK",
+              "club_name": "DVTK HUNTHERM",
               "club_country": "HUN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 217758,
+            "date_of_birth": "1999-05-27"
           },
           {
             "number": "8",
             "name": "Eszter Rátkai",
-            "position": "G",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "KSC Szekszárd",
+              "club_name": "TARR KSC Szekszard",
               "club_country": "HUN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 19,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 301863,
+            "date_of_birth": "2006-12-14"
           },
           {
             "number": "9",
@@ -2660,14 +2620,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "PEAC-Pécs",
+              "club_name": "NKA Pécs",
               "club_country": "HUN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "5 ft 6 in"
+            "height": "5 ft 6 in",
+            "person_id": 204224,
+            "date_of_birth": "1998-09-10"
           },
           {
             "number": "10",
@@ -2676,14 +2638,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "DVTK",
+              "club_name": "DVTK HUNTHERM",
               "club_country": "HUN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 196468,
+            "date_of_birth": "1997-06-24"
           },
           {
             "number": "11",
@@ -2692,35 +2656,39 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "PEAC-Pécs",
+              "club_name": "NKA Pécs",
               "club_country": "HUN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 18,
-            "height": "6 ft 5 in"
+            "height": "6 ft 5 in",
+            "person_id": 322804,
+            "date_of_birth": "2008-01-02"
           },
           {
             "number": "13",
             "name": "Ágnes Török",
-            "position": "PF",
+            "position": "SF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "PEAC-Pécs",
+              "club_name": "NKA Pécs",
               "club_country": "HUN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 28,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 211298,
+            "date_of_birth": "1998-01-23"
           },
           {
             "number": "14",
             "name": "Dorka Juhász",
-            "position": "F",
+            "position": "PF",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "MIN",
@@ -2731,7 +2699,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 26,
-            "height": "6 ft 5 in"
+            "height": "6 ft 5 in",
+            "person_id": 219323,
+            "date_of_birth": "1999-12-18"
           },
           {
             "number": "21",
@@ -2740,30 +2710,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "DVTK",
-              "club_country": "HUN",
+              "club_name": "Emlak Konut Spor Kulubu Dernegi (Gelisim)",
+              "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 211291,
+            "date_of_birth": "1999-04-14"
           },
           {
             "number": "22",
             "name": "Yvonne Turner",
-            "position": "G",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Valencia Basket",
-              "club_country": "ESP",
+              "club_name": "SKK Polonia",
+              "club_country": "POL",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 38,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 186040,
+            "date_of_birth": "1987-10-13"
           },
           {
             "number": "33",
@@ -2772,35 +2746,40 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "PEAC-Pécs",
+              "club_name": "ETO Basket",
               "club_country": "HUN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 25,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 226441,
+            "date_of_birth": "2000-10-23"
           },
           {
             "number": "55",
             "name": "Judit Barnai",
-            "position": "PF",
+            "position": "C",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Ceglédi EKK",
+              "club_name": "VBW CEKK Cegled",
               "club_country": "HUN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 32,
-            "height": "6 ft 2 in"
+            "height": "6 ft 2 in",
+            "person_id": 184606,
+            "date_of_birth": "1994-01-17"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-08-31",
-        "history": "25 on 06-10, 14 on 07-10, final 12 on 08-31"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "25 on 06-10, 14 on 07-10, final 12 on 08-31",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 1,
@@ -2808,7 +2787,7 @@
         "drafted_only": 1,
         "total_connected": 3,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -3037,7 +3016,7 @@
           {
             "number": "1",
             "name": "Park Ji-hyun",
-            "position": "G",
+            "position": "F",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "LAS",
@@ -3047,8 +3026,10 @@
             },
             "player_slug": null,
             "wnba": true,
-            "age": 25,
-            "height": "6 ft 1 in"
+            "age": 26,
+            "height": "6 ft 1 in",
+            "person_id": 219253,
+            "date_of_birth": "2000-04-07"
           },
           {
             "number": "2",
@@ -3057,14 +3038,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Cheongju KB Stars",
+              "club_name": "KB stars",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": 23,
-            "height": "5 ft 6 in"
+            "age": 25,
+            "height": "5 ft 6 in",
+            "person_id": 241163,
+            "date_of_birth": "2001-07-24"
           },
           {
             "number": "3",
@@ -3073,30 +3056,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Asan Woori Bank Woori Won",
+              "club_name": "Woori bank Wibee",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 32,
-            "height": "5 ft 11 in"
+            "height": "5 ft 11 in",
+            "person_id": 203569,
+            "date_of_birth": "1994-04-05"
           },
           {
             "number": "5",
             "name": "An He-ji",
-            "position": "G",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Busan BNK Sum",
+              "club_name": "BNK SUM",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "5 ft 5 in"
+            "height": "5 ft 5 in",
+            "person_id": 197055,
+            "date_of_birth": "1997-02-12"
           },
           {
             "number": "6",
@@ -3105,14 +3092,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Busan BNK Sum",
+              "club_name": "BNK SUM",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 32,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 203570,
+            "date_of_birth": "1994-08-17"
           },
           {
             "number": "8",
@@ -3121,30 +3110,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Bucheon Hana Bank",
+              "club_name": "Hana Bank",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 20,
-            "height": "5 ft 10 in"
+            "height": "5 ft 11 in",
+            "person_id": 315570,
+            "date_of_birth": "2006-08-13"
           },
           {
             "number": "9",
             "name": "Lee So-hee",
-            "position": "F",
+            "position": "G",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Busan BNK Sum",
+              "club_name": "BNK SUM",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "5 ft 7 in"
+            "height": "5 ft 7 in",
+            "person_id": 219255,
+            "date_of_birth": "2000-08-07"
           },
           {
             "number": "10",
@@ -3153,30 +3146,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Samsung Life Blueminx",
+              "club_name": "Samsung Blue Minx",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 207721,
+            "date_of_birth": "1997-03-23"
           },
           {
             "number": "11",
             "name": "Park So-hee",
-            "position": "PG",
+            "position": "G",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Bucheon Hana Bank",
+              "club_name": "Hana Bank",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 23,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 258767,
+            "date_of_birth": "2003-05-15"
           },
           {
             "number": "12",
@@ -3185,30 +3182,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Samsung Life Blueminx",
+              "club_name": "Samsung Blue Minx",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": 22,
-            "height": "5 ft 11 in"
+            "age": 23,
+            "height": "6 ft 0 in",
+            "person_id": 241191,
+            "date_of_birth": "2003-05-29"
           },
           {
             "number": "39",
             "name": "Hong Yu-sun",
-            "position": null,
+            "position": "PF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Incheon Shinhan",
+              "club_name": "Shinhan Bank S-birds",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": 20,
-            "height": "5 ft 10 in"
+            "age": 21,
+            "height": "5 ft 10 in",
+            "person_id": 392955,
+            "date_of_birth": "2005-02-23"
           },
           {
             "number": "77",
@@ -3217,19 +3218,22 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Bucheon Hana Bank",
+              "club_name": "Hana Bank",
               "club_country": "KOR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 30,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 216921,
+            "date_of_birth": "1996-03-23"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-08-25",
-        "history": "13 on 05-26, final 12 on 08-25 (Park Ji-su excluded, rehab)"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "13 on 05-26, final 12 on 08-25 (Park Ji-su excluded, rehab)",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 1,
@@ -3237,7 +3241,7 @@
         "drafted_only": 0,
         "total_connected": 1,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -3403,292 +3407,237 @@
         "confidence": "high"
       },
       "roster": {
-        "status": "pool",
-        "player_count": 17,
-        "as_of": "2026-08-31",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "status": "final",
+        "player_count": 12,
+        "as_of": "2026-09-03",
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
         "players": [
           {
-            "number": null,
+            "number": "0",
             "name": "Amy Okonkwo",
-            "position": null,
+            "position": "F",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "ATL",
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Portland Fire",
+              "club_country": "USA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": true,
-            "age": null,
-            "height": null
+            "age": 30,
+            "height": "6 ft 2 in",
+            "person_id": 270784,
+            "date_of_birth": "1996-08-26"
           },
           {
-            "number": null,
-            "name": "Elizabeth Balogun",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Ezinne Kalu",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Promise Amukamara",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
+            "number": "1",
             "name": "Grace Efosa-Aguebor",
-            "position": null,
+            "position": "SG",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Saint-Amand Hainaut Basket",
+              "club_country": "FRA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 24,
+            "height": "5 ft 10 in",
+            "person_id": 396236,
+            "date_of_birth": "2002-05-27"
           },
           {
-            "number": null,
-            "name": "Murjanatu Musa",
-            "position": null,
+            "number": "3",
+            "name": "Pallas Kunaiyi",
+            "position": "C",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Emlak Konut",
+              "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 29,
+            "height": "6 ft 2 in",
+            "person_id": 271903,
+            "date_of_birth": "1997-07-12"
           },
           {
-            "number": null,
-            "name": "Rita Igbokwe",
-            "position": null,
+            "number": "4",
+            "name": "Elizabeth Balogun",
+            "position": "G",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Valencia Basket Club",
+              "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 25,
+            "height": "6 ft 1 in",
+            "person_id": 271901,
+            "date_of_birth": "2000-09-09"
           },
           {
-            "number": null,
+            "number": "5",
             "name": "Jordan Obi",
-            "position": null,
+            "position": "F",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Kirklareli Basketbol Spor Kulubu",
+              "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 23,
+            "height": "6 ft 1 in",
+            "person_id": 415575,
+            "date_of_birth": "2002-09-18"
           },
           {
-            "number": null,
-            "name": "Ifunanya Okoro",
-            "position": null,
+            "number": "10",
+            "name": "Promise Amukamara",
+            "position": "PG",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "REG Women BBC",
+              "club_country": "RWA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 33,
+            "height": "5 ft 9 in",
+            "person_id": 189170,
+            "date_of_birth": "1993-06-22"
           },
           {
-            "number": null,
-            "name": "Pallas Kunaiyi-Akpanah",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Nora Ezike",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Nicole Enabosi",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Uche Izoje",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Victoria Macaulay",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
+            "number": "15",
             "name": "Maryam Dauda",
-            "position": null,
+            "position": "PF",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Morlaix Saint Martin basket",
+              "club_country": "FRA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 23,
+            "height": "6 ft 4 in",
+            "person_id": 419373,
+            "date_of_birth": "2002-09-20"
           },
           {
-            "number": null,
-            "name": "Gabby White",
-            "position": null,
+            "number": "20",
+            "name": "Murjanatu Musa",
+            "position": "F",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Basket Landes",
+              "club_country": "FRA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 26,
+            "height": "6 ft 2 in",
+            "person_id": 279915,
+            "date_of_birth": "2000-05-05"
           },
           {
-            "number": null,
-            "name": "Idubamo Beggi",
-            "position": null,
+            "number": "23",
+            "name": "Ezinne Kalu",
+            "position": "PG",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Beijing Women's Team",
+              "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 34,
+            "height": "5 ft 9 in",
+            "person_id": 189168,
+            "date_of_birth": "1992-06-26"
+          },
+          {
+            "number": "25",
+            "name": "Victoria Macaulay",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Athinaikos Qualco",
+              "club_country": "GRE",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 36,
+            "height": "6 ft 4 in",
+            "person_id": 207097,
+            "date_of_birth": "1990-08-07"
+          },
+          {
+            "number": "32",
+            "name": "Rita Igbokwe",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "CDE Leganes",
+              "club_country": "ESP",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 25,
+            "height": "6 ft 4 in",
+            "person_id": 367822,
+            "date_of_birth": "2001-01-28"
+          },
+          {
+            "number": "33",
+            "name": "Nicole Enabosi",
+            "position": "F",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "DVTK HUNTHERM",
+              "club_country": "HUN",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 29,
+            "height": "6 ft 1 in",
+            "person_id": 281100,
+            "date_of_birth": "1997-03-26"
           }
-        ]
+        ],
+        "announced": "2026-09-03"
       },
       "wnba": {
         "current": 1,
         "former": 2,
         "drafted_only": 0,
         "total_connected": 3,
-        "roster_basis": "proxy_qualifying_and_camp",
-        "as_of": "2026-08-19",
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-03",
         "confidence": "medium",
         "players": [
           {
@@ -3953,7 +3902,7 @@
           {
             "number": "1",
             "name": "Miela Sowah",
-            "position": "G",
+            "position": "SG",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "GSV",
@@ -3964,7 +3913,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 26,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 219240,
+            "date_of_birth": "2000-06-04"
           },
           {
             "number": "2",
@@ -3980,7 +3931,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 24,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 239719,
+            "date_of_birth": "2002-08-18"
           },
           {
             "number": "4",
@@ -3996,11 +3949,13 @@
             "player_slug": null,
             "wnba": false,
             "age": 32,
-            "height": "5 ft 9 in"
+            "height": "6 ft 0 in",
+            "person_id": 181326,
+            "date_of_birth": "1994-03-21"
           },
           {
             "number": "6",
-            "name": "Stephanie Talbot",
+            "name": "Steph Talbot",
             "position": "SF",
             "plays_for": {
               "type": "wnba",
@@ -4012,7 +3967,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 32,
-            "height": "6 ft 2 in"
+            "height": "6 ft 2 in",
+            "person_id": 176788,
+            "date_of_birth": "1994-06-15"
           },
           {
             "number": "11",
@@ -4028,7 +3985,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 29,
-            "height": "6 ft 3 in"
+            "height": "6 ft 4 in",
+            "person_id": 194496,
+            "date_of_birth": "1996-09-10"
           },
           {
             "number": "12",
@@ -4044,12 +4003,14 @@
             "player_slug": null,
             "wnba": false,
             "age": 30,
-            "height": "5 ft 5 in"
+            "height": "5 ft 6 in",
+            "person_id": 252289,
+            "date_of_birth": "1996-07-22"
           },
           {
             "number": "13",
             "name": "Ezi Magbegor",
-            "position": "F",
+            "position": "PF",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "SEA",
@@ -4060,7 +4021,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 27,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 216865,
+            "date_of_birth": "1999-08-13"
           },
           {
             "number": "20",
@@ -4076,12 +4039,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 21,
-            "height": "5 ft 11 in"
+            "height": "5 ft 11 in",
+            "person_id": 271348,
+            "date_of_birth": "2004-09-12"
           },
           {
             "number": "22",
             "name": "Zitina Aokuso",
-            "position": "PF",
+            "position": "C",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
@@ -4092,7 +4057,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "6 ft 3 in"
+            "height": "6 ft 4 in",
+            "person_id": 229038,
+            "date_of_birth": "1998-11-23"
           },
           {
             "number": "23",
@@ -4108,7 +4075,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 25,
-            "height": "6 ft 4 in"
+            "height": "6 ft 0 in",
+            "person_id": 236147,
+            "date_of_birth": "2001-07-21"
           },
           {
             "number": "34",
@@ -4124,7 +4093,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 25,
-            "height": "6 ft 2 in"
+            "height": "6 ft 2 in",
+            "person_id": 224216,
+            "date_of_birth": "2000-11-21"
           },
           {
             "number": "55",
@@ -4140,12 +4111,15 @@
             "player_slug": null,
             "wnba": true,
             "age": 28,
-            "height": "6 ft 0 in"
+            "height": "6 ft 2 in",
+            "person_id": 205418,
+            "date_of_birth": "1998-06-15"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-08-27",
-        "history": "announced 07-26; final confirmed 08-27 after Sami Whitcomb injury withdrawal"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "announced 07-26; final confirmed 08-27 after Sami Whitcomb injury withdrawal",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 7,
@@ -4153,7 +4127,7 @@
         "drafted_only": 0,
         "total_connected": 8,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -4175,7 +4149,7 @@
             "confidence": "high"
           },
           {
-            "name": "Stephanie Talbot",
+            "name": "Steph Talbot",
             "position": "SF",
             "status": "current",
             "wnba_team": "LVA",
@@ -4388,14 +4362,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Joventut Badalona",
-              "club_country": "ESP",
+              "club_name": "ZKK Buducnost",
+              "club_country": "MNE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "5 ft 7 in"
+            "height": "5 ft 7 in",
+            "person_id": 203030,
+            "date_of_birth": "1998-11-03"
           },
           {
             "number": "5",
@@ -4404,14 +4380,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Kansas State Wildcats",
+              "club_name": "Kansas State University",
               "club_country": "USA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 21,
-            "height": "6 ft 0 in"
+            "height": "6 ft 1 in",
+            "person_id": 267101,
+            "date_of_birth": "2004-12-02"
           },
           {
             "number": "6",
@@ -4427,7 +4405,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 32,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 173348,
+            "date_of_birth": "1994-08-01"
           },
           {
             "number": "11",
@@ -4436,14 +4416,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Fenerbahçe",
+              "club_name": "Fenerbahce Tarfin",
               "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 33,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 167505,
+            "date_of_birth": "1993-05-13"
           },
           {
             "number": "13",
@@ -4459,7 +4441,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 29,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 190762,
+            "date_of_birth": "1996-11-13"
           },
           {
             "number": "22",
@@ -4468,14 +4452,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "ASVEL Basket",
+              "club_name": "FC Lyon ASVEL Feminin",
               "club_country": "FRA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 224735,
+            "date_of_birth": "1997-07-22"
           },
           {
             "number": "25",
@@ -4491,7 +4477,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 210751,
+            "date_of_birth": "2000-03-21"
           },
           {
             "number": "31",
@@ -4500,14 +4488,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "CS Rapid București",
+              "club_name": "CS Rapid Bucuresti",
               "club_country": "ROU",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 25,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 226131,
+            "date_of_birth": "2001-05-14"
           },
           {
             "number": "34",
@@ -4516,30 +4506,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "CB Jairis",
+              "club_name": "Hozono Global Jairis",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 218960,
+            "date_of_birth": "2000-03-21"
           },
           {
             "number": "35",
             "name": "Julie Vanloo",
-            "position": "PG",
+            "position": "G",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "NYL",
-              "club_name": "New York Liberty",
-              "club_country": "USA",
+              "club_name": "Athinaikos Qualco",
+              "club_country": "GRE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": true,
             "age": 33,
-            "height": "5 ft 8 in"
+            "height": "5 ft 8 in",
+            "person_id": 159422,
+            "date_of_birth": "1993-02-10"
           },
           {
             "number": "55",
@@ -4549,18 +4543,20 @@
               "type": "wnba",
               "wnba_team": "TOR",
               "club_name": "Toronto Tempo",
-              "club_country": "CAN",
+              "club_country": "USA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": true,
             "age": 30,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 190766,
+            "date_of_birth": "1996-07-07"
           },
           {
             "number": "71",
             "name": "Alicia Courthiau",
-            "position": "F",
+            "position": "G",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
@@ -4571,12 +4567,15 @@
             "player_slug": null,
             "wnba": false,
             "age": 20,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 320321,
+            "date_of_birth": "2005-12-06"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-08-25",
-        "history": "19 on 07-30, final 12 on 08-25"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "19 on 07-30, final 12 on 08-25",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 4,
@@ -4584,7 +4583,7 @@
         "drafted_only": 0,
         "total_connected": 5,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -4761,210 +4760,235 @@
       "roster": {
         "status": "final",
         "player_count": 12,
-        "as_of": "2026-08-31",
-        "source": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/roster-tracker-fiba-womens-basketball-world-cup-2026",
+        "as_of": "2026-09-03",
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
         "players": [
           {
-            "number": null,
-            "name": "Jacqueline Benitez",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Nina De Leon",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Zaida Gonzalez",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Arella Guirantes",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Brianna Jones",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
-            "name": "Imani McGee-Stafford",
-            "position": null,
-            "plays_for": {
-              "type": null,
-              "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
-              "other_club": null
-            },
-            "player_slug": null,
-            "wnba": false,
-            "age": null,
-            "height": null
-          },
-          {
-            "number": null,
+            "number": "1",
             "name": "Tayra Melendez",
-            "position": null,
+            "position": "F",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Gigantes",
+              "club_country": "PUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 32,
+            "height": "5 ft 11 in",
+            "person_id": 181909,
+            "date_of_birth": "1993-10-29"
           },
           {
-            "number": null,
-            "name": "India Pagan",
-            "position": null,
+            "number": "2",
+            "name": "Brianna Jones",
+            "position": "SG",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Cangrejeras",
+              "club_country": "PUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 29,
+            "height": "6 ft 1 in",
+            "person_id": 291149,
+            "date_of_birth": "1997-02-09"
           },
           {
-            "number": null,
-            "name": "Sofia Roma",
-            "position": null,
+            "number": "3",
+            "name": "Nina De Leon",
+            "position": "PG",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Pollitas de Isabela",
+              "club_country": "PUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 23,
+            "height": "5 ft 6 in",
+            "person_id": 256378,
+            "date_of_birth": "2003-01-26"
           },
           {
-            "number": null,
+            "number": "5",
             "name": "Pamela Rosado",
-            "position": null,
+            "position": "PG",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Atenienses",
+              "club_country": "PUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 40,
+            "height": "5 ft 5 in",
+            "person_id": 147107,
+            "date_of_birth": "1986-04-30"
           },
           {
-            "number": null,
+            "number": "6",
+            "name": "Zaida Gonzalez",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Cariduras de Fajardo",
+              "club_country": "PUR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 23,
+            "height": "5 ft 9 in",
+            "person_id": 322422,
+            "date_of_birth": "2003-01-17"
+          },
+          {
+            "number": "11",
+            "name": "Sofia Roma",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Ganaderas de Hatillo",
+              "club_country": "PUR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 29,
+            "height": "6 ft 2 in",
+            "person_id": 188776,
+            "date_of_birth": "1996-11-21"
+          },
+          {
+            "number": "22",
+            "name": "Arella Guirantes",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Elitzur Ramle",
+              "club_country": "ISR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 28,
+            "height": "5 ft 11 in",
+            "person_id": 236841,
+            "date_of_birth": "1997-10-15"
+          },
+          {
+            "number": "23",
             "name": "Trinity San Antonio",
-            "position": null,
+            "position": "PG",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Basket Landes",
+              "club_country": "FRA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 22,
+            "height": "5 ft 9 in",
+            "person_id": 323904,
+            "date_of_birth": "2003-10-28"
           },
           {
-            "number": null,
+            "number": "25",
             "name": "Denise Solis",
-            "position": null,
+            "position": "F",
             "plays_for": {
-              "type": null,
+              "type": "club",
               "wnba_team": null,
-              "club_country": null,
-              "club_name": null,
+              "club_name": "Criollas de Caguas",
+              "club_country": "PUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": null,
-            "height": null
+            "age": 24,
+            "height": "6 ft 2 in",
+            "person_id": 295609,
+            "date_of_birth": "2001-10-06"
+          },
+          {
+            "number": "33",
+            "name": "India Pagan",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Atenienses",
+              "club_country": "PUR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 27,
+            "height": "6 ft 2 in",
+            "person_id": 225517,
+            "date_of_birth": "1999-01-07"
+          },
+          {
+            "number": "34",
+            "name": "Imani McGee-Stafford",
+            "position": "C",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Monarcas de Juana Díaz",
+              "club_country": "PUR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 31,
+            "height": "6 ft 7 in",
+            "person_id": 182081,
+            "date_of_birth": "1994-10-11"
+          },
+          {
+            "number": "55",
+            "name": "Jacqueline Benitez",
+            "position": "G",
+            "plays_for": {
+              "type": "club",
+              "wnba_team": null,
+              "club_name": "Criollas de Caguas",
+              "club_country": "PUR",
+              "other_club": null
+            },
+            "player_slug": null,
+            "wnba": false,
+            "age": 29,
+            "height": "5 ft 10 in",
+            "person_id": 289878,
+            "date_of_birth": "1997-06-06"
           }
-        ]
+        ],
+        "announced": "2026-09-03"
       },
       "wnba": {
         "current": 0,
         "former": 2,
         "drafted_only": 0,
         "total_connected": 2,
-        "roster_basis": "pool_14",
-        "as_of": "2026-08-19",
+        "roster_basis": "final_squad",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -5134,14 +5158,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Louisville Cardinals",
+              "club_name": "University of Louisville",
               "club_country": "USA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 21,
-            "height": "6 ft 2 in"
+            "height": "6 ft 3 in",
+            "person_id": 318695,
+            "date_of_birth": "2005-04-04"
           },
           {
             "number": "2",
@@ -5150,14 +5176,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Galatasaray",
+              "club_name": "Galatasaray Cagdas Factoring",
               "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 28,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 196252,
+            "date_of_birth": "1997-11-25"
           },
           {
             "number": "4",
@@ -5166,30 +5194,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Fenerbahçe",
+              "club_name": "Fenerbahce Tarfin",
               "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 33,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 168020,
+            "date_of_birth": "1993-07-13"
           },
           {
             "number": "6",
             "name": "Gökşen Fitik",
-            "position": "SF",
+            "position": "SG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Galatasaray",
+              "club_name": "Galatasaray Cagdas Factoring",
               "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 25,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 226825,
+            "date_of_birth": "2001-08-11"
           },
           {
             "number": "8",
@@ -5198,14 +5230,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Galatasaray",
+              "club_name": "Galatasaray Cagdas Factoring",
               "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 33,
-            "height": "5 ft 9 in"
+            "height": "5 ft 10 in",
+            "person_id": 168017,
+            "date_of_birth": "1993-03-03"
           },
           {
             "number": "11",
@@ -5214,18 +5248,20 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Galatasaray",
+              "club_name": "Galatasaray Cagdas Factoring",
               "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 24,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 237757,
+            "date_of_birth": "2001-09-18"
           },
           {
             "number": "15",
-            "name": "Tilbe Şenyürek",
+            "name": "Tilbe Şenyürek Arslan",
             "position": "PF",
             "plays_for": {
               "type": "club",
@@ -5237,7 +5273,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 31,
-            "height": "6 ft 2 in"
+            "height": "6 ft 4 in",
+            "person_id": 174651,
+            "date_of_birth": "1995-04-26"
           },
           {
             "number": "17",
@@ -5246,14 +5284,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Galatasaray",
+              "club_name": "Galatasaray Cagdas Factoring",
               "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 24,
-            "height": "5 ft 7 in"
+            "height": "5 ft 9 in",
+            "person_id": 226823,
+            "date_of_birth": "2002-06-28"
           },
           {
             "number": "20",
@@ -5262,19 +5302,21 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "ÇBK Mersin",
+              "club_name": "CIMSA CBK Mersin",
               "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 31,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 191628,
+            "date_of_birth": "1995-01-01"
           },
           {
             "number": "22",
             "name": "Kennedy Burke",
-            "position": "G",
+            "position": "PF",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "CON",
@@ -5285,12 +5327,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 29,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 203508,
+            "date_of_birth": "1997-02-14"
           },
           {
             "number": "30",
             "name": "Melek Uzunoğlu",
-            "position": "PF",
+            "position": "SF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
@@ -5301,7 +5345,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 24,
-            "height": "6 ft 2 in"
+            "height": "6 ft 2 in",
+            "person_id": 237754,
+            "date_of_birth": "2002-02-26"
           },
           {
             "number": "33",
@@ -5310,19 +5356,22 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "ÇBK Mersin",
+              "club_name": "CIMSA CBK Mersin",
               "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 35,
-            "height": "6 ft 6 in"
+            "height": "6 ft 6 in",
+            "person_id": 155919,
+            "date_of_birth": "1991-08-18"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-09-02",
-        "history": "20 on 07-22, final 12 on 09-02"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "20 on 07-22, final 12 on 09-02",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 1,
@@ -5330,7 +5379,7 @@
         "drafted_only": 0,
         "total_connected": 2,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -5566,34 +5615,38 @@
           {
             "number": "1",
             "name": "Zhang Manman",
-            "position": "PG",
+            "position": "G",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Jiangsu Phoenix",
+              "club_name": "Jiangsu Sports Bureau",
               "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "5 ft 7 in"
+            "height": "5 ft 7 in",
+            "person_id": 207682,
+            "date_of_birth": "1997-01-08"
           },
           {
             "number": "4",
             "name": "Li Yuan",
-            "position": "PG",
+            "position": "G",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Sichuan Yuanda Meile",
+              "club_name": "Inner Mongolia Nongxin Basketball Club",
               "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "5 ft 7 in"
+            "height": "5 ft 7 in",
+            "person_id": 224132,
+            "date_of_birth": "2000-05-29"
           },
           {
             "number": "5",
@@ -5602,46 +5655,52 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Sichuan Yuanda Meile",
+              "club_name": "Sichuan Yuanda Meile Basketball Club",
               "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 30,
-            "height": "5 ft 11 in"
+            "height": "5 ft 11 in",
+            "person_id": 258186,
+            "date_of_birth": "1995-10-16"
           },
           {
             "number": "6",
             "name": "Yang Shuyu",
-            "position": "F",
+            "position": "G",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Guangdong Vermilion Birds",
-              "club_country": "CHN",
+              "club_name": "Melbourne Tigers",
+              "club_country": "AUS",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 24,
-            "height": "5 ft 11 in"
+            "height": "6 ft 0 in",
+            "person_id": 239975,
+            "date_of_birth": "2002-03-06"
           },
           {
             "number": "9",
             "name": "Tang Ziting",
-            "position": "G",
+            "position": "PF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Sichuan Yuanda Meile",
+              "club_name": "Sichuan Yuanda Meile Basketball Club",
               "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "6 ft 3 in"
+            "height": "6 ft 3 in",
+            "person_id": 258974,
+            "date_of_birth": "2000-06-14"
           },
           {
             "number": "11",
@@ -5650,30 +5709,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Jiangsu Phoenix",
+              "club_name": "Jiangsu Sports Bureau",
               "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 24,
-            "height": "6 ft 2 in"
+            "height": "6 ft 2 in",
+            "person_id": 239785,
+            "date_of_birth": "2001-11-22"
           },
           {
             "number": "12",
             "name": "Chen Yujie",
-            "position": "F",
+            "position": "SG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Shanxi Flame",
+              "club_name": "Sichuan Yuanda Meile Basketball Club",
               "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 393998,
+            "date_of_birth": "2000-06-23"
           },
           {
             "number": "15",
@@ -5689,23 +5752,27 @@
             "player_slug": null,
             "wnba": true,
             "age": 26,
-            "height": "6 ft 9 in"
+            "height": "6 ft 9 in",
+            "person_id": 224131,
+            "date_of_birth": "1999-10-31"
           },
           {
             "number": "18",
             "name": "Chen Mingling",
-            "position": "F/C",
+            "position": "C",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Guangdong Vermilion Birds",
+              "club_name": "Dongguan City New Century Basketball Club",
               "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 258970,
+            "date_of_birth": "2000-07-25"
           },
           {
             "number": "19",
@@ -5714,30 +5781,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Shandong Six Stars",
+              "club_name": "Shandong Shangao Basketball Club Co., Ltd",
               "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 19,
-            "height": "7 ft 3 in"
+            "height": "7 ft 4 in",
+            "person_id": 342510,
+            "date_of_birth": "2007-05-02"
           },
           {
             "number": "20",
             "name": "Sun Yu",
-            "position": "F",
+            "position": "SG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Jiangsu Phoenix",
+              "club_name": "Jiangsu Sports Bureau",
               "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 22,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 285306,
+            "date_of_birth": "2004-02-11"
           },
           {
             "number": "31",
@@ -5746,19 +5817,22 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Sichuan Yuanda Meile",
+              "club_name": "Sichuan Yuanda Meile Basketball Club",
               "club_country": "CHN",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 209353,
+            "date_of_birth": "1998-12-30"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-09-02",
-        "history": "19 on 04-14, final 12 on 09-02"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "19 on 04-14, final 12 on 09-02",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 1,
@@ -5766,7 +5840,7 @@
         "drafted_only": 0,
         "total_connected": 1,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -5949,14 +6023,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Žabiny Brno",
+              "club_name": "Zabiny Brno",
               "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 24,
-            "height": "5 ft 4 in"
+            "height": "5 ft 4 in",
+            "person_id": 237787,
+            "date_of_birth": "2002-04-17"
           },
           {
             "number": "2",
@@ -5972,23 +6048,27 @@
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 211267,
+            "date_of_birth": "1999-06-20"
           },
           {
             "number": "3",
             "name": "Alena Hanušová",
-            "position": "PF",
+            "position": "C",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "DSK Brandýs",
+              "club_name": "DSK Basketball Brandys",
               "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 35,
-            "height": "6 ft 3 in"
+            "height": "6 ft 3 in",
+            "person_id": 160420,
+            "date_of_birth": "1991-05-29"
           },
           {
             "number": "4",
@@ -5997,14 +6077,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "USK Praha",
+              "club_name": "ZVVZ USK Praha",
               "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 30,
-            "height": "5 ft 8 in"
+            "height": "5 ft 8 in",
+            "person_id": 196183,
+            "date_of_birth": "1996-03-21"
           },
           {
             "number": "5",
@@ -6013,30 +6095,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Žabiny Brno",
+              "club_name": "Zabiny Brno",
               "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 28,
-            "height": "6 ft 1 in"
+            "height": "6 ft 2 in",
+            "person_id": 204018,
+            "date_of_birth": "1998-07-13"
           },
           {
             "number": "7",
             "name": "Petra Malíková",
-            "position": "G",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "USK Praha",
+              "club_name": "ZVVZ USK Praha",
               "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 23,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 251248,
+            "date_of_birth": "2002-09-09"
           },
           {
             "number": "8",
@@ -6045,14 +6131,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Basket Zaragoza",
+              "club_name": "Casademont Zaragoza",
               "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
-            "age": 30,
-            "height": "5 ft 11 in"
+            "age": 27,
+            "height": "6 ft 2 in",
+            "person_id": 219548,
+            "date_of_birth": "1999-06-21"
           },
           {
             "number": "10",
@@ -6067,8 +6155,10 @@
             },
             "player_slug": null,
             "wnba": true,
-            "age": 27,
-            "height": "6 ft 0 in"
+            "age": 24,
+            "height": "6 ft 0 in",
+            "person_id": 237772,
+            "date_of_birth": "2001-10-01"
           },
           {
             "number": "12",
@@ -6077,14 +6167,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Žabiny Brno",
+              "club_name": "Zabiny Brno",
               "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 24,
-            "height": "5 ft 11 in"
+            "height": "5 ft 11 in",
+            "person_id": 252537,
+            "date_of_birth": "2002-03-23"
           },
           {
             "number": "13",
@@ -6093,14 +6185,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Botaş SK",
+              "club_name": "Botas Spor",
               "club_country": "TUR",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "5 ft 10 in"
+            "height": "5 ft 10 in",
+            "person_id": 204002,
+            "date_of_birth": "1997-03-12"
           },
           {
             "number": "16",
@@ -6109,35 +6203,40 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "USK Praha",
+              "club_name": "ZVVZ USK Praha",
               "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 19,
-            "height": "6 ft 3 in"
+            "height": "6 ft 3 in",
+            "person_id": 346629,
+            "date_of_birth": "2007-03-21"
           },
           {
             "number": "20",
             "name": "Natálie Koucká",
-            "position": "C",
+            "position": "F",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "USK Praha",
+              "club_name": "ZVVZ USK Praha",
               "club_country": "CZE",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 23,
-            "height": "6 ft 5 in"
+            "height": "6 ft 4 in",
+            "person_id": 344927,
+            "date_of_birth": "2003-08-07"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-08-29",
-        "history": "21 on 05-15, final 12 on 08-29"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "21 on 05-15, final 12 on 08-29",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 1,
@@ -6145,7 +6244,7 @@
         "drafted_only": 0,
         "total_connected": 1,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -6329,30 +6428,34 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "PF Schio",
+              "club_name": "Beretta Famila Schio",
               "club_country": "ITA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 28,
-            "height": "6 ft 2 in"
+            "height": "6 ft 3 in",
+            "person_id": 203590,
+            "date_of_birth": "1997-10-08"
           },
           {
             "number": "5",
             "name": "Matilde Villa",
-            "position": "SG",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Reyer Venezia",
+              "club_name": "Umana Reyer Venice",
               "club_country": "ITA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 21,
-            "height": "5 ft 7 in"
+            "height": "5 ft 8 in",
+            "person_id": 251574,
+            "date_of_birth": "2004-12-09"
           },
           {
             "number": "6",
@@ -6361,14 +6464,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Reyer Venezia",
+              "club_name": "Umana Reyer Venice",
               "club_country": "ITA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 288641,
+            "date_of_birth": "2000-05-22"
           },
           {
             "number": "8",
@@ -6377,14 +6482,16 @@
             "plays_for": {
               "type": "wnba",
               "wnba_team": "DAL",
-              "club_name": "Dallas Wings",
-              "club_country": "USA",
+              "club_name": "Beretta Famila Schio",
+              "club_country": "ITA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": true,
             "age": 27,
-            "height": "5 ft 7 in"
+            "height": "5 ft 7 in",
+            "person_id": 211069,
+            "date_of_birth": "1999-08-06"
           },
           {
             "number": "9",
@@ -6400,23 +6507,27 @@
             "player_slug": null,
             "wnba": true,
             "age": 30,
-            "height": "6 ft 2 in"
+            "height": "6 ft 1 in",
+            "person_id": 191319,
+            "date_of_birth": "1996-03-16"
           },
           {
             "number": "11",
             "name": "Francesca Pan",
-            "position": "SG",
+            "position": "SF",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Reyer Venezia",
+              "club_name": "Umana Reyer Venice",
               "club_country": "ITA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 196504,
+            "date_of_birth": "1997-05-27"
           },
           {
             "number": "13",
@@ -6425,14 +6536,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Reyer Venezia",
+              "club_name": "Umana Reyer Venice",
               "club_country": "ITA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 204172,
+            "date_of_birth": "1999-01-08"
           },
           {
             "number": "14",
@@ -6448,7 +6561,9 @@
             "player_slug": null,
             "wnba": false,
             "age": 26,
-            "height": "6 ft 2 in"
+            "height": "6 ft 2 in",
+            "person_id": 211056,
+            "date_of_birth": "2000-06-28"
           },
           {
             "number": "18",
@@ -6457,14 +6572,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Reyer Venezia",
+              "club_name": "Umana Reyer Venice",
               "club_country": "ITA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 29,
-            "height": "5 ft 7 in"
+            "height": "5 ft 7 in",
+            "person_id": 196521,
+            "date_of_birth": "1997-06-18"
           },
           {
             "number": "19",
@@ -6473,14 +6590,16 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "Reyer Venezia",
-              "club_country": "ITA",
+              "club_name": "CB Avenida",
+              "club_country": "ESP",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 204173,
+            "date_of_birth": "1999-04-07"
           },
           {
             "number": "22",
@@ -6489,35 +6608,40 @@
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "PF Schio",
+              "club_name": "Beretta Famila Schio",
               "club_country": "ITA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 27,
-            "height": "6 ft 4 in"
+            "height": "6 ft 4 in",
+            "person_id": 223587,
+            "date_of_birth": "1998-12-25"
           },
           {
             "number": "55",
             "name": "Vittoria Blasigh",
-            "position": "G",
+            "position": "PG",
             "plays_for": {
               "type": "club",
               "wnba_team": null,
-              "club_name": "UCF Knights",
+              "club_name": "University of Central Florida",
               "club_country": "USA",
               "other_club": null
             },
             "player_slug": null,
             "wnba": false,
             "age": 22,
-            "height": "5 ft 9 in"
+            "height": "5 ft 9 in",
+            "person_id": 251383,
+            "date_of_birth": "2004-04-07"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-08-31",
-        "history": "18 on 07-28, final 12 on 08-31"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "18 on 07-28, final 12 on 08-31",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 2,
@@ -6525,7 +6649,7 @@
         "drafted_only": 0,
         "total_connected": 3,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
@@ -6835,7 +6959,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 24,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 235601,
+            "date_of_birth": "2001-10-20"
           },
           {
             "number": "5",
@@ -6851,12 +6977,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 22,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 268464,
+            "date_of_birth": "2003-10-22"
           },
           {
             "number": "6",
             "name": "Rhyne Howard",
-            "position": "SF",
+            "position": "G",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "ATL",
@@ -6866,13 +6994,15 @@
             },
             "player_slug": null,
             "wnba": true,
-            "age": 25,
-            "height": "6 ft 2 in"
+            "age": 26,
+            "height": "6 ft 2 in",
+            "person_id": 255460,
+            "date_of_birth": "2000-04-29"
           },
           {
             "number": "7",
             "name": "Kahleah Copper",
-            "position": "G/F",
+            "position": "G",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "PHX",
@@ -6883,7 +7013,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 32,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 228813,
+            "date_of_birth": "1994-08-28"
           },
           {
             "number": "8",
@@ -6899,12 +7031,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 33,
-            "height": "5 ft 11 in"
+            "height": "5 ft 11 in",
+            "person_id": 215667,
+            "date_of_birth": "1992-10-08"
           },
           {
             "number": "9",
             "name": "Kiki Iriafen",
-            "position": "PF",
+            "position": "F",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "WAS",
@@ -6915,7 +7049,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 23,
-            "height": "6 ft 3 in"
+            "height": "6 ft 3 in",
+            "person_id": 391686,
+            "date_of_birth": "2003-08-26"
           },
           {
             "number": "10",
@@ -6931,7 +7067,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 32,
-            "height": "6 ft 3 in"
+            "height": "6 ft 3 in",
+            "person_id": 176575,
+            "date_of_birth": "1994-08-27"
           },
           {
             "number": "11",
@@ -6947,7 +7085,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 29,
-            "height": "6 ft 1 in"
+            "height": "6 ft 1 in",
+            "person_id": 212051,
+            "date_of_birth": "1996-09-23"
           },
           {
             "number": "12",
@@ -6963,7 +7103,9 @@
             "player_slug": null,
             "wnba": true,
             "age": 24,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 235603,
+            "date_of_birth": "2002-01-22"
           },
           {
             "number": "13",
@@ -6979,12 +7121,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 28,
-            "height": "6 ft 0 in"
+            "height": "6 ft 0 in",
+            "person_id": 283322,
+            "date_of_birth": "1997-09-16"
           },
           {
             "number": "14",
             "name": "Aliyah Boston",
-            "position": "C",
+            "position": "F",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "IND",
@@ -6995,12 +7139,14 @@
             "player_slug": null,
             "wnba": true,
             "age": 24,
-            "height": "6 ft 5 in"
+            "height": "6 ft 4 in",
+            "person_id": 224794,
+            "date_of_birth": "2001-12-11"
           },
           {
             "number": "15",
             "name": "Angel Reese",
-            "position": "PF",
+            "position": "F",
             "plays_for": {
               "type": "wnba",
               "wnba_team": "ATL",
@@ -7011,12 +7157,15 @@
             "player_slug": null,
             "wnba": true,
             "age": 24,
-            "height": "6 ft 3 in"
+            "height": "6 ft 3 in",
+            "person_id": 255458,
+            "date_of_birth": "2002-05-06"
           }
         ],
-        "source": "Wikipedia 2026 FIBA WWC squads, captured 2026-09-02",
-        "announced": "2026-08-31",
-        "history": "announced 08-06; Wilson + Plum withdrew 08-31, replaced by Citron + Iriafen"
+        "source": "FIBA official team page, captured 2026-09-03 (reference/fiba-rosters-2026-09-03.json)",
+        "announced": "2026-09-03",
+        "history": "announced 08-06; Wilson + Plum withdrew 08-31, replaced by Citron + Iriafen",
+        "as_of": "2026-09-03"
       },
       "wnba": {
         "current": 12,
@@ -7024,7 +7173,7 @@
         "drafted_only": 0,
         "total_connected": 12,
         "roster_basis": "final_squad",
-        "as_of": "2026-09-02",
+        "as_of": "2026-09-03",
         "confidence": "high",
         "players": [
           {
