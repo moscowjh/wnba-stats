@@ -1060,6 +1060,7 @@ UTC is cut there and says so — this report queries one day only.
 python usage_report.py --rows --date 2026-08-18   # every row that day
 python usage_report.py --sessions --days 30       # visits, not pageviews
 python usage_report.py --sessions --days 30 --session-gap 15
+python usage_report.py --sessions --days 30 --limit 0   # no truncation
 ```
 
 **At 10–30 pageviews a day the aggregates are the wrong instrument.** A day
@@ -1073,6 +1074,12 @@ once the rows were visible.
 
 `--rows` applies NO filter, owner traffic included, because the point is to
 see everything that happened.
+
+`--sessions` truncates its two lists — 15 visits, 8 expands — and both are
+sorted so the interesting end survives: visits by pageviews descending,
+expands by delay ascending. The totals printed above each list are always
+complete, so the truncation hides rows, never magnitude. `--limit N` sets
+both caps; `--limit 0` prints everything.
 
 `--sessions` groups activity into visits. Two caveats that matter:
 

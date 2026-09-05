@@ -36,6 +36,7 @@ Usage:
                                               # posts.csv markers
   python usage_report.py --hourly --date 2026-08-18
   python usage_report.py --days 30 --include-owner      # keep our own testing
+  python usage_report.py --sessions --limit 0 # every visit, nothing truncated
 
 Our own testing traffic is EXCLUDED by default. Load the site through the
 bookmarked ``?utm_source=owner`` URL when poking at it and those rows tag
@@ -149,6 +150,14 @@ SELF_MERGE_MAX_HOURS = 4
 # on its own; it splits the expand count so the "they read it" reading has to
 # survive contact with the clock.
 FAST_EXPAND_SECONDS = 10
+
+# How many rows each --sessions list prints before it truncates. Both lists are
+# sorted so the interesting end comes first — visits by pageviews descending,
+# expands by delay ascending — so a cap hides the least informative rows, never
+# the headline. The counts printed above each list are always complete.
+# --limit overrides both; --limit 0 prints everything.
+SESSION_LIST_LIMIT = 15
+EXPAND_LIST_LIMIT = 8
 
 
 class ConfigError(Exception):
@@ -863,7 +872,8 @@ def print_rows(rows: list[dict], day: dt.date) -> None:
 
 def print_sessions(sessions: list[dict], start: dt.date, end: dt.date | None,
                    gap_minutes: int = SESSION_GAP_MINUTES,
-                   expands: list[dict] | None = None) -> None:
+                   expands: list[dict] | None = None,
+                   limit: int | None = None) -> None:
     """Visits, not pageviews. The number that actually describes the audience."""
     pv = sum(s["events"].get("pageview", 0) for s in sessions)
     merges = sum(s.get("continuations", 0) for s in sessions)
@@ -894,7 +904,8 @@ def print_sessions(sessions: list[dict], start: dt.date, end: dt.date | None,
     print("\n── Visits " + "─" * 51)
     print(f"  {'start (et)':<13}{'dur':>7}{'pv':>4}{'tab':>4}{'box':>4}  "
           f"{'source':<9}{'ref':<12}flags")
-    for s in ranked[:15]:
+    shown = _list_cap(limit, SESSION_LIST_LIMIT)
+    for s in (ranked if shown is None else ranked[:shown]):
         flags = []
         if s["is_owner_tagged"]:
             flags.append("OWNER-TAGGED")
@@ -905,8 +916,8 @@ def print_sessions(sessions: list[dict], start: dt.date, end: dt.date | None,
               f"{s['events'].get('box', 0):>4}  "
               f"{','.join(s['sources'])[:8]:<9}{','.join(s['refs'])[:11]:<12}"
               f"{' '.join(flags)}".rstrip())
-    if len(ranked) > 15:
-        print(f"  … and {len(ranked) - 15} more")
+    if shown is not None and len(ranked) > shown:
+        print(f"  … and {len(ranked) - shown} more (--limit 0 for all)")
 
     walks = [s for s in sessions if s["looks_like_walk"]]
     walk_pv = sum(s["events"].get("pageview", 0) for s in walks)
@@ -929,10 +940,18 @@ def print_sessions(sessions: list[dict], start: dt.date, end: dt.date | None,
     print(f"    ACTIVITY, not people — two visitors at once merge into one.")
 
     if expands is not None:
-        _print_expand_timing(expands)
+        _print_expand_timing(expands, limit)
 
 
-def _print_expand_timing(expands: list[dict]) -> None:
+def _list_cap(limit: int | None, default: int) -> int | None:
+    """Rows to print: the flag when given, else the per-list default.
+    0 means no cap, expressed as None so the caller can slice or not."""
+    if limit is None:
+        return default
+    return None if limit <= 0 else limit
+
+
+def _print_expand_timing(expands: list[dict], limit: int | None = None) -> None:
     """Split the expand count by how fast it came after the pageview."""
     print("\n── Expand timing " + "─" * 44)
     print("  an expand is only evidence of READING if it took a human moment")
@@ -950,11 +969,13 @@ def _print_expand_timing(expands: list[dict]) -> None:
         ds = sorted(e["delay_s"] for e in timed)
         print(f"  fastest {ds[0]}s · median {statistics.median(ds):.0f}s · "
               f"slowest {ds[-1]}s")
-    for e in sorted(timed, key=lambda x: x["delay_s"])[:8]:
+    shown = _list_cap(limit, EXPAND_LIST_LIMIT)
+    ordered = sorted(timed, key=lambda x: x["delay_s"])
+    for e in (ordered if shown is None else ordered[:shown]):
         tag = "knows the button" if e["delay_s"] < FAST_EXPAND_SECONDS else ""
         print(f"  {_et(e['ts']):<13}{e['delay_s']:>5}s  {e['page']:<28}{tag}".rstrip())
-    if len(timed) > 8:
-        print(f"  … and {len(timed) - 8} more")
+    if shown is not None and len(timed) > shown:
+        print(f"  … and {len(timed) - shown} more (--limit 0 for all)")
     print(f"  ! a fast expand is FAMILIARITY, not engagement — the button is")
     print(f"    found instantly by whoever built the page. {FAST_EXPAND_SECONDS}s is a")
     print(f"    judgement call, and nothing here is subtracted from any total.")
@@ -1042,6 +1063,10 @@ def main() -> int:
                     dest="session_gap", metavar="MIN",
                     help="minutes of inactivity that end a session "
                          f"(default {SESSION_GAP_MINUTES})")
+    ap.add_argument("--limit", type=int, default=None, metavar="N",
+                    help="rows per --sessions list before truncating "
+                         f"(default {SESSION_LIST_LIMIT} visits, "
+                         f"{EXPAND_LIST_LIMIT} expands); 0 for all")
     ap.add_argument("--hourly", action="store_true",
                     help="hour-by-hour pageviews for one UTC day, annotated with "
                          f"{POSTS_FILENAME} (pairs with --date)")
@@ -1076,7 +1101,7 @@ def main() -> int:
                 start, end = args.since or (today - dt.timedelta(days=args.days)), None
             rows = collect_rows(sql, start, end, site)
             print_sessions(sessionize(rows, args.session_gap), start, end,
-                           args.session_gap, expand_delays(rows))
+                           args.session_gap, expand_delays(rows), args.limit)
             return 0
 
         if args.hourly:
