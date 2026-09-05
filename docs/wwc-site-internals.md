@@ -318,6 +318,92 @@ chosen for stability, and `load_schedule()` asserts all 36 are unique.
 Knockout ids **cannot** key off teams — they are `TBD` until the bracket
 resolves, and a URL that changes when the draw lands is a URL that breaks.
 
+## The bracket — resolved as data, never drawn
+
+Added 2026-09-05, before the first group finished. `resolve_slots(rows, doc,
+results)` turns the schedule's `matchup_rule` tokens into real teams and
+returns `{game_id: (key_or_None, key_or_None)}`. It is computed **once** in
+`main()` and threaded into `page_games` and `page_team`, so the Games page and
+all 16 team pages cannot disagree. `page_groups` does not take it — it has no
+knockout section.
+
+**There is no bracket visual, by decision (Jason, 2026-09-05).** For a 12-game
+knockout round the component does not earn its cost; the bracket is rendered
+into the tables that already exist. The sequencing plan's Phase 3 assumption
+that it inherits a bracket component from Phase 2 is therefore still open, and
+must not be treated as satisfied by this work.
+
+### Two token families, both strictly gated
+
+| Token | Example | Resolves when |
+|---|---|---|
+| Placing | `1st A`, `3rd C` | `group_complete()` is true for that group |
+| Winner / loser | `W29`, `L33` | that game number has a **final** result |
+
+The placing gate is the load-bearing line. A provisional group table is sorted
+for readers, not by Appendix D — in a half-played group Germany at 1–0 +15
+sorts *below* Mali at 0–2 — so a bracket resolved off one is wrong in a way
+that reads as correct. See `compute_standings`.
+
+No recursion is involved despite the chain `W29 → QF 29 → W27 → 1st A`: a
+played game already names its teams in `results.json`, and an unplayed one is
+unresolvable however far back you walk.
+
+### Resolution is per SIDE
+
+Each side resolves independently, so `Spain vs TBD / QF winner` is a legible
+state rather than a row that looks broken on one end — the real window between
+a quarter-final finishing and its neighbour finishing. `rule_sides()` splits
+the rule and applies the group-winner-first swap **on the tokens**, so a
+resolved team lands on the side its rule text occupied.
+
+### A played knockout takes its sides from the RESULT
+
+The one non-obvious rule, and the one that would have shipped a visible bug.
+`orient()` in `fetch_data.py` re-orders *group* results into our row order but
+leaves *knockout* results in FIBA's order, because our knockout rows say `TBD`
+and there is nothing to orient to. `score` is parallel to `teams`, so the
+resolved sides must come from the result, not from the rule — otherwise every
+knockout final renders backwards the moment the bracket resolves. That is
+`fetch_data.py`'s own worst case: "a bug that would look like a data error
+rather than a plumbing one." `validate_bracket.py` stores one quarter-final
+reversed on purpose to keep this honest.
+
+Resolution is **display-only**. `game_id()` keys off `game_no`/phase and never
+off teams, so nothing here moves a URL, a canonical or a sitemap entry.
+
+### Team pages: `Group X fixtures` + `Knockout`
+
+Until 2026-09-05 `fixtures_block()` filtered on `x["group"] == t["group"]`,
+and every knockout row has an empty group — so no team page could carry a
+knockout fixture, not even the final. It is now two sections.
+
+A knockout row appears on a team page **only once the bracket resolves that
+team into it**. Rows a team *could still* reach are deliberately not shown:
+that is a live-elimination computation, it is the expensive half, and it
+contradicts `team_link()`'s posture that an empty slot is the state of the
+tournament rather than a gap in our data.
+
+`team_status()` prints one line for a team whose tournament has ended —
+`Eliminated — 4th in Group A`, `Eliminated — lost the quarter-final`,
+`3rd place`, `Runner-up`, `Champion`. It is ordered most-specific first,
+because the medal games are losses too and "Eliminated — lost the final" would
+be absurd; and a team is only called eliminated when it has **no fixture
+left**, so a semi-final loser (resolved straight into the third-place game) is
+still playing. The line prints above the knockout table, not only in place of
+it, or a champion's page would end on a score.
+
+### `validate_bracket.py`
+
+Plays a whole fabricated tournament offline — 36 games, 16 → 8 → 4 → 2 → 1 —
+and gates CI before the build. Group results are rigged to 3-0 / 2-1 / 1-2 /
+0-3 in alphabetical order so no tie-break is exercised: a failure there is a
+bracket failure, not a `classify()` failure. Expected pairings were transcribed
+by hand from the CSV's `matchup_rule` column, never pasted from the code's
+output. Beyond the happy path it asserts the four states where resolution must
+**refuse**: a half-played group, a single completed group, unplayed semi-finals
+under played quarter-finals, and a team that still has a fixture left.
+
 ## Box scores — separate pages, not inline
 
 A **deliberate divergence** from the WNBA site, whose inline modals are right

@@ -153,6 +153,20 @@ jobs:
       - name: Validate leaders aggregation
         run: python sites/wwc/validate_leaders.py
 
+      # Knockout slot resolution, played out against a whole fabricated
+      # tournament. Fourth validator, same reasoning as the second and third:
+      # it gates the CODE. A quarter-final resolved to the wrong team renders
+      # exactly like a right one -- no blank, no dash, nothing downstream that
+      # could catch it -- on the most-read page of the site during the week it
+      # is most read.
+      #
+      # It runs offline and needs no results, which is the whole point: every
+      # real input arrives on the day it is needed (the first placing token
+      # cannot resolve until Group A ends on Sep 7), so waiting for live data
+      # would mean debugging the bracket against the games it protects.
+      - name: Validate bracket resolution
+        run: python sites/wwc/validate_bracket.py
+
       # ⚠️ Read the "leaders:" lines in this step's log on a match day. The
       # box-score format has NO player id — the join is (schedule_key, name)
       # — so unmatched names are REPORTED here and nowhere else. They do not

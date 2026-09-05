@@ -59,6 +59,7 @@ import argparse
 import csv
 import dataclasses
 import json
+import re
 import shutil
 import unicodedata
 from collections import OrderedDict
@@ -683,57 +684,231 @@ _RULE_WORDS = [
 ]
 
 
-def _readable_rule(rule):
+def _readable_side(tok):
+    """One bracket token -> reader-facing words. 'W29' -> 'QF winner'."""
     for a, b in _RULE_WORDS:
-        rule = rule.replace(a, b)
+        tok = tok.replace(a, b)
     # "2nd A" -> "2nd Grp A", without touching an already-named group.
     for pos in ("1st", "2nd", "3rd", "4th"):
         for g in "ABCD":
-            rule = rule.replace(f"{pos} {g}", f"{pos} Grp {g}")
-    # The group winner is named FIRST in every quarter-final. FIBA's schedule
-    # alternates the sides (games 29-30 list the qualifier first, 31-32 the
-    # group winner), which reads as a difference between the fixtures when it
-    # is only a difference in how they were typed. Two of the four would
-    # otherwise be mirror images of the other two for no reason a reader can
-    # see. Only ever fires where one side is a group winner and the other is
-    # not, so the qualifiers, semi-finals and final are untouched.
-    parts = rule.split(" - ")
-    if (len(parts) == 2 and parts[1].startswith("1st Grp")
-            and not parts[0].startswith("1st Grp")):
-        rule = f"{parts[1]} - {parts[0]}"
-    return rule
+            tok = tok.replace(f"{pos} {g}", f"{pos} Grp {g}")
+    return tok
 
 
-def matchup_rule(row):
-    """The bracket rule, shown until the slot resolves ('2nd Grp A - 3rd Grp B').
+def rule_sides(row):
+    """The row's two bracket tokens, raw, in DISPLAY order — or None.
 
-    The trailing '  [note]' in the CSV is a provenance annotation for us,
-    not copy for a reader — strip it.
+    Splitting the rule into sides is what makes per-side resolution possible:
+    one side of a semi-final is legitimately known before the other, and a
+    half-resolved row must read as deliberate rather than broken.
+
+    The trailing '  [note]' in the CSV is a provenance annotation for us, not
+    copy for a reader — strip it.
+
+    The group winner is named FIRST in every quarter-final. FIBA's schedule
+    alternates the sides (games 29-30 list the qualifier first, 31-32 the
+    group winner), which reads as a difference between the fixtures when it
+    is only a difference in how they were typed. Two of the four would
+    otherwise be mirror images of the other two for no reason a reader can
+    see. The swap happens HERE, on the tokens, rather than on the rendered
+    string, so a resolved team lands on the same side its rule text occupied.
+    Only ever fires where one side is a group winner and the other is not, so
+    the qualifiers, semi-finals and final are untouched.
     """
-    if not row["matchup_rule"]:
-        return ""
-    rule = _readable_rule(row["matchup_rule"].split("  [")[0])
-    return f'<div class="mu" style="font-size:10.5px">{esc(rule)}</div>'
+    rule = (row.get("matchup_rule") or "").split("  [")[0].strip()
+    parts = [p.strip() for p in rule.split(" - ")]
+    if len(parts) != 2 or not all(parts):
+        return None
+    a, b = parts
+    if b.startswith("1st ") and not a.startswith("1st "):
+        a, b = b, a
+    return a, b
+
+
+def side_cell(row, side, teams, slots):
+    """One side of one fixture — the whole of the per-side contract.
+
+    A group row names its teams and always has. A knockout row shows the
+    resolved team once it is known and its own rule text until then, so
+    `Spain vs TBD / QF winner` is a legible half-resolved state rather than
+    a row that looks broken on one end.
+
+    `side` is 0 or 1 and indexes both our schedule columns and the resolved
+    pair, which is what keeps a score parallel to the teams beside it.
+    """
+    if row["group"]:
+        return team_link(row[f"team_{side + 1}"], teams)
+    key = slots.get(row["game_id"], (None, None))[side]
+    if key:
+        return team_link(key, teams)
+    sides = rule_sides(row)
+    if not sides:
+        return team_link("TBD", teams)
+    return (f'{team_link("TBD", teams)}'
+            f'<div class="mu" style="font-size:10.5px">'
+            f'{esc(_readable_side(sides[side]))}</div>')
+
+
+# ══ Bracket resolution ════════════════════════════════════════════════════
+
+_PLACING_RE = re.compile(r"^([1-4])(?:st|nd|rd|th) ([ABCD])$")
+_WINNER_RE = re.compile(r"^([WL])(\d+)$")
+
+
+def resolve_slots(rows, doc, results):
+    """{game_id: (key_or_None, key_or_None)} for every knockout row.
+
+    Each SIDE resolves independently and a side that cannot resolve stays
+    None, so the page can show `Spain vs QF winner` during the window where
+    one quarter-final has finished and its neighbour has not.
+
+    Two token families, and both are strictly gated:
+
+    **Placings** (`1st A`, `3rd C`) resolve only once `group_complete()` is
+    true for that group. This is the single most important line in the file.
+    `compute_standings`'s docstring explains why: in a half-played group,
+    Germany at 1-0 +15 sorts BELOW Mali at 0-2, because Appendix D is a rule
+    for the END of the group phase. A bracket resolved off a provisional
+    table is wrong in a way that reads as correct.
+
+    **Winners/losers** (`W29`, `L33`) resolve only from a FINAL result for
+    that game number. No recursion is needed and none is done: a played game
+    already names its teams in `results.json`, and an unplayed one is
+    unresolvable no matter how far back the chain is walked.
+
+    **A played knockout game takes its sides from the RESULT, not the rule.**
+    `orient()` re-orders group results to our row but leaves knockout results
+    in FIBA's own order, because our knockout rows say TBD and there is
+    nothing to orient to (`fetch_data.py`). `results[gid]["score"]` is
+    parallel to `results[gid]["teams"]`, so taking the sides from anywhere
+    else would render finals backwards the moment the bracket resolved —
+    the exact failure `fetch_data.py` calls "a bug that would look like a
+    data error rather than a plumbing one". Resolution is display-only:
+    `game_id()` keys off `game_no`/phase and never off teams, so no URL moves.
+    """
+    by_no = {r["game_no"]: r["game_id"] for r in rows if r["game_no"]}
+    placings = {}
+
+    def order_of(group):
+        """Finishing order for a COMPLETE group, else None. Memoised."""
+        if group not in placings:
+            placings[group] = (
+                [r["team"]["schedule_key"]
+                 for r in compute_standings(doc, group, results, True)]
+                if group_complete(rows, group, results) else None)
+        return placings[group]
+
+    def token(tok):
+        m = _PLACING_RE.match(tok)
+        if m:
+            order = order_of(m.group(2))
+            i = int(m.group(1))
+            return order[i - 1] if order and len(order) >= i else None
+        m = _WINNER_RE.match(tok)
+        if m:
+            res = results.get(by_no.get(m.group(2)), {})
+            if res.get("status") != "final":
+                return None
+            keys, score = res.get("teams") or [], res.get("score") or []
+            if len(keys) != 2 or len(score) != 2 or None in keys:
+                return None
+            # A drawn knockout game cannot happen (FIBA plays overtime), so
+            # there is no tie branch to get wrong. `>` not `>=` anyway: if one
+            # ever appears in the data, resolving nothing beats resolving the
+            # wrong team.
+            won = 0 if score[0] > score[1] else 1 if score[1] > score[0] else None
+            if won is None:
+                return None
+            return keys[won if m.group(1) == "W" else 1 - won]
+        return None
+
+    out = {}
+    for r in rows:
+        if r["group"]:
+            continue
+        res = results.get(r["game_id"]) or {}
+        keys = res.get("teams") or []
+        if len(keys) == 2 and None not in keys:
+            out[r["game_id"]] = (keys[0], keys[1])
+            continue
+        sides = rule_sides(r)
+        out[r["game_id"]] = (None, None) if sides is None else \
+            (token(sides[0]), token(sides[1]))
+    return out
 
 
 # ══ Games ═════════════════════════════════════════════════════════════════
 
-def page_games(rows, teams, results, box_ids):
+#: The jump link's copy, in one place so `validate_bracket.py` asserts on
+#: the string the page really carries rather than on a re-typed copy of it.
+JUMP_LABEL = "Jump to today\u2019s games"
+
+
+def day_anchor(date):
+    """The id a day header carries, so `next_games_day` can be linked to."""
+    return f"d-{date}"
+
+
+def next_games_day(rows, results):
+    """The earliest date still holding an unfinished game, else None.
+
+    Deliberately derived from DATA, not from the clock. `game_cell`'s own
+    docstring sets the rule this follows — driven by data, never by the clock,
+    so a page built in December shows what really happened — and a clock-read
+    here would be the first thing on the site to break it. It would also go
+    stale silently the moment a build was missed, which is exactly when a
+    reader most needs the link to be honest.
+
+    Consequences: mid-afternoon, once the day's early games are final and the
+    evening's are not, this still points at today. Once every game of a day IS
+    final it moves to the next day, so the link reads "today's games" while
+    pointing at tomorrow for the few hours between the last game of one day
+    and midnight. Wording chosen by Jason 2026-09-05 with that known — "next
+    games" was accurate in that window and read as stilted in every other. The
+    honest end of the trade is that the link never points at a day with
+    nothing left to play. When the whole tournament is final it returns None,
+    so the archive carries no link at all.
+    """
+    for d in OrderedDict((r["date"], None) for r in rows):
+        if any(results.get(r["game_id"], {}).get("status") != "final"
+               for r in rows if r["date"] == d):
+            return d
+    return None
+
+
+def page_games(rows, teams, results, box_ids, slots):
     out = ['<h2 class="sec">Full tournament schedule — 36 games</h2>',
            '<p class="mu" style="font-size:11.5px;margin-bottom:6px">'
            'Times are US Eastern, with Berlin local (CEST) below.</p>']
-    for d in OrderedDict((r["date"], None) for r in rows):
-        out.append(f'<div class="day">{DAYNAME.get(d, d)}</div>')
+
+    # ARCHIVE ORDER. Once every game is final the page is a record rather than
+    # a programme, and a record opens with the final — not with 24 group games
+    # a reader has to scroll past to reach it. Reverse chronological
+    # throughout, within a day as well as across days, so Sep 13 leads with
+    # the final (20:00) ahead of the third-place game (16:30).
+    #
+    # Only in the archive state. Reversing during the tournament would put
+    # four all-TBD rows above the games being played tonight, which is the
+    # burial problem inverted rather than solved (Jason, 2026-09-05).
+    nxt = next_games_day(rows, results)
+    ordered = rows if nxt else list(reversed(rows))
+
+    if nxt:
+        out.append('<p style="font-size:11.5px;margin:0 0 12px">'
+                   f'<a href="#{day_anchor(nxt)}">{JUMP_LABEL} ↓</a>'
+                   '</p>')
+    for d in OrderedDict((r["date"], None) for r in ordered):
+        out.append(f'<div class="day" id="{day_anchor(d)}">'
+                   f'{DAYNAME.get(d, d)}</div>')
         body = ["<table>"]
-        for r in (x for x in rows if x["date"] == d):
+        for r in (x for x in ordered if x["date"] == d):
             label = (f'<span class="grp">{r["group"]}</span>' if r["group"]
                      else f'<span class="tag">{PHASE.get(r["phase"], r["phase"])}</span>')
             body.append(
                 f'<tr><td style="width:36px">{label}</td>'
-                f'<td style="width:37%">{team_link(r["team_1"], teams)}'
-                f'{matchup_rule(r)}</td>'
+                f'<td style="width:37%">{side_cell(r, 0, teams, slots)}</td>'
                 f'<td class="mu" style="width:24px;font-size:11px">vs</td>'
-                f'<td style="width:37%">{team_link(r["team_2"], teams)}</td>'
+                f'<td style="width:37%">{side_cell(r, 1, teams, slots)}</td>'
                 f'<td class="r" style="white-space:nowrap">'
                 f'{game_cell(r, results, box_ids)}</td></tr>')
         body.append("</table>")
@@ -776,6 +951,57 @@ def game_cell(row, results, box_ids):
         score = (f'<a href="/games/{row["game_id"]}/" '
                  f'style="text-decoration:none">{score}</a>')
     return (f'<span class="score">{score}</span><br>'
+            f'<span class="mu" style="font-size:10.5px">Final</span>')
+
+
+def game_cell_team(row, side, results, box_ids):
+    """The score cell on a TEAM page — this team's score first, with W/L.
+
+    A different contract from `game_cell`, deliberately, and the rule behind
+    both is: **name both teams -> fixture order; name one team -> that team's
+    order.** Games and Groups print `Mali 82 - Spain 73` with both sides
+    visible, so fixture order is self-describing. A team page prints only the
+    opponent, so a bare pair has nothing to anchor it.
+
+    Until 2026-09-05 team pages used `game_cell`, and the result was not merely
+    opponent-first — it was ARBITRARY PER ROW, because which number came first
+    depended on whether the team happened to be `team_1` or `team_2` in the
+    schedule CSV, which a reader cannot see. Nigeria's page carried both
+    orientations at once:
+
+        Fri 4 Sep  vs Korea    99 - 81     <- Korea's 99. Nigeria lost.
+        Sat 5 Sep  vs Hungary  67 - 71     <- Nigeria's 67. Nigeria lost.
+
+    Two losses, rendered so the first reads as a comfortable win. Found by
+    Jason 2026-09-05, reading the page as a reader rather than as its author,
+    which is the only way this class of bug is ever found.
+
+    `side` indexes `res["score"]` for both kinds of row: group results are
+    oriented to our schedule row by `orient()`, and knockout sides come from
+    `resolve_slots`, which takes them from the result itself.
+    """
+    res = results.get(row["game_id"])
+    if not res:
+        return tip_cell(row)
+    score = res["score"]
+    ours, theirs = score[side], score[1 - side]
+    if res.get("status") == "live":
+        return (f'<span class="score">{ours}–{theirs}</span><br>'
+                f'<span class="mu num">{esc(res.get("period", ""))}</span>')
+    # Basketball has no draws — FIBA plays overtime — so an equal pair means
+    # the data is wrong. Print no letter rather than assert a result that did
+    # not happen; the scores still show, and the missing W/L is the signal.
+    won = None if ours == theirs else ours > theirs
+    hi, lo = ("win", "lose") if won else ("lose", "win")
+    letter = ("" if won is None else
+              f'<span class="{"win" if won else "lose"}">'
+              f'{"W" if won else "L"}</span> ')
+    body = (f'{letter}<span class="{hi}">{ours}</span>'
+            f'<span class="mu">–</span><span class="{lo}">{theirs}</span>')
+    if row["game_id"] in box_ids:
+        body = (f'<a href="/games/{row["game_id"]}/" '
+                f'style="text-decoration:none">{body}</a>')
+    return (f'<span class="score">{body}</span><br>'
             f'<span class="mu" style="font-size:10.5px">Final</span>')
 
 
@@ -1154,26 +1380,132 @@ def note_cell(p, status_by_name):
 NOTE_FIELD_IS_READER_SAFE = False
 
 
-def fixtures_block(t, rows, teams, results, box_ids):
-    fx = [x for x in rows if x["group"] == t["group"]
-          and t["schedule_key"] in (x["team_1"], x["team_2"])]
-    out = [f'<h2 class="sec">Group {t["group"]} fixtures</h2>']
+def _fixture_rows(fx, teams, results, box_ids, slots):
+    """The shared fixture table. Knockout rows differ only in how the
+    opponent is named — by rule text while the other side is undecided."""
     body = ["<table>"]
-    for x in fx:
-        opp = x["team_2"] if x["team_1"] == t["schedule_key"] else x["team_1"]
+    for x, side in fx:
+        if x["group"]:
+            opp = team_link(x["team_2"] if side == 0 else x["team_1"], teams)
+        else:
+            opp = side_cell(x, 1 - side, teams, slots)
+        # The round tag reads as part of the fixture, not part of the
+        # opponent: "QF vs TBD", never "vs QF TBD" (Jason, 2026-09-05).
+        tag = ("" if x["group"] else
+               f'<span class="tag">{PHASE.get(x["phase"], x["phase"])}</span> ')
         body.append(
             f'<tr><td class="mu num" style="width:90px;font-size:11.5px;'
             f'white-space:nowrap">{DAYNAME.get(x["date"], x["date"])}</td>'
-            f'<td class="mu" style="width:24px;font-size:11px">vs</td>'
-            f'<td>{team_link(opp, teams)}</td>'
+            f'<td class="mu" style="font-size:11px;white-space:nowrap">'
+            f'{tag}vs</td>'
+            f'<td>{opp}</td>'
             f'<td class="r" style="white-space:nowrap">'
-            f'{game_cell(x, results, box_ids)}</td></tr>')
+            f'{game_cell_team(x, side, results, box_ids)}</td></tr>')
     body.append("</table>")
-    out.append(table_scroll("".join(body)))
+    return table_scroll("".join(body))
+
+
+def fixtures_block(t, doc, rows, teams, results, box_ids, slots):
+    """Two sections: the group, then the knockout.
+
+    Before 2026-09-05 a team page stopped at its three group games, because
+    this filtered on `x["group"] == t["group"]` and every knockout row has an
+    empty group — so no team page could ever carry a knockout fixture, not
+    even the final.
+
+    A knockout row appears here only once the bracket RESOLVES this team into
+    it. Deliberately not shown: rows a team could still reach. That is a
+    live-elimination computation, it is the expensive half, and it contradicts
+    `team_link()`'s own posture — a slot with no team in it is the state of
+    the tournament, not a gap in our data.
+    """
+    key = t["schedule_key"]
+    grp = [(x, 0 if x["team_1"] == key else 1) for x in rows
+           if x["group"] == t["group"] and key in (x["team_1"], x["team_2"])]
+    ko = [(x, side) for x in rows if not x["group"]
+          for side in (0, 1) if slots.get(x["game_id"], (None, None))[side] == key]
+
+    out = [f'<h2 class="sec">Group {t["group"]} fixtures</h2>',
+           _fixture_rows(grp, teams, results, box_ids, slots),
+           '<h2 class="sec">Knockout</h2>']
+
+    # The status line comes FIRST and is printed whether or not there are
+    # fixtures under it. Both halves matter. An eliminated team's page is
+    # otherwise indistinguishable from a live one — three group games and
+    # nothing after — and a champion's page would otherwise end on its last
+    # fixture, leaving the single most important fact about the team to be
+    # inferred from a score.
+    status = team_status(t, doc, rows, results, slots)
+    if status:
+        out.append(f'<div class="path">{esc(status)}</div>')
+    if ko:
+        out.append(_fixture_rows(ko, teams, results, box_ids, slots))
+    elif not status:
+        out.append('<div class="path">Decided when Group '
+                   f'{t["group"]} finishes — 1st goes straight to the '
+                   'quarter-finals, 2nd and 3rd play a qualification play-off, '
+                   '4th is eliminated. '
+                   '<a href="/groups/">See the route to the quarter-finals</a>.'
+                   '</div>')
     return "".join(out)
 
 
-def page_team(t, rows, teams, results, box_ids, published):
+# The round a team went out in, named the way a reader would name it. Keyed
+# off phase rather than off game number: an off-by-one-round in `_RULE_WORDS`
+# was already shipped once (see its comment), and nothing here should be
+# derivable by eye a second time.
+_EXIT_ROUND = {
+    "qualification_to_qf": "lost the qualification play-off",
+    "quarter_final": "lost the quarter-final",
+    "semi_final": "lost the semi-final",
+}
+
+
+def team_status(t, doc, rows, results, slots):
+    """One line for a team whose tournament has ENDED, else ''.
+
+    Ordered most-specific first, because the medal games are losses too and
+    'Eliminated — lost the final' would be both wrong and absurd. A team is
+    only called eliminated when it has no fixture left: a semi-final loser
+    resolves straight into the third-place game and is still playing.
+    """
+    key = t["schedule_key"]
+    mine = [(x, side) for x in rows if not x["group"]
+            for side in (0, 1) if slots.get(x["game_id"], (None, None))[side] == key]
+
+    def outcome(row, side):
+        res = results.get(row["game_id"]) or {}
+        if res.get("status") != "final":
+            return None
+        score = res.get("score") or [None, None]
+        return "won" if score[side] > score[1 - side] else "lost"
+
+    for row, side in mine:
+        got = outcome(row, side)
+        if got and row["phase"] == "final":
+            return "Champion" if got == "won" else "Runner-up"
+        if got and row["phase"] == "third_place":
+            return "3rd place" if got == "won" else "4th place"
+
+    # Still playing? Any unfinished fixture we are resolved into ends it here.
+    if any(outcome(row, side) is None for row, side in mine):
+        return ""
+    for row, side in mine:
+        if outcome(row, side) == "lost":
+            return f"Eliminated — {_EXIT_ROUND[row['phase']]}"
+
+    # No knockout row at all: the group is the whole story. 4th only —
+    # a team placed 1st-3rd with no knockout row yet is simply waiting for
+    # the other groups, which is not a status worth printing.
+    if group_complete(rows, t["group"], results):
+        order = [r["team"]["schedule_key"]
+                 for r in compute_standings(doc, t["group"], results, True)]
+        if order and order[-1] == key and len(order) == 4:
+            return f"Eliminated — 4th in Group {t['group']}"
+    return ""
+
+
+def page_team(t, doc, rows, teams, results, box_ids, published, slots):
     out = [
         f'<div class="hd"><div class="crest"><div class="flag">{t["flag"]}</div>'
         f'<div class="tla">{esc(t["code"])}</div></div>'
@@ -1192,7 +1524,7 @@ def page_team(t, rows, teams, results, box_ids, published):
     # names the roster printed, and its hand-maintained headline count read a
     # different source from the table below it.
     out.append(roster_block(t, published))
-    out.append(fixtures_block(t, rows, teams, results, box_ids))
+    out.append(fixtures_block(t, doc, rows, teams, results, box_ids, slots))
 
     n = wnba_on_squad(t)
     desc = (f'{t["name"]} at the 2026 FIBA Women\'s Basketball World Cup: '
@@ -2510,6 +2842,12 @@ def main():
 
     # Box scores are loaded BEFORE the pages that link to them, so every
     # "Final" that becomes a link is a link to a page this same run emits.
+    # The bracket, resolved once and threaded down. Computed here rather
+    # than inside a page function because Games and all 16 team pages must
+    # agree: two independent resolutions could disagree for one build, and
+    # the disagreement would be invisible.
+    slots = resolve_slots(rows, doc, results)
+
     rows_by_id = {r["game_id"]: r for r in rows}
     boxes = load_boxscores(args.preview)
     box_ids = {b["game_id"] for b in boxes}
@@ -2536,13 +2874,14 @@ def main():
 
     paths = [GUIDE_PATH, GAMES_PATH]
     write(out_path(GUIDE_PATH), page_guide(doc, teams))
-    write(out_path(GAMES_PATH), page_games(rows, teams, results, box_ids))
+    write(out_path(GAMES_PATH), page_games(rows, teams, results, box_ids, slots))
     write(pub / "teams" / "index.html", page_teams_index(doc))
     paths.append("/teams/")
     for t in doc["teams"]:
         p = f"/teams/{team_slug(t)}/"
         write(pub / "teams" / team_slug(t) / "index.html",
-              page_team(t, rows, teams, results, box_ids, published))
+              page_team(t, doc, rows, teams, results, box_ids, published,
+                        slots))
         paths.append(p)
     write(pub / "groups" / "index.html",
           page_groups(doc, rows, teams, results, box_ids))
