@@ -131,12 +131,32 @@ jobs:
       # be able to stop the site from deploying. A missing day is recoverable
       # (python usage_report.py --snapshot --date YYYY-MM-DD), a missed deploy
       # is not. The step is also idempotent — rerunning a day is a no-op.
+      #
+      # ⚠️ BOTH SITES ARE SNAPSHOTTED HERE, in the WNBA workflow, and that is
+      # deliberate (2026-09-06). usage_history.jsonl is ONE shared file and
+      # this workflow is its only writer: the commit step below pushes without
+      # a `git pull --rebase` because it runs first each morning, so a second
+      # workflow appending to the same file would race it — and wwc.yml is
+      # dispatched on the same 11:17 UTC trigger. One writer, one commit.
+      #
+      # The cost of that choice: a WNBA fetch failure aborts the job before
+      # this step, taking the WWC rollup down with it. Bounded on purpose —
+      # the health checks re-run the build the same morning, and a day missed
+      # entirely is backfillable for 90 days with
+      # `--snapshot --date YYYY-MM-DD --site wwc`.
+      #
+      # Each site needs its own run (one row per (date, site)), and they are
+      # `|| true` so a failure on the first cannot skip the second: the step's
+      # default shell is `bash -e`, and continue-on-error only forgives the
+      # step AFTER it has already stopped.
       - name: Snapshot usage stats
         continue-on-error: true
         env:
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_ANALYTICS_TOKEN: ${{ secrets.CF_ANALYTICS_TOKEN }}
-        run: python usage_report.py --snapshot
+        run: |
+          python usage_report.py --snapshot --site wnba || true
+          python usage_report.py --snapshot --site wwc  || true
 
       - name: Commit updated site
         run: |

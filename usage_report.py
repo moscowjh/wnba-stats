@@ -32,6 +32,9 @@ Usage:
   python usage_report.py --snapshot           # append yesterday (UTC) to
                                               # usage_history.jsonl, idempotent
   python usage_report.py --snapshot --date 2026-08-03   # backfill one day
+  python usage_report.py --snapshot --site wwc          # one row per
+                                              # (date, site); each site needs
+                                              # its own --snapshot run
   python usage_report.py --hourly             # today, hour by hour, with
                                               # posts.csv markers
   python usage_report.py --hourly --date 2026-08-18
@@ -158,6 +161,11 @@ FAST_EXPAND_SECONDS = 10
 # --limit overrides both; --limit 0 prints everything.
 SESSION_LIST_LIMIT = 15
 EXPAND_LIST_LIMIT = 8
+
+# How many pages each --snapshot row names. Bounded because this file is
+# committed daily and forever; the aggregates carry the trend, this carries
+# which pages earned it.
+TOP_PAGES_LIMIT = 10
 
 
 class ConfigError(Exception):
@@ -602,14 +610,22 @@ def build_report(raw: dict, start: dt.date, end: dt.date | None) -> dict:
     # 2026-08-17 had an empty blob2, and a visitor whose beacon was blocked
     # on load can still open the splits. Dropping those rows would hide real
     # engagement behind a missing denominator.
-    player_pages = [
+    #
+    # Built WITHOUT a key filter (2026-09-06), because the filter was WNBA's
+    # page taxonomy hard-coded into a shared report: the WWC site emits
+    # 'guide', 'teams', 'team:<slug>', 'game:<key>' and none of them start
+    # with 'player:', so every WWC page landed in no list at all. '' is still
+    # excluded — that is the single-file tab site, already counted whole in
+    # by_surface["main"], and on the WNBA site it would swamp every real page.
+    pages = [
         {"page": page,
          "pageviews": views_by_page.get(page, 0),
          "expands": expands_by_page.get(page, 0)}
         for page in sorted(set(views_by_page) | set(expands_by_page))
-        if page.startswith(PLAYER_PREFIX)
+        if page
     ]
-    player_pages.sort(key=lambda r: (-r["pageviews"], -r["expands"], r["page"]))
+    pages.sort(key=lambda r: (-r["pageviews"], -r["expands"], r["page"]))
+    player_pages = [r for r in pages if r["page"].startswith(PLAYER_PREFIX)]
 
     return {
         "window": {"start": start.isoformat(),
@@ -628,6 +644,7 @@ def build_report(raw: dict, start: dt.date, end: dt.date | None) -> dict:
         "referrers": [{"referrer": r or "(not collected)", "pageviews": n}
                       for r, n in raw["referrers"]],
         "by_surface": by_surface,
+        "pages": pages,
         "player_pages": player_pages,
         "expands_total": totals["expand"],
         "owner_pageviews": raw.get("owner_pageviews", 0),
@@ -655,12 +672,20 @@ def _print_owner_note(rep: dict) -> None:
         print(f"own testing excluded: {n} pageviews (utm_source={OWNER_SOURCE})")
 
 
-def print_report(rep: dict) -> None:
+def _site_label(site: str) -> str:
+    return "all sites" if site == "all" else site.upper()
+
+
+def print_report(rep: dict, site: str = DEFAULT_SITE) -> None:
     w = rep["window"]
     t = rep["totals"]
     pv = t["pageview"]
 
-    print(f"WNBA usage — {w['start']} → {w['end']} ({w['days']}d, UTC)")
+    # The header names the property. It said "WNBA usage" unconditionally
+    # until 2026-09-06, which was harmless while there was one site and
+    # actively wrong the moment --site wwc existed.
+    print(f"{_site_label(site)} usage — {w['start']} → {w['end']} "
+          f"({w['days']}d, UTC)")
     print(f"pageviews {pv}   tab events {t['tab']}   box opens {t['box']}   "
           f"expands {t['expand']}")
     print("counts use SUM(_sample_interval) — sampling-corrected")
@@ -694,27 +719,38 @@ def print_report(rep: dict) -> None:
     print(f"  opens {t['box']}   {_rate(t['box'], pv)}/pageview")
 
     print("\n── Pages " + "─" * 52)
-    print("  which surface did the pageview land on?")
-    surf = rep["by_surface"]
-    for label, key in (("main page", "main"),
-                       ("players index", "players_index"),
-                       ("player pages", "player_pages")):
-        print(f"  {label:<16} {surf[key]:>7} {_pct(surf[key], pv):>6}")
-    pp = rep["player_pages"]
-    if pp or surf["player_pages"] or surf["players_index"]:
-        exp = sum(r["expands"] for r in pp)
-        print(f"\n  {len(pp)} player page(s) with activity · {exp} expand(s) "
-              f"· {_rate(exp, surf['player_pages'])} expands/view")
-        print("  an expand was meant to signal an arrival actually READ the page —")
-        print("  check that with --sessions: an expand firing seconds after the")
-        print("  pageview is someone who knows the button, not someone reading")
-        print(f"  {'page':<26} {'views':>6} {'expands':>8}")
-        for r in pp[:10]:
-            print(f"  {r['page']:<26} {r['pageviews']:>6} {r['expands']:>8}")
-        if len(pp) > 10:
-            print(f"  … and {len(pp) - 10} more")
+    # This three-way split is WNBA Phase 1's question — did the SEO surface
+    # get traffic? — and its buckets only exist on that site. Printed against
+    # the WWC site it read "main page 100% / player pages 0%", which is true
+    # and says nothing, so it is scoped to the sites that have the surfaces.
+    if site in (DEFAULT_SITE, "all"):
+        print("  which surface did the pageview land on?")
+        surf = rep["by_surface"]
+        for label, key in (("main page", "main"),
+                           ("players index", "players_index"),
+                           ("player pages", "player_pages")):
+            print(f"  {label:<16} {surf[key]:>7} {_pct(surf[key], pv):>6}")
+    # Every keyed page, not just 'player:' ones — the WWC site's keys are
+    # 'guide' / 'team:<slug>' / 'game:<key>', and while this list filtered on
+    # the WNBA prefix, `--site wwc` reported "(no player-page traffic)" while
+    # sitting on a full tournament's worth of page data.
+    pg = rep["pages"]
+    if pg:
+        exp = sum(r["expands"] for r in pg)
+        views = sum(r["pageviews"] for r in pg)
+        print(f"\n  {len(pg)} page(s) with activity · {exp} expand(s) "
+              f"· {_rate(exp, views)} expands/view")
+        if exp:
+            print("  an expand was meant to signal an arrival actually READ the page —")
+            print("  check that with --sessions: an expand firing seconds after the")
+            print("  pageview is someone who knows the button, not someone reading")
+        print(f"  {'page':<30} {'views':>6} {'expands':>8}")
+        for r in pg[:TOP_PAGES_LIMIT]:
+            print(f"  {r['page']:<30} {r['pageviews']:>6} {r['expands']:>8}")
+        if len(pg) > TOP_PAGES_LIMIT:
+            print(f"  … and {len(pg) - TOP_PAGES_LIMIT} more")
     else:
-        print("  (no player-page traffic in window)")
+        print("  (no keyed page traffic in window)")
 
     print("\n── Depth by source " + "─" * 42)
     print("  does a visitor from each surface explore, or bounce?")
@@ -753,13 +789,13 @@ def print_report(rep: dict) -> None:
     print("    browser' — its share only ever climbs. Fix is P3 in the handoff.")
 
 
-def print_hourly(raw: dict, posts: list[dict]) -> None:
+def print_hourly(raw: dict, posts: list[dict], site: str = DEFAULT_SITE) -> None:
     day = raw["day"]
     by_hour = raw["by_hour"]
     total = sum(by_hour.values())
     now = dt.datetime.now(dt.timezone.utc)
 
-    print(f"WNBA usage — {day} hour by hour (UTC)")
+    print(f"{_site_label(site)} usage — {day} hour by hour (UTC)")
     print(f"pageviews {total}")
     print("counts use SUM(_sample_interval) — sampling-corrected")
     _print_owner_note(raw)
@@ -842,9 +878,9 @@ def _dur(seconds: int) -> str:
     return f"{seconds // 60}m{seconds % 60:02d}s"
 
 
-def print_rows(rows: list[dict], day: dt.date) -> None:
+def print_rows(rows: list[dict], day: dt.date, site: str = DEFAULT_SITE) -> None:
     """One day, every beacon row. At this volume the list IS the analysis."""
-    print(f"WNBA usage — {day} every row (UTC)")
+    print(f"{_site_label(site)} usage — {day} every row (UTC)")
     print(f"{len(rows)} row(s); {sum(r['si'] for r in rows if r['event'] == 'pageview')} "
           f"pageview(s)")
     print("counts use SUM(_sample_interval) — sampling-corrected")
@@ -871,13 +907,14 @@ def print_rows(rows: list[dict], day: dt.date) -> None:
 
 
 def print_sessions(sessions: list[dict], start: dt.date, end: dt.date | None,
+                   site: str = DEFAULT_SITE,
                    gap_minutes: int = SESSION_GAP_MINUTES,
                    expands: list[dict] | None = None,
                    limit: int | None = None) -> None:
     """Visits, not pageviews. The number that actually describes the audience."""
     pv = sum(s["events"].get("pageview", 0) for s in sessions)
     merges = sum(s.get("continuations", 0) for s in sessions)
-    print(f"WNBA usage — {start} → {end or 'now'} visits (UTC)")
+    print(f"{_site_label(site)} usage — {start} → {end or 'now'} visits (UTC)")
     print(f"{pv} pageview(s) across {len(sessions)} visit(s)")
     if merges:
         print(f"  ({len(sessions) + merges} runs of activity, {merges} of them "
@@ -983,8 +1020,14 @@ def _print_expand_timing(expands: list[dict], limit: int | None = None) -> None:
 
 # ── Snapshot (P2) ────────────────────────────────────────────────────────
 
-def snapshot_row(rep: dict, day: dt.date) -> dict:
-    """One compact JSON object per closed UTC day, for usage_history.jsonl."""
+def snapshot_row(rep: dict, day: dt.date, site: str = DEFAULT_SITE) -> dict:
+    """One compact JSON object per closed UTC day and site, for
+    usage_history.jsonl.
+
+    (date, site) is this file's identity key — see existing_snapshots(), which
+    reads exactly the two fields written here. Keep them in one place: when the
+    writer set "site" and the reader deduped on "date" alone, every WWC
+    snapshot silently no-opped for a month (found 2026-09-05)."""
     return {
         "date": day.isoformat(),
         "pageviews": rep["totals"]["pageview"],
@@ -1008,24 +1051,50 @@ def snapshot_row(rep: dict, day: dt.date) -> dict:
         # 90 days, and committing 227 counters every day would bloat this
         # file for a long tail that is mostly zeros. The aggregate above is
         # what the trend needs; this names the pages actually pulling.
-        "top_player_pages": {r["page"]: r["pageviews"]
-                             for r in rep["player_pages"][:10]},
+        #
+        # Renamed from "top_player_pages" on 2026-09-06 and widened to every
+        # page key, not just 'player:' ones. Same series, so a reader should
+        # treat the old name on pre-2026-09-06 rows as this key; the rename is
+        # the point, because on the WWC site the pages worth remembering are
+        # 'team:usa' and 'game:qf-29' and the old filter recorded {} for all
+        # of them — for a tournament that cannot be re-measured after its 90
+        # days expire.
+        "top_pages": {r["page"]: r["pageviews"]
+                      for r in rep["pages"][:TOP_PAGES_LIMIT]},
+        # Last, matching the shape of every row already in the file. The two
+        # oldest rows lack it entirely — they predate the field (2026-08-10)
+        # and are WNBA by definition; existing_snapshots() defaults them.
+        "site": site,
     }
 
 
-def existing_snapshot_dates(path: Path) -> set[str]:
+def existing_snapshots(path: Path) -> set[tuple[str, str]]:
+    """The (date, site) pairs already recorded.
+
+    Deduping on "date" alone was a real bug, live from 2026-08-10 to
+    2026-09-06: usage_history.jsonl is ONE file shared by every property, the
+    WNBA build snapshots into it from CI every morning, so by the time anyone
+    ran `--snapshot --site wwc` the date was always already "recorded" and the
+    command exited 0 saying there was nothing to do. Nothing about it looked
+    like a failure, and the WWC rollup simply never existed.
+
+    A row with no "site" predates the field (2026-08-10) and is WNBA by
+    definition — the same convention _site_clause() applies to an empty
+    blob10, and for the same reason: the default must read correctly
+    backwards through the whole series."""
     if not path.exists():
         return set()
-    dates = set()
+    seen = set()
     for line in path.read_text().splitlines():
         line = line.strip()
         if not line:
             continue
         try:
-            dates.add(json.loads(line)["date"])
+            row = json.loads(line)
+            seen.add((row["date"], row.get("site", DEFAULT_SITE)))
         except (ValueError, KeyError):
             continue        # a malformed line must not break idempotency
-    return dates
+    return seen
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────
@@ -1075,7 +1144,9 @@ def main() -> int:
                          "it is excluded by default")
     ap.add_argument("--site", default=DEFAULT_SITE,
                     help="statsataglance property to report on "
-                         f"(default {DEFAULT_SITE}); 'all' for every site combined")
+                         f"(default {DEFAULT_SITE}); 'all' for every site "
+                         "combined, which --snapshot refuses since it writes "
+                         "one row per (date, site)")
     args = ap.parse_args()
     site = None if args.site == "all" else args.site
 
@@ -1091,7 +1162,8 @@ def main() -> int:
     try:
         if args.rows:
             day = args.date or today
-            print_rows(collect_rows(sql, day, day + dt.timedelta(days=1), site), day)
+            print_rows(collect_rows(sql, day, day + dt.timedelta(days=1), site),
+                       day, args.site)
             return 0
 
         if args.sessions:
@@ -1101,7 +1173,8 @@ def main() -> int:
                 start, end = args.since or (today - dt.timedelta(days=args.days)), None
             rows = collect_rows(sql, start, end, site)
             print_sessions(sessionize(rows, args.session_gap), start, end,
-                           args.session_gap, expand_delays(rows), args.limit)
+                           args.site, args.session_gap, expand_delays(rows),
+                           args.limit)
             return 0
 
         if args.hourly:
@@ -1115,24 +1188,33 @@ def main() -> int:
                                 for p in posts if p["utc"].date() == day]
                 print(json.dumps(out, indent=2))
             else:
-                print_hourly(raw, posts)
+                print_hourly(raw, posts, args.site)
             return 0
 
         if args.snapshot:
+            # One row per (date, site). 'all' would write a row that
+            # double-counts every per-site row beside it, in the one file
+            # meant to outlive the data it summarises — so it is refused
+            # rather than left as a footgun. --site all is fine for reading.
+            if site is None:
+                print("error: --snapshot needs one site; 'all' would write a row "
+                      "that double-counts the per-site rows.", file=sys.stderr)
+                return 2
             day = args.date or (today - dt.timedelta(days=1))
             if day >= today:
                 print(f"error: {day} is not a closed UTC day yet.", file=sys.stderr)
                 return 2
-            if day.isoformat() in existing_snapshot_dates(HISTORY_PATH):
-                print(f"{day} already recorded in {HISTORY_PATH.name} — nothing to do.")
+            if (day.isoformat(), args.site) in existing_snapshots(HISTORY_PATH):
+                print(f"{day} ({args.site}) already recorded in "
+                      f"{HISTORY_PATH.name} — nothing to do.")
                 return 0
             raw = collect(sql, day, day + dt.timedelta(days=1), site,
                           args.include_owner)
-            row = snapshot_row(build_report(raw, day, day + dt.timedelta(days=1)), day)
-            row["site"] = args.site
+            row = snapshot_row(build_report(raw, day, day + dt.timedelta(days=1)),
+                               day, args.site)
             with HISTORY_PATH.open("a") as fh:
                 fh.write(json.dumps(row, separators=(",", ":")) + "\n")
-            print(f"recorded {day} → {HISTORY_PATH.name}: "
+            print(f"recorded {day} ({args.site}) → {HISTORY_PATH.name}: "
                   f"{row['pageviews']} pageviews, {row['box_opens']} box opens")
             return 0
 
@@ -1142,7 +1224,7 @@ def main() -> int:
         if args.as_json:
             print(json.dumps(rep, indent=2))
         else:
-            print_report(rep)
+            print_report(rep, args.site)
         return 0
     except QueryError as e:
         print(f"error: {e}", file=sys.stderr)

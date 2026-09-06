@@ -71,7 +71,10 @@ read it for step-level detail):
 4. `usage_report.py --snapshot` appends yesterday's usage to
    `usage_history.jsonl` (Workers Analytics Engine only retains 90 days; this
    committed rollup is what outlives it). Never blocks; a missed day is
-   recoverable with `--snapshot --date YYYY-MM-DD`, idempotent.
+   recoverable with `--snapshot --date YYYY-MM-DD`, idempotent. **Run once per
+   site** — rows are keyed `(date, site)` and this workflow snapshots BOTH
+   sites, because it is the only writer of that shared file and pushes without
+   a rebase.
 5. Bot commit → **`npx wrangler deploy` from inside the Action**.
 6. `post_to_bluesky.py` posts one leader category per day (fixed rotation) +
    last-night factoid, reading only our own `social_payload.json`.

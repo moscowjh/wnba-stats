@@ -51,6 +51,13 @@ on:
   # The path filter is what keeps this off the WNBA bot's daily commits: those
   # touch sites/wnba/public, validation_report.json, player_id_crosswalk.json
   # and usage_history.jsonl, none of which match.
+  #
+  # ⚠️ THIS SITE'S USAGE SNAPSHOT IS TAKEN IN build.yml, not here — do not add
+  # a `usage_report.py --snapshot --site wwc` step to this workflow.
+  # usage_history.jsonl is one shared file, build.yml is its only writer and
+  # pushes without a `git pull --rebase`, and this workflow shares its 11:17
+  # UTC dispatch. A second writer would race it. See the "Snapshot usage
+  # stats" step over there.
   push:
     branches: [main]
     paths:

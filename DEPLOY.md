@@ -979,6 +979,10 @@ opens, depth-by-source, and new-vs-returning. Credentials come from
 `.env`**; the token must be scoped to **Account Analytics: Read** only — never
 reuse `CLOUDFLARE_API_TOKEN`, which can deploy.
 
+`--site` picks the property (`wnba` by default, `wwc`, or `all` for every site
+combined). It reads `blob10`, and for `wnba` it also accepts an empty `blob10`
+so rows predating 2026-08-05 keep counting.
+
 Raw SQL API, if you need something the script doesn't cover:
 ```bash
 curl -s "https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/analytics_engine/sql" \
@@ -1135,7 +1139,7 @@ looking for it.)
 
 | id | item | state |
 |---|---|---|
-| P2 | daily rollup into `usage_history.jsonl`, so data outlives Analytics Engine's 90-day retention | **done** |
+| P2 | daily rollup into `usage_history.jsonl`, so data outlives Analytics Engine's 90-day retention | **done** (multi-site since 2026-09-06 — see below) |
 | P3 | recency bucket in `blob5` — `returning` is set on first visit and never expires, so its share can only ever climb. It is not a retention rate and the report says so every run. | open |
 | P4 | country / device / **session id** in `blob6` / `blob7` / `blob9` | open |
 | P5 | usage dashboard — see below | open, **low** |
@@ -1144,6 +1148,24 @@ P4's session id is the interesting one: without it `--sessions` groups
 ACTIVITY, not people, and two visitors browsing at the same time merge into a
 single visit with nothing able to separate them. Everything `--sessions` says
 about visit counts carries that caveat until blob9 is filled.
+
+#### The rollup's key is (date, site), not date
+
+`usage_history.jsonl` is **one file shared by every property**, and each row is
+identified by `date` **and** `site`. Every site therefore needs its own
+`--snapshot` run; `build.yml` makes two, and `--site all` is refused for
+`--snapshot` because such a row would double-count the per-site rows beside it.
+
+This was broken from 2026-08-10 to 2026-09-06: the writer set `site` while the
+idempotency check deduped on `date` alone, so once the WNBA build had
+snapshotted a date in CI, `--snapshot --site wwc` exited **0** saying "already
+recorded — nothing to do". Nothing looked like a failure and the WWC rollup
+simply never existed. Fixed along with a second, quieter half — the per-page
+field filtered on the `player:` key prefix, so it would have recorded `{}` for
+every WWC page even once the dedup was right.
+
+Rows with no `site` key predate the field (2026-08-10) and are WNBA by
+definition — the same convention `_site_clause()` applies to an empty `blob10`.
 
 #### P5 — usage dashboard (low priority)
 
@@ -1168,6 +1190,13 @@ MUST gray out each series before its field went live:
 | `site` | 2026-08-05 |
 | `referrers` | 2026-08-11 |
 | `by_surface`, `expands`, `top_player_pages` | 2026-08-17 |
+| `top_pages` | 2026-09-06 — **the same series as `top_player_pages`, renamed.** A row has one or the other, never both. The rename widened it from `player:`-prefixed keys to every page key, which is what makes it mean anything on a site whose pages are `guide` / `team:usa` / `game:qf-29`. |
+
+`by_surface`'s three buckets (`main` / `players_index` / `player_pages`) are
+**WNBA Phase 1's taxonomy** and exist on that site only. On a WWC row they read
+`main: <everything>`, which is true and uninformative — `top_pages` is the
+field that carries the answer there. The report stopped printing that split for
+non-WNBA sites on 2026-09-06 for the same reason.
 
 **The file is mixed-shape, and that is deliberate.** Backfilled rows run
 today's code, so they carry keys their live-written contemporaries lack —
@@ -1179,6 +1208,20 @@ counterintuitively the OLDEST rows are the richest:
 | Aug 2 – Aug 10 (written live) | no | no |
 | Aug 11 – Aug 16 (written live) | yes | no |
 | Aug 17 – (written live) | yes | yes |
+
+And the WWC series, which is its own shape again:
+
+| days | rows |
+|---|---|
+| Aug 25 – Sep 5 (`site: wwc`, backfilled 2026-09-06) | full current shape, `top_pages` |
+| Sep 6 – (`site: wwc`, written live by `build.yml`) | same |
+
+**That backfill does not break the "do not re-snapshot" rule below.** The rule
+protects rows written contemporaneously from being retroactively regenerated;
+for those WWC days there were no rows at all — the bug meant none was ever
+written. Backfilling a gap is not rewriting a record. Aug 27–28 are recorded
+zeros: the site was live and measured nothing, which is a data point, not a
+hole.
 
 So charting player-pages over time shows July at zero, a HOLE through Aug
 2–16, then real numbers. The hole is older-format rows, not missing traffic.
