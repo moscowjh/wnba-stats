@@ -692,9 +692,33 @@ def main():
                   .to_dict())
 
     # Slug collisions would silently overwrite a page — fail loudly instead.
+    #
+    # The message names the cure because the cause is two steps upstream and
+    # far from obvious. By far the likeliest reason is ESPN renumbering a
+    # player's athlete_id mid-season: compute_player_season groups by that id,
+    # so one human under two ids becomes two season lines with one slug.
+    # fetch_data.canonicalize_athlete_ids() now collapses that at fetch time,
+    # so seeing this at all means either the data predates that fix or the
+    # merge deliberately refused (two ids in one game, overlapping dates, no
+    # shared team, or three-plus ids — all reported by name in the fetch log).
     slugs = season["athlete_display_name"].map(seo.slugify)
     dupes = slugs[slugs.duplicated()].tolist()
-    assert not dupes, f"slug collision: {dupes}"
+    if dupes:
+        detail = []
+        for slug in sorted(set(dupes)):
+            rows = season[slugs == slug]
+            detail.append(
+                f"  {slug}: athlete_ids "
+                + ", ".join(f"{r.athlete_id} ({r.team_abbreviation}, {int(r.GP)} GP)"
+                            for r in rows.itertuples()))
+        raise AssertionError(
+            "slug collision — two season lines want the same page:\n"
+            + "\n".join(detail)
+            + "\n\nUsually one player under two ESPN athlete_ids. Re-run "
+              "`python sites/wnba/fetch_data.py`, which merges that case and "
+              "logs what it did; if it declines, its warning says why and the "
+              "ids above need a human decision."
+        )
 
     # Same posture for the analytics keys: every "player:<slug>" must fit the
     # worker's slice (ANALYTICS_KEY_MAX) or two players' pageview and expand

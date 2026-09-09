@@ -62,6 +62,9 @@ SCHEDULE_JSON = CFG.schedule_today
 UPCOMING_JSON = CFG.schedule_upcoming
 ROSTER_JSON = CFG.rosters
 SERIES_JSON = CFG.series
+#: Audit trail for athlete_id merges — this mutates history, so it is written
+#: down rather than left as folklore.
+MERGES_JSON = CFG.data_dir / f"athlete_id_merges_{CFG.season}.json"
 # Where to reach ESPN's API.
 #
 # 2026-08-05: `site.api.espn.com` — the host used since the ESPN migration —
@@ -891,6 +894,108 @@ def fetch_schedule() -> bool:
     return True
 
 
+def canonicalize_athlete_ids(player_df: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
+    """Collapse one human split across two ESPN athlete_ids onto her current id.
+
+    THE FAILURE THIS PREVENTS. ESPN occasionally renumbers a player mid-season:
+    Alicia Florez was `5349415` for 28 games through 2026-08-23 and `5208985`
+    from 08-25. An incremental fetch keeps the old rows and appends the new
+    ones, so the CSV ends up carrying one human under two ids.
+    `compute_player_season()` groups by athlete_id, so she becomes two season
+    lines with the same name, both slugify to `alicia-florez`, and
+    build_player_pages' collision assert fires — on a CI step with no
+    `continue-on-error`, which kills the whole daily build before the commit
+    and deploy. Found 2026-09-08 (production was unaffected; the local copy
+    was the split one).
+
+    WHY THIS MERGES RATHER THAN JUST FAILING LOUDER. The assert is correct and
+    stays — silently overwriting one player's page with another's would be far
+    worse. But an assert with no cure means a red build until a human notices
+    and re-fetches the season by hand, and the worst night for that is the
+    first night of the playoffs.
+
+    THE CONSERVATIVE PART, WHICH IS THE WHOLE DESIGN. Two genuinely different
+    players can share a display name, and merging them would corrupt both
+    permanently. So a merge requires ALL of:
+
+      * identical display name (obviously), and
+      * the two ids NEVER APPEAR IN THE SAME GAME — the decisive test. One
+        human cannot be two rows in one box score, while two real namesakes on
+        a shared slate would collide immediately, and
+      * disjoint date ranges, one strictly before the other, which is what a
+        renumbering looks like and what two concurrent careers do not, and
+      * the same team on both sides of the changeover.
+
+    Anything short of all four is left alone and reported, so an unexpected
+    shape surfaces as a red build with a name in it rather than as a silent
+    rewrite of somebody's season.
+
+    Rows are rewritten onto the NEWER id, because that is the one ESPN will
+    keep sending. Returns (frame, merges) — the merge list is recorded to disk
+    by the caller, since this quietly mutates history and that should be
+    auditable rather than folklore.
+    """
+    if "athlete_id" not in player_df.columns:
+        return player_df, []
+
+    df = player_df.copy()
+    df["athlete_id"] = df["athlete_id"].astype(str)
+    merges: list[dict] = []
+
+    for name, grp in df.groupby("athlete_display_name"):
+        ids = sorted(grp["athlete_id"].unique())
+        if len(ids) < 2:
+            continue
+        if len(ids) > 2:
+            print(f"WARNING: {name} appears under {len(ids)} athlete_ids "
+                  f"({', '.join(ids)}) — too tangled to merge automatically, "
+                  "leaving as-is.")
+            continue
+
+        a, b = ids
+        rows_a, rows_b = grp[grp.athlete_id == a], grp[grp.athlete_id == b]
+
+        # Decisive: co-occurrence in any one game means two different people.
+        if set(rows_a.game_id) & set(rows_b.game_id):
+            print(f"WARNING: {name} has two athlete_ids that appear in the "
+                  "SAME game — these are two different players, not a "
+                  "renumbering. Not merging.")
+            continue
+
+        # Strictly disjoint in time, older side first. Anything overlapping is
+        # two concurrent careers, not one renumbered player.
+        if rows_a.game_date.max() < rows_b.game_date.min():
+            (old_rows, old_id), (new_rows, new_id) = (rows_a, a), (rows_b, b)
+        elif rows_b.game_date.max() < rows_a.game_date.min():
+            (old_rows, old_id), (new_rows, new_id) = (rows_b, b), (rows_a, a)
+        else:
+            print(f"WARNING: {name} has two athlete_ids with OVERLAPPING date "
+                  "ranges — not a renumbering. Not merging.")
+            continue
+
+        teams_old = set(old_rows.team_abbreviation)
+        teams_new = set(new_rows.team_abbreviation)
+        if not (teams_old & teams_new):
+            print(f"WARNING: {name}'s two athlete_ids share no team "
+                  f"({sorted(teams_old)} vs {sorted(teams_new)}) — not "
+                  "merging.")
+            continue
+
+        df.loc[df.athlete_id == old_id, "athlete_id"] = new_id
+        merges.append({
+            "name": name, "from_id": old_id, "to_id": new_id,
+            "rows_moved": int(len(old_rows)),
+            "from_range": [str(old_rows.game_date.min()), str(old_rows.game_date.max())],
+            "to_range": [str(new_rows.game_date.min()), str(new_rows.game_date.max())],
+            "team": sorted(teams_old | teams_new),
+            "merged_on": str(datetime.now(ET).date()),
+        })
+        print(f"MERGED athlete_id: {name} {old_id} → {new_id} "
+              f"({len(old_rows)} row(s) moved; ESPN renumbered her mid-season)")
+
+    return df, merges
+
+
 def fetch_schedule_window(days: int = 21) -> bool:
     """Fetch the next `days` days of not-yet-played games → schedule_upcoming.json.
 
@@ -1111,6 +1216,23 @@ def main() -> None:
         )
     else:
         pbp_df = old_pbp
+
+    # Collapse any mid-season ESPN athlete_id renumbering BEFORE anything
+    # reads the frame, so every downstream consumer — leaders, player pages,
+    # the crosswalk — sees one row per human. Conservative by construction;
+    # see canonicalize_athlete_ids for the four conditions a merge requires.
+    player_df, id_merges = canonicalize_athlete_ids(player_df)
+    if id_merges:
+        prior = []
+        if MERGES_JSON.exists():
+            try:
+                prior = json.loads(MERGES_JSON.read_text()).get("merges", [])
+            except Exception:
+                prior = []
+        seen = {(m["from_id"], m["to_id"]) for m in prior}
+        prior += [m for m in id_merges if (m["from_id"], m["to_id"]) not in seen]
+        MERGES_JSON.write_text(json.dumps({"merges": prior}, indent=2))
+        print(f"Recorded {len(id_merges)} athlete_id merge(s) → {MERGES_JSON.name}")
 
     freshness_check(player_df)
     regression_check(old_player, player_df, "player")
