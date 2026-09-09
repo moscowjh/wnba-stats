@@ -361,14 +361,40 @@ def cards_html(row, place):
     ])
 
 
-def roster_table(players, appeared_by_id, slug_by_id):
+def resolve_roster_id(player, team_ids_by_name, appeared_by_id):
+    """Our athlete_id for a rostered player: by id, else by name on this team.
+
+    ESPN's roster endpoint and our box scores can disagree about a player's
+    athlete_id, because ESPN renumbers players and does so RETROACTIVELY — a
+    fresh fetch of an old game returns the new id while our cached rows keep
+    the old one. Our incremental CSV therefore has no duplicate to detect
+    (canonicalize_athlete_ids correctly does nothing), and the mismatch
+    surfaces here instead.
+
+    Shipped 2026-09-09 after Alicia Florez appeared TWICE on the Mystics page:
+    once as an unlinked roster row with no stats, because the roster's id
+    (5208985) matched nothing in our data, and once under "also appeared this
+    season", because her box-score id (5349415) was not in the rostered set.
+    Both halves are the same missing join.
+
+    The name fallback is scoped to ONE TEAM'S roster, which is what makes it
+    safe: two players sharing a name across the league is plausible and is why
+    ids exist, but two on the same 13-woman roster is not a case that occurs.
+    """
+    aid = str(player.get("athlete_id", ""))
+    if aid in appeared_by_id:
+        return aid
+    return team_ids_by_name.get(player.get("name", "").strip().lower(), aid)
+
+
+def roster_table(players, appeared_by_id, slug_by_id, team_ids_by_name):
     """The roster, as the spine of the page. Every player who has a page is a
     link — this is the crawl path to the player pages, and the reason the
     roster is not behind the disclosure."""
     rows = []
     for p in sorted(players, key=lambda x: (x["name"].split()[-1].lower(),
                                             x["name"].lower())):
-        aid = str(p.get("athlete_id", ""))
+        aid = resolve_roster_id(p, team_ids_by_name, appeared_by_id)
         stats = appeared_by_id.get(aid)
         name = esc(p["name"])
         slug = slug_by_id.get(aid)
@@ -415,12 +441,13 @@ def next_game_html(abbr, status, games):
 
 def render_page(row, place, abbr, slug, coach, roster, appeared_by_id,
                 slug_by_id, also_appeared, results, sched_status, sched_games,
-                data_through):
+                data_through, team_ids_by_name):
     name = row["Team"]
     w, ln = int(row["W"]), int(row["L"])
 
     if roster.get("status") == "ok" and roster.get("players"):
-        roster_block = roster_table(roster["players"], appeared_by_id, slug_by_id)
+        roster_block = roster_table(roster["players"], appeared_by_id,
+                                    slug_by_id, team_ids_by_name)
         if also_appeared:
             links = ", ".join(
                 (f'<a href="/players/{slug_by_id[a]}/">{esc(n)}</a>'
@@ -568,7 +595,14 @@ def main():
         if roster.get("status") != "ok" or not roster.get("players"):
             n_roster_unknown += 1
 
-        rostered_ids = {str(p.get("athlete_id", ""))
+        # Our ids for this team's players, by lower-cased name — the fallback
+        # join when ESPN's roster id and our box-score id disagree.
+        team_ids_by_name = {name_by_id[a].strip().lower(): a
+                            for a, t in team_by_id.items() if t == abbr}
+        # RESOLVED ids, not raw roster ids: a player whose roster id differs
+        # from her box-score id would otherwise be excluded from nothing and
+        # appear a second time under "also appeared this season".
+        rostered_ids = {resolve_roster_id(p, team_ids_by_name, appeared_by_id)
                         for p in roster.get("players", [])}
         # "Also appeared this season": played for this team, not on the
         # current roster. Resolves the double-roster case (a player traded
@@ -584,7 +618,8 @@ def main():
 
         html = render_page(row, place, abbr, slug, coach, roster,
                            appeared_by_id, slug_by_id, also, results,
-                           sched_status, sched_games, data_through)
+                           sched_status, sched_games, data_through,
+                           team_ids_by_name)
         page_dir = OUT_DIR / slug
         page_dir.mkdir(parents=True, exist_ok=True)
         (page_dir / "index.html").write_text(html)
