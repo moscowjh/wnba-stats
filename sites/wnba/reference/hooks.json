@@ -1,16 +1,19 @@
 {
   "_schema": {
     "note": "Provenance for Tier 1 editorial sentences. One entry per player slug. Nothing renders without an entry here; a slug absent from this file gets no editorial sentence, which is the 'omit rather than pad' rule working correctly.",
-    "sources": "A LIST, not a single URL — a sentence may make more than one independent claim, and one page rarely substantiates all of them. Each source carries the verbatim quote that supports its claim, so re-verification survives link rot.",
-    "falsifiable_by_game": "Explicit author assertion. 'Game' means ANY game, not just a WNBA one — a college record is falsified by a college game, a school record by a future player at that school. Must be false for the sentence to ship.",
-    "validator": "sites/wnba/validate_hooks.py (to be written) — asserts every rendered slug has an entry, every entry has >=1 source with a non-empty quote, and falsifiable_by_game is false."
+    "sources": "A LIST, not a single URL \u2014 a sentence may make more than one independent claim, and one page rarely substantiates all of them. Each source carries the verbatim quote that supports its claim, so re-verification survives link rot.",
+    "falsifiable_by_game": "Explicit author assertion. 'Game' means ANY game, not just a WNBA one \u2014 a college record is falsified by a college game, a school record by a future player at that school. Must be false for the sentence to ship.",
+    "validator": "sites/wnba/validate_hooks.py (to be written) \u2014 asserts every rendered slug has an entry, every entry has >=1 source with a non-empty quote, and falsifiable_by_game is false."
   },
-
   "aja-wilson": {
     "sentence": "The first pick of the 2018 draft out of South Carolina, where she won the 2017 national championship.",
     "claims": [
       "first overall pick of the 2018 WNBA Draft",
-      "won the 2017 NCAA national championship with South Carolina"
+      "won the 2017 NCAA national championship with South Carolina",
+      "WNBA MVP in 2020, 2022, 2024 and 2025",
+      "first player to win the MVP award a fourth time",
+      "WNBA championships with Las Vegas in 2022, 2023 and 2025",
+      "first player in WNBA history to win DPOY, MVP and Finals MVP in the same season"
     ],
     "sources": [
       {
@@ -28,25 +31,229 @@
         "published": null,
         "quote": "Named NCAA Final Four Most Outstanding Player and SEC Tournament MVP, leading team to both championships",
         "machine_readable": true
+      },
+      {
+        "claim": "MVP in 2020, 2022, 2024 and 2025; the first four-time winner",
+        "url": "https://www.wnba.com/news/wilson-2025-mvp",
+        "publisher": "WNBA.com (official)",
+        "published": "2025-09-21",
+        "quote": "Las Vegas Aces center-forward A'ja Wilson has been named the 2025 Kia WNBA Most Valuable Player",
+        "second_quote": "With the 2025 award, Wilson becomes the first four-time Kia WNBA MVP, breaking a tie with three-time MVPs Sheryl Swoopes (2000, 2002 and 2005), Lisa Leslie (2001, 2004 and 2006) and Lauren Jackson (2003, 2007 and 2010).",
+        "machine_readable": true
+      },
+      {
+        "claim": "2025 championship with Las Vegas; first to take DPOY, MVP and Finals MVP in one season",
+        "url": "https://www.wnba.com/news/las-vegas-aces-finals-accolades-2025",
+        "publisher": "WNBA.com (official)",
+        "published": "2025",
+        "quote": "the Las Vegas Aces swept the Phoenix Mercury (4-0) in the inaugural best-of-seven Finals series",
+        "second_quote": "A'ja Wilson is the first player in WNBA history to win Defensive Player of the Year, MVP, and Finals MVP in the same season",
+        "machine_readable": true,
+        "note": "Secondary coverage widens this to a five-part sweep including a scoring title. The WNBA's own page claims only the three, so only the three are stated here \u2014 the same correct-or-blank posture as the line scores."
       }
     ],
     "falsifiable_by_game": false,
     "date_written": "2026-08-16",
     "verified_on": "2026-08-16",
-    "verified_by": "Claude (Cowork), sources fetched and quoted verbatim"
+    "verified_by": "Claude (Cowork), sources fetched and quoted verbatim",
+    "paragraph": "Wilson won WNBA Most Valuable Player in 2020, 2022, 2024 and 2025; with the fourth she became the first player to win the award more than three times, breaking a tie with Sheryl Swoopes, Lisa Leslie and Lauren Jackson. She won championships with Las Vegas in 2022, 2023 and 2025, and in that last season became the first player in league history to take Defensive Player of the Year, MVP and Finals MVP in the same year.",
+    "revised_on": "2026-09-09",
+    "_durability_note": "COUNTS ARE AVOIDED, SEASONS ARE NAMED. 'won MVP in 2020, 2022, 2024 and 2025' and 'won championships in 2022, 2023 and 2025' are lists of completed seasons that no future result can falsify. 'A four-time MVP' or 'three championships' would read as totals and go stale the day she adds one \u2014 the failure that rejected the caitlin-clark and sonia-citron entries. 'First to win it more than three times' is safe because a past first cannot be undone; 'holds the record' would not be, since it can be tied.",
+    "_note": "Career totals, scoring records and any 'most ever' framing were deliberately left out. Her 2026 line (26.0 PPG, 1st in WNBA) already renders from our own data in the cards above \u2014 editorial should not restate what the page computes."
   },
-
   "_rejected": {
     "note": "Kept deliberately. These were checkpoint placeholders that did NOT survive the falsifiability rule. Recorded so nobody re-proposes them in six months.",
     "caitlin-clark": {
-      "rejected_sentence": "The NCAA's all-time leading scorer — men's or women's — and the first pick of the 2024 draft.",
-      "reason": "Two independent failures in one clause. (1) 'All-time leading scorer' is falsifiable by a COLLEGE game — the rule was misapplied to WNBA games only, and nothing in our build would catch the day it stops being true. (2) The 'men's or women's' framing is contested: the record is NCAA Division I, and Pearl Moore's pre-NCAA total is the standard objection. The draft clause alone is durable and could be re-proposed on its own — but it duplicates the generated facts sentence, so it earns nothing.",
+      "rejected_sentence": "The NCAA's all-time leading scorer \u2014 men's or women's \u2014 and the first pick of the 2024 draft.",
+      "reason": "Two independent failures in one clause. (1) 'All-time leading scorer' is falsifiable by a COLLEGE game \u2014 the rule was misapplied to WNBA games only, and nothing in our build would catch the day it stops being true. (2) The 'men's or women's' framing is contested: the record is NCAA Division I, and Pearl Moore's pre-NCAA total is the standard objection. The draft clause alone is durable and could be re-proposed on its own \u2014 but it duplicates the generated facts sentence, so it earns nothing.",
       "rejected_on": "2026-08-16"
     },
     "sonia-citron": {
-      "rejected_sentence": "The third pick of the 2025 draft and an All-Rookie selection that year — the only player in Notre Dame history with 1,700 points, 700 rebounds and 300 assists.",
+      "rejected_sentence": "The third pick of the 2025 draft and an All-Rookie selection that year \u2014 the only player in Notre Dame history with 1,700 points, 700 rebounds and 300 assists.",
       "reason": "The compound superlative is falsifiable by a future Notre Dame player and is hard to source to a primary reference. The draft position and All-Rookie selection are durable, but both are the kind of fact the generated sentence already carries, so what remains does not justify an editorial slot.",
       "rejected_on": "2026-08-16"
     }
+  },
+  "georgia-amoore": {
+    "paragraph": "Amoore arrived in Washington as the sixth overall pick of the 2025 WNBA Draft. She tore her ACL in practice before she could make her WNBA debut and missed the whole of her draft year, so 2026 is her first season in the league.",
+    "claims": [
+      "sixth overall pick of the 2025 WNBA Draft, by the Washington Mystics",
+      "from Ballarat, Victoria, Australia",
+      "four seasons at Virginia Tech, one at Kentucky",
+      "tore her ACL in practice before her WNBA debut and missed the 2025 season"
+    ],
+    "sources": [
+      {
+        "claim": "sixth overall pick of the 2025 WNBA Draft, by the Washington Mystics",
+        "url": "https://ukathletics.com/news/2025/04/14/georgia-amoore-picked-sixth-overall-by-the-washington-mystics-in-the-wnba-draft-2025/",
+        "publisher": "University of Kentucky Athletics (official)",
+        "published": "2025-04-14",
+        "quote": "Georgia Amoore got a sample of the \"American Dream\" in The City That Never Sleeps after hearing her name called sixth overall by the Washington Mystics in the WNBA Draft 2025 on Monday.",
+        "machine_readable": true
+      },
+      {
+        "claim": "from Ballarat, Victoria, Australia; four seasons at Virginia Tech, one at Kentucky",
+        "url": "https://ukathletics.com/news/2025/04/14/georgia-amoore-picked-sixth-overall-by-the-washington-mystics-in-the-wnba-draft-2025/",
+        "publisher": "University of Kentucky Athletics (official)",
+        "published": "2025-04-14",
+        "quote": "The Wildcat, an All-American point guard from Ballarat, Victoria, Australia",
+        "second_quote": "across one season at Kentucky (2025) and four seasons at Virginia Tech (2021-24)",
+        "machine_readable": true
+      },
+      {
+        "claim": "tore her ACL in practice before her WNBA debut and missed the 2025 season",
+        "url": "https://www.espn.com/wnba/story/_/id/44936030/mystics-georgia-amoore-no-6-draft-pick-acl-injury",
+        "publisher": "ESPN",
+        "published": "2025-05-09",
+        "quote": "Georgia Amoore suffered an ACL injury during Tuesday's practice",
+        "machine_readable": true,
+        "note": "ESPN's headline and body say 'ACL injury'; the Mystics' own announcement never used the word 'torn' and gave no timeline, so the published record stops short of 'tore' and 'missed the season'. Both are asserted on Jason's own knowledge of the season (QA, 2026-09-08) and corroborated by our experience field, which has her at year 0 in 2026. Recorded this way so a future reader can see which part rests on the source and which on the author."
+      }
+    ],
+    "falsifiable_by_game": false,
+    "date_written": "2026-09-08",
+    "verified_on": "2026-09-08",
+    "verified_by": "Claude (Claude Code), sources fetched and quoted verbatim; the torn-ACL and missed-season claims verified by Jason, 2026-09-08",
+    "sentence": "An All-American point guard from Ballarat, Victoria, by way of Virginia Tech and Kentucky.",
+    "_trim_note": "Paragraph TRIMMED 2026-09-09 when the `sentence` slot was added: the clause the sentence now carries was removed rather than printed twice, ten words apart, on the same page. No claim was dropped \u2014 every fact still appears once, and the sources are unchanged. Revert by restoring the clause and deleting the sentence."
+  },
+  "michaela-onyenwere": {
+    "paragraph": "Onyenwere was the 2021 WNBA Rookie of the Year, and the first player to win that award with the New York Liberty. Her WNBA career has also included stints in Phoenix and Chicago. She played four college seasons at UCLA, where she became the first Bruin named to the AP All-America team twice. UCLA hired her as an assistant coach during its 2025-26 NCAA Championship season where she coached future Mystics teammates Lauren Betts and Angela Dugalic.",
+    "claims": [
+      "2021 Kia WNBA Rookie of the Year",
+      "first player to win the award with the Liberty",
+      "also played for Phoenix and Chicago",
+      "four college seasons at UCLA; first two-time AP All-America selection in program history",
+      "UCLA assistant coach during the 2025-26 season",
+      "UCLA won the NCAA championship that season",
+      "coached Lauren Betts and Angela Dugalic, later her Mystics teammates"
+    ],
+    "sources": [
+      {
+        "claim": "2021 Kia WNBA Rookie of the Year; first to win it with the Liberty; four seasons at UCLA as the Bruins' first two-time AP All-America selection",
+        "url": "https://www.wnba.com/news/new-york-libertys-michaela-onyenwere-named-2021-kia-wnba-rookie-of-the-year",
+        "publisher": "WNBA.com",
+        "published": "2021-09-27",
+        "quote": "New York Liberty forward Michaela Onyenwere has been named the 2021 Kia WNBA Rookie of the Year",
+        "second_quote": "She becomes the first player to win the annual award with the Liberty.",
+        "fourth_quote": "Onyenwere played four college seasons at UCLA, where she became the Bruins' first two-time AP All-America Team selection",
+        "machine_readable": true
+      },
+      {
+        "claim": "UCLA assistant coach for the 2025-26 season",
+        "url": "https://uclabruins.com/news/2025/09/16/michaela-onyenwere-joins-ucla-womens-basketball-coaching-staff",
+        "publisher": "UCLA Athletics (official)",
+        "published": "2025-09-16",
+        "quote": "UCLA Women's Basketball is adding Bruin alum and 2021 WNBA Rookie of the Year Michaela Onyenwere to its staff as an assistant coach for the 2025-26 season.",
+        "machine_readable": true
+      },
+      {
+        "claim": "also played for Phoenix (from 2023) and Chicago (from 2024)",
+        "url": "https://www.espn.com/wnba/story/_/id/39471363/sky-trades-kahleah-copper-mercury-wnba-draft-picks-players",
+        "publisher": "ESPN",
+        "published": "2024-02-06",
+        "quote": "the Phoenix Mercury in exchange for four draft picks, including the No. 3 overall pick in 2024, and two players -- Brianna Turner and Michaela Onyenwere.",
+        "second_quote": "Chicago Sky Trade Copper, Bertsch to Phoenix, Acquire Onyenwere, Turner, Draft Picks",
+        "second_quote_url": "https://sky.wnba.com/news/chicago-sky-trade-copper-bertsch-to-phoenix-acquire-onyenwere-turner-draft-picks",
+        "third_quote": "MERCURY ACQUIRES 2021 WNBA ROOKIE OF THE YEAR MICHAELA ONYENWERE",
+        "third_quote_url": "https://mercury.wnba.com/news/mercury-acquires-2021-wnba-rookie-of-the-year-michaela-onyenwere",
+        "machine_readable": true,
+        "note": "DIRECTION CHECK. The ESPN quote is a sentence fragment and reads backwards out of context \u2014 a summarizer rendered it as 'Phoenix acquired her from Chicago'. In context it is '[Sky trades Copper to] the Phoenix Mercury in exchange for ... Turner and Onyenwere', i.e. CHICAGO received her, which the Sky's own headline states plainly. Both team pages render their body via JS, so their headlines are quoted instead of body text \u2014 weaker provenance, which is why ESPN carries the claim and they corroborate."
+      },
+      {
+        "claim": "UCLA won its first NCAA-era national championship that season, beating South Carolina on 2026-04-05",
+        "url": "https://uclabruins.com/staff/michaela-onyenwere",
+        "publisher": "UCLA Athletics (official) \u2014 her own staff bio",
+        "published": "2026",
+        "quote": "The Bruins also captured their first NCAA-era national championship, defeating South Carolina on April 5, 2026.",
+        "second_quote": "With a dominant 79\u201351 performance against the powerhouse South Carolina Gamecocks (36\u20134) at the Mortgage Matchup Center in Phoenix, the Bruins finally delivered their breakthrough",
+        "second_quote_url": "https://newsroom.ucla.edu/stories/ucla-bruins-women-basketball-2026-ncaa-champions",
+        "machine_readable": true,
+        "note": "Deliberately sourced to her OWN staff bio, which ties the title to her tenure in one sentence rather than making the reader join two documents. The score comes from UCLA Newsroom, cited separately above."
+      },
+      {
+        "claim": "Lauren Betts and Angela Dugalic were on the 2025-26 UCLA roster she coached",
+        "url": "https://uclabruins.com/sports/womens-basketball/roster/2025-26",
+        "publisher": "UCLA Athletics (official) \u2014 the roster itself",
+        "published": "2025-26",
+        "quote": "Lauren Betts | 51 | Center | Sr.",
+        "second_quote": "Angela Dugali\u0107 | 32 | Forward | Gr.",
+        "machine_readable": true,
+        "note": "The roster is the primary record; secondary write-ups pair Onyenwere with Betts and Kiki Rice, and Rice did NOT end up in Washington \u2014 which is exactly why this claim is sourced to the roster and to our own box scores rather than to a mock-draft story."
+      },
+      {
+        "claim": "all three played for the Washington Mystics in 2026",
+        "url": "sites/wnba/data/player_box_2026.csv",
+        "publisher": "our own box scores \u2014 the strongest source available for this claim",
+        "published": "2026-09-09",
+        "quote": "Michaela Onyenwere WAS GP=36 \u00b7 Lauren Betts WAS GP=40 \u00b7 Angela Dugalic WAS GP=34",
+        "machine_readable": true
+      }
+    ],
+    "falsifiable_by_game": false,
+    "date_written": "2026-09-08",
+    "revised_on": "2026-09-09",
+    "verified_on": "2026-09-09",
+    "verified_by": "Copy by Jason (2026-09-09). Claims verified by Claude (Claude Code) against primary sources, quoted verbatim: WNBA.com, UCLA Athletics (hire announcement, staff bio, 2025-26 roster), ESPN + both team sites for the Phoenix and Chicago stints, and our own player_box_2026.csv for the three Mystics.",
+    "_note": "Her UCLA scoring rank (fourth in program history, 1,888 points) is in the WNBA.com source and is deliberately LEFT OUT: a program scoring rank is falsifiable by a future Bruin, which is what rejected the sonia-citron entry. 'First two-time AP All-America selection' and 'first NCAA title' are safe because a past first cannot be undone. The sixth-overall draft pick was CUT by Jason in the 2026-09-09 edit; the source quote for it was removed with the claim rather than left orphaned in the record.",
+    "_durability_note": "Jason's phrasing, kept over a rewrite of mine. 'Future Mystics teammates' anchors to the COACHING moment, so a later trade cannot falsify it \u2014 they did become her teammates. My proposed 'were on the Mystics roster with her in 2026' solved a problem this wording had already solved, at 18 more words. Editorial rule set 2026-09-09: a human editor's copy stands; Claude questions, then defers.",
+    "_spelling_note": "UCLA lists her as Angela Dugali\u0107; ESPN, and therefore our own player page, has Angela Dugalic. The prose uses OUR spelling so a reader who goes looking finds the page. Same posture as the WWC person_id rule: the id is the identity, the name is display.",
+    "sentence": "The sixth pick of the 2021 draft out of UCLA, where she later returned as an assistant coach.",
+    "_trim_note": "Paragraph NOT trimmed \u2014 it is Jason's copy. Its sentence overlaps on 'UCLA' and the coaching return, which is a teaser-then-detail structure rather than a repeated clause. Flagged, not edited."
+  },
+  "lexie-hull": {
+    "paragraph": "Hull went sixth overall to the Indiana Fever in the 2022 WNBA Draft, out of Stanford, where she won the 2021 NCAA championship. She left college a three-time All-Pac-12 selection.",
+    "claims": [
+      "sixth overall pick, 2022 WNBA Draft, Indiana Fever",
+      "played at Stanford",
+      "2021 NCAA champion",
+      "three-time All-Pac-12; two-time first-team Academic All-American",
+      "bachelor's and master's degrees from Stanford in management science and engineering",
+      "co-founded a cosmetics brand with her former Stanford roommate"
+    ],
+    "sources": [
+      {
+        "claim": "sixth overall pick of the 2022 WNBA Draft by the Indiana Fever, out of Stanford",
+        "url": "https://stanforddaily.com/2022/04/11/lexie-hull-selected-sixth-in-2022-wnba-draft/",
+        "publisher": "The Stanford Daily",
+        "published": "2022-04-11",
+        "quote": "the senior guard was selected sixth overall by the Indiana Fever in the 2022 WNBA Draft.",
+        "machine_readable": true
+      },
+      {
+        "claim": "2021 NCAA champion; three-time All-Pac-12; two-time first-team Academic All-American",
+        "url": "https://stanforddaily.com/2022/04/11/lexie-hull-selected-sixth-in-2022-wnba-draft/",
+        "publisher": "The Stanford Daily",
+        "published": "2022-04-11",
+        "quote": "She is a 2021 NCAA Champion, an Elite 90 award winner, a three-time All-Pac-12 player and a two-time first-team Academic All-American.",
+        "machine_readable": true
+      },
+      {
+        "claim": "bachelor's and master's degrees in management science and engineering",
+        "url": "https://gostanford.com/news/2022/03/16/two-smart-sisters",
+        "publisher": "Stanford Athletics (official)",
+        "published": "2022-03-16",
+        "quote": "Boasting a 3.90 GPA and set to graduate with both her bachelor's and master's degrees in management science and engineering this spring",
+        "machine_readable": true,
+        "note": "CORRECTS the draft's 'dual degrees (BA & MA) in Business and Engineering'. Management Science & Engineering is ONE department in Stanford's School of Engineering, not two fields, and it awards BS/MS rather than BA/MA. The source's own wording is used instead of naming the degree letters, since the article does not."
+      },
+      {
+        "claim": "co-founded a cosmetics brand with her former Stanford roommate",
+        "url": "https://fortacosmetics.com/pages/about",
+        "publisher": "FORTA Cosmetics (the company's own about page)",
+        "published": "2026",
+        "quote": "Our brand was founded by WNBA star Lexie Hull and her former Stanford roommate, Sarah Guller.",
+        "machine_readable": true,
+        "note": "The brand (FORTA) and the co-founder (Sarah Guller) are deliberately UNNAMED in the prose \u2014 Jason's wording. Naming a live commercial brand on a page that carries no advertising reads as an endorsement; 'a cosmetics brand' carries the fact without the plug. Both names are recorded here so a future editor can add them deliberately rather than by accident."
+      }
+    ],
+    "falsifiable_by_game": false,
+    "date_written": "2026-09-08",
+    "verified_on": "2026-09-08",
+    "verified_by": "Copy by Jason (2026-09-09), with the degree field corrected from 'Business and Engineering (BA & MA)' after checking Stanford Athletics. Claims verified by Claude (Claude Code), sources quoted verbatim.",
+    "_note": "The Stanford Daily is a student newspaper, not an official athletics site \u2014 the weakest provenance of the three. Every claim it carries is independently checkable against gostanford.com if you want it firmer before publishing.",
+    "sentence": "A two-time first-team Academic All-American, Hull earned bachelor's and master's degrees in management science and engineering, and co-founded a cosmetics brand with her former Stanford roommate.",
+    "_trim_note": "Paragraph RESTORED 2026-09-09 at Jason's direction: the 2021 NCAA championship belongs with her other Stanford basketball honours, not in the sentence. The sentence now carries the academic and off-court material instead \u2014 a cleaner split than the trim it replaces. Academic All-American dropped from the paragraph's closing list 2026-09-09 at Jason's direction \u2014 it opens the sentence, and printing it twice 30 words apart was the repeat the two-slot layout kept creating. The claim and its source are unchanged.",
+    "revised_on": "2026-09-09"
   }
 }
