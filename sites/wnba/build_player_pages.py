@@ -326,6 +326,8 @@ a{{color:var(--muted)}}
 .mono .num{{color:var(--accent);font-size:23px;margin-top:4px;font-family:{bsp.MONO}}}
 .slot-ed{{font-size:12px;line-height:1.65;margin-top:10px}}
 .slot-gen{{color:var(--muted);font-size:10.5px;line-height:1.7;margin-top:10px}}
+.slot-para{{font-size:12.5px;line-height:1.7;margin-top:12px;max-width:34em}}
+.slot-para p+p{{margin-top:9px}}
 .grid4{{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:10px}}
 .card{{background:var(--surface);padding:7px 8px}}
 .card .big{{font-size:19px;font-family:{bsp.MONO};font-variant-numeric:tabular-nums;
@@ -554,7 +556,9 @@ def render_page(row, bio, ranks, lg_ts, games, game_meta,
                   esc(bio["college"]) if bio.get("college") else None, yr]
     id_line2 = " · ".join(b for b in line2_bits if b)
 
-    editorial = (hooks.get(slug) or {}).get("sentence")
+    hook = hooks.get(slug) or {}
+    editorial = hook.get("sentence")
+    para = hook.get("paragraph")
     generated = generated_sentence(bio)
 
     cards = "".join([
@@ -577,6 +581,14 @@ def render_page(row, bio, ranks, lg_ts, games, game_meta,
     parts.append(f'<div class="grid4">{cards}</div>')
     if generated:
         parts.append(f'<p class="slot-gen">{generated}</p>')
+    # The longer editorial block sits BELOW the cards and the generated facts:
+    # a reader who came for the numbers gets them first, and the prose is the
+    # reward for staying. Rendered as separate <p> so it reads as prose rather
+    # than one wall of text.
+    if para:
+        paras = "".join(f"<p>{esc(x.strip())}</p>"
+                        for x in para.split("\n\n") if x.strip())
+        parts.append(f'<div class="slot-para">{paras}</div>')
     parts.append(
         # Verb-led: "See ..." reads as an instruction to act, where the old
         # bare noun phrase read as a heading. Paired with the chevron in
