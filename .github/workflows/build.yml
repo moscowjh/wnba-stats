@@ -69,13 +69,22 @@ jobs:
       # cache is always saved at job end; restore-keys seeds it from the most
       # recent prior cache. Bump the vN token if the CSV schema changes, to
       # force one clean full rebuild instead of concatenating mismatched columns.
+      #
+      # Bumped v5 -> v6 on 2026-09-09 to force ONE clean full re-fetch, during
+      # the WWC break when no WNBA games are at stake. Not a schema change and
+      # NOT a standing habit: drift between this cache and a fresh fetch was
+      # measured across the whole season at exactly ONE misattributed shot
+      # (see the backlog, 2026-09-09), which does not justify ~300 extra ESPN
+      # calls on a schedule. The reason for this one is the athlete_id
+      # renumbering ESPN applied retroactively, plus a clean baseline before
+      # the playoffs. Next planned re-fetch: the 2027 All-Star break.
       - name: Restore fetched-data cache
         uses: actions/cache@v4
         with:
           path: sites/wnba/data
-          key: wnba-data-v5-${{ github.run_id }}
+          key: wnba-data-v6-${{ github.run_id }}
           restore-keys: |
-            wnba-data-v5-
+            wnba-data-v6-
 
       # fetch_data.py exits non-zero when the fetch came back incomplete — an
       # unreadable scoreboard date, a game that wouldn't download, or a missing
