@@ -29,8 +29,10 @@ Env:
 
 import argparse
 import datetime as dt
+import html
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -132,48 +134,69 @@ def category_for_today():
     return BROADCAST_ORDER[ordinal % len(BROADCAST_ORDER)]
 
 
-def card_url(payload, cat):
-    """Where the day's link card lands: the featured leader's page, or the root.
+def _og_title(page):
+    """The destination page's OWN og:title, or None.
 
-    The post is a leader board and its first line names one player; sending the
-    tap to the site root made the reader hunt for what they just read. Her own
-    page is the answer to the post.
+    Read from the emitted HTML rather than rebuilt here. build_player_pages.py
+    already decides how a player page is titled; composing a second version in
+    this file would be a duplicate format string that drifts the first time
+    either side changes — the same failure `sag.seo.slugify` exists to prevent,
+    one layer up. The page declares its title; we quote it.
+    """
+    m = re.search(r'<meta property="og:title" content="([^"]*)"', page.read_text())
+    return html.unescape(m.group(1)) if m else None
+
+
+def card_for_today(payload, cat):
+    """The day's link card as (uri, title, description).
+
+    The post is a leader board whose first line names one player, and the card
+    used to send every tap to the site root, so the reader had to hunt for what
+    they had just read. It now lands on her page, titled as her page.
 
     It is also the only outbound link this project emits. Google has discovered
     250 of our URLs and crawled one (GSC, 2026-09-09), and every daily post so
-    far pointed at the single page that needed the help least. A rotating deep
-    URL is not a fix for that — the constraint is inbound authority, and
-    Bluesky's link equity is dubious at best — but it costs nothing and is
-    strictly better aimed.
+    far pointed at the single page needing the help least. A rotating deep URL
+    is not a fix for that — the constraint is inbound authority, and Bluesky's
+    link equity is dubious — but it costs nothing and is better aimed.
 
-    CORRECT-OR-BLANK, twice over, because a link card cannot be edited after it
-    posts and a 404 in it is permanent:
+    CORRECT-OR-BLANK, because a link card cannot be edited after it posts and a
+    404 inside one is permanent. Two ways to fall back to the root card:
 
-      * A SHARED lead falls back to the root. Picking one of two tied players
-        as "the" leader is an editorial claim the board itself refuses to make,
-        which is the whole point of tie_safe_counts() above.
-      * A slug with no page on disk falls back to the root. This runs after the
-        page build in the same job, so the filesystem is authoritative; a name
-        that does not resolve means something upstream disagreed, and the root
-        is always right.
+      * A SHARED lead. Naming one of two tied players as "the" leader is the
+        editorial claim tie_safe_counts() exists to refuse.
+      * A slug with no page on disk. This runs after the page build in the same
+        job, so the filesystem is authoritative; an unresolved name means
+        something upstream disagreed, and the root is always right.
 
-    Slugs come from sag.seo.slugify — THE slug function. A second slugifier
-    here would eventually disagree with the emitter, and the failure mode is a
-    published post pointing at a page that does not exist.
+    A page that resolves but whose og:title cannot be parsed keeps the deep URL
+    and the generic title — the link is verified good, and throwing it away over
+    cosmetics would be the wrong trade.
+
+    The DESCRIPTION stays generic by design (Jason, 2026-09-09): the title names
+    the page, the description describes the site. The page's own og:description
+    carries her stat line and is one substitution away if that reads better.
     """
+    root = (SITE_URL, CARD_TITLE, CARD_DESC)
     rows = (payload.get('categories') or {}).get(cat) or []
     if not rows:
-        return SITE_URL
+        return root
     leaders = [r for r in rows if r.get('rank') == rows[0].get('rank')]
     if len(leaders) != 1:
         print(f"  card: {len(leaders)}-way tie for the {cat} lead — linking the root")
-        return SITE_URL
+        return root
 
     slug = seo.slugify(leaders[0].get('player', ''))
-    if not slug or not (WNBA.public_dir / "players" / slug / "index.html").exists():
+    page = WNBA.public_dir / "players" / slug / "index.html"
+    if not slug or not page.exists():
         print(f"  card: no page for {leaders[0].get('player')!r} — linking the root")
-        return SITE_URL
-    return f"{seo.canonical_url(WNBA, f'/players/{slug}/')}?{UTM}"
+        return root
+
+    title = _og_title(page)
+    if not title:
+        print(f"  card: /players/{slug}/ has no og:title — keeping the generic one")
+    return (f"{seo.canonical_url(WNBA, f'/players/{slug}/')}?{UTM}",
+            title or CARD_TITLE, CARD_DESC)
 
 
 def tie_safe_counts(rows, wanted=(5, 4, 3)):
@@ -235,7 +258,7 @@ def build_text(payload, cat):
     return assemble(rows[:counts[-1]], bool(factoid))[:MAX_CHARS]
 
 
-def post(text, url=SITE_URL):
+def post(text, card=(SITE_URL, CARD_TITLE, CARD_DESC)):
     handle = os.environ.get('BLUESKY_HANDLE')
     pw = os.environ.get('BLUESKY_APP_PASSWORD')
     if not handle or not pw:
@@ -246,7 +269,8 @@ def post(text, url=SITE_URL):
                 {"identifier": handle, "password": pw})
     token, did = sess['accessJwt'], sess['did']
 
-    external = {"uri": url, "title": CARD_TITLE, "description": CARD_DESC}
+    uri, title, desc = card
+    external = {"uri": uri, "title": title, "description": desc}
     if os.path.exists(OG_IMAGE):
         with open(OG_IMAGE, 'rb') as fh:
             blob = _api("/xrpc/com.atproto.repo.uploadBlob", fh.read(),
@@ -286,11 +310,11 @@ def main():
         return 0
     cat = category_for_today()
     text = build_text(payload, cat)
-    url = card_url(payload, cat)
+    card = card_for_today(payload, cat)
     print(f"--- category: {cat} ({len(text)} chars) ---\n{text}\n---")
-    print(f"--- card links to: {url} ---")
+    print(f"--- card: {card[1]}\n---        {card[0]} ---")
     try:
-        return post(text, url)
+        return post(text, card)
     except urllib.error.HTTPError as e:
         print(f"Bluesky post FAILED: HTTP {e.code} {e.read().decode('utf-8', 'replace')[:500]}",
               file=sys.stderr)
