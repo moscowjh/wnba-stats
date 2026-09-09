@@ -1521,14 +1521,40 @@ def build_games_section(player_raw, team_raw):
 # Assembled from the shared chrome (sag.render.chrome) plus this page's own
 # styles, in the order the monolithic block always had — golden_check.py
 # holds the rendered page byte-identical through this split.
+# ── Type stacks (variant B, 2026-09-08) ──────────────────────────────────
+# Byte-identical to sites/wwc/build_wwc_pages.py's SANS/MONO. The two sites
+# are one publication with different accents, so the type stack is shared by
+# value even though it is declared twice — `font-family` deliberately lives
+# per-emitter rather than in `sag.render.chrome`, which is exactly why this
+# change costs `core/` nothing and cannot move WWC's bytes.
+#
+# The split: sans for anything read as language (prose, nav, names, headings),
+# mono for anything read as a quantity. Mono is scoped structurally rather than
+# by class — every table on this site puts the entity in the first column and
+# numbers in the rest, so `tbody td:not(:first-child)` covers all of them
+# without touching a single table generator. The Key tab is a <dl>, not a
+# table, so it stays prose automatically; that was the round-2 mock's sharpest
+# finding about the old all-mono design.
+MONO = "ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace"
+SANS = ("-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,"
+        "'Helvetica Neue',Arial,sans-serif")
+
 PAGE_CSS = (
     chrome.tokens_css(WNBA.accent)
+    + f"""\
+  *{{box-sizing:border-box;margin:0;padding:0}}
+  body{{font-family:{SANS};background:var(--bg);color:var(--text);
+        font-size:13.5px;padding:16px;line-height:1.55;
+        -webkit-font-smoothing:antialiased}}
+  /* Quantities read as quantities. tabular-nums on every table keeps columns
+     of digits aligned even in the sans face (records, ordinals, dates). */
+  table{{font-variant-numeric:tabular-nums}}
+  tbody td:not(:first-child){{font-family:{MONO};font-variant-numeric:tabular-nums}}
+  h1{{color:var(--accent);font-size:18px;margin-bottom:3px;font-weight:700;
+      letter-spacing:-.2px}}
+  .meta{{color:var(--muted);font-size:11.5px;margin-bottom:14px;max-width:34em}}
+"""
     + """\
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);
-        font-size:13px;padding:16px}
-  h1{color:var(--accent);font-size:17px;margin-bottom:3px}
-  .meta{color:var(--muted);font-size:11px;margin-bottom:14px}
   /* Cross-site pointer to wwc.statsataglance.com. See wwc_promo_html(). */
   .xsite{font-size:11px;line-height:1.6;margin-bottom:20px;padding:7px 10px;
         border:1px solid var(--border);border-left:2px solid var(--accent);
@@ -1538,14 +1564,16 @@ PAGE_CSS = (
 """
     + chrome.SITE_FOOTER_CSS
     + """\
-  h2{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;
-      margin:24px 0 10px;border-bottom:1px solid var(--border);padding-bottom:5px}
-  h2 .sub{color:var(--muted);text-transform:none;letter-spacing:0;font-size:11px}
-  .tab-note{color:var(--muted);font-size:11px;margin-bottom:10px}
+  h2{font-size:11.5px;color:var(--accent);text-transform:uppercase;letter-spacing:.9px;
+      margin:24px 0 10px;border-bottom:1px solid var(--border);padding-bottom:5px;
+      font-weight:700}
+  h2 .sub{color:var(--muted);text-transform:none;letter-spacing:0;font-size:11px;
+      font-weight:400}
+  .tab-note{color:var(--muted);font-size:11.5px;margin-bottom:10px;max-width:34em}
   .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
   .tab{cursor:pointer;padding:5px 12px;border:1px solid var(--border);
         color:var(--muted);background:var(--surface);font-family:inherit;
-        font-size:12px;letter-spacing:.5px}
+        font-size:12px;letter-spacing:.3px;font-weight:500}
   .tab.active{border-color:var(--accent);color:var(--accent)}
   .section{display:none}.section.active{display:block}
 """
@@ -1554,12 +1582,17 @@ PAGE_CSS = (
   table{border-collapse:collapse;width:100%;white-space:nowrap}
   thead tr{background:var(--surface)}
   th{padding:7px 11px;text-align:left;color:var(--muted);font-size:11px;
-      letter-spacing:.5px;border-bottom:1px solid var(--border);
+      letter-spacing:.4px;text-transform:uppercase;font-weight:normal;
+      border-bottom:1px solid var(--border);
       cursor:pointer;user-select:none}
   th:hover{color:var(--accent)}
   th.group-header{text-align:center;color:var(--accent);border-bottom:1px solid var(--border);
                    border-left:1px solid var(--border);font-size:10px;letter-spacing:1px}
-  td{padding:6px 11px;border-bottom:1px solid var(--border)}
+  /* Vertical padding follows variant B (6px -> 8px); horizontal stays at 11px.
+     WNBA's widest table carries ~20 numeric columns where WWC's carries a
+     handful, so B's 6px horizontal would tighten the columns rather than open
+     the rows. The change B is actually making here is vertical rhythm. */
+  td{padding:8px 11px;border-bottom:1px solid var(--border)}
   tr:hover td{background:var(--surface)}
   tr.lg-avg td{color:var(--avg);font-style:italic;border-top:1px solid var(--border)}
   /* Playoff cutoff line */
@@ -1673,6 +1706,14 @@ PAGE_CSS = (
   .gm-bx .gm-sec td{color:var(--accent);font-size:10px;letter-spacing:.1em;padding-top:9px;text-transform:uppercase}
   .gm-bx tr:not(.gm-cols):not(.gm-sec) td{border-top:1px solid #18181b}
   .gm-pos{color:var(--muted);font-size:10px;display:inline-block;min-width:18px}"""
+    + f"""
+  /* Games-tab quantities that are NOT `tbody td:not(:first-child)` and so are
+     missed by the structural rule above: the big final score, the inline
+     result-row scores, W-L records, and the line score's period headers
+     (1 2 3 4 T). All read as numbers and take the mono face. Team names,
+     the day bar and the "Final" label stay in the sans face. */
+  .gm-row.gm-result .gm-s,.gm-hd .gm-sc,.gm-hd .gm-rec,
+  .gm-tcap .gm-rec,.gm-ls th{{font-family:{MONO};font-variant-numeric:tabular-nums}}"""
 )
 
 PAGE_JS = (
