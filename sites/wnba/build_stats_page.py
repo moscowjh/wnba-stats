@@ -1464,6 +1464,121 @@ def _sched_row(away, home, tip_et):
             % (esc(_CITY.get(away, away)), esc(_CITY.get(home, home)), esc(tip_et)))
 
 
+def game_slug(date_iso, away_abbr, home_abbr, team_names):
+    """/games/YYYY-MM-DD-<away>-<home>/ — the ONE place this URL is formed.
+
+    Lives here rather than in build_box_pages so the Series Tab (which links
+    to these pages) and the emitter (which writes them) cannot disagree — the
+    same guarantee team_href() gives for team pages. Fixture order, away
+    first, per the score-orientation rule: naming BOTH teams takes fixture
+    order. Full team names rather than TLAs because the URL is a search
+    target — the query is "atlanta dream minnesota lynx box score".
+    """
+    a = seo.slugify(team_names.get(away_abbr, away_abbr))
+    h = seo.slugify(team_names.get(home_abbr, home_abbr))
+    return f"{date_iso}-{a}-{h}"
+
+
+def load_series():
+    """Per-game playoff-series rows, or [] outside the playoffs.
+
+    Absent for the whole regular season, which is the correct content for a
+    regular-season day rather than an error.
+    """
+    if not WNBA.series.exists():
+        return []
+    try:
+        return json.loads(WNBA.series.read_text()).get('games', [])
+    except Exception as e:
+        print(f"WARNING: {WNBA.series.name} unreadable ({e}) — Series tab omitted.")
+        return []
+
+
+def build_series_section(series_rows, player_all, team_all):
+    """The Series tab: one block per playoff series, newest first.
+
+    Returns None when there are no playoff games, and the caller then omits
+    the tab entirely rather than shipping an empty one — the same posture WWC
+    took with Leaders, which had no pre-tournament value and so was not
+    published until it did.
+
+    Grouping is on the UNORDERED PAIR OF TEAM IDS, because ESPN's series
+    object carries no series id. `wins` is the state as of each game, so the
+    series' current standing is its most recent row.
+    """
+    if not series_rows or team_all.empty:
+        return None
+
+    names = (team_all.drop_duplicates('team_abbreviation')
+             .set_index('team_abbreviation')['team_display_name'].to_dict())
+    abbr_by_id = {int(r['team_id']): r['team_abbreviation']
+                  for _, r in team_all.drop_duplicates('team_id').iterrows()}
+    # Orientation MUST come from _game_sides — the same function
+    # build_box_pages uses to name the page it writes. The team frame's two
+    # rows are in arbitrary order, and using that order here produced slugs
+    # in the wrong order (…-atlanta-dream-indiana-fever against a page written
+    # as …-indiana-fever-atlanta-dream), i.e. every link a 404, plus scores
+    # printed home-first. Home/away lives on the PLAYER frame.
+    sides = {}
+    for r in series_rows:
+        gid = int(r['game_id'])
+        try:
+            sides[gid] = _game_sides(player_all, team_all, gid, r['game_date'])
+        except (IndexError, KeyError):
+            pass  # correct-or-blank: no orientation, no link
+
+    groups = {}
+    for r in series_rows:
+        key = tuple(sorted(c['team_id'] for c in r['competitors']))
+        groups.setdefault(key, []).append(r)
+
+    blocks = []
+    for key, rows in sorted(groups.items(),
+                            key=lambda kv: kv[1][0]['game_date'], reverse=True):
+        rows.sort(key=lambda r: (r['game_date'], r['game_id']))
+        first, last = rows[0], rows[-1]
+        # Round name from the FIRST game: ESPN's capitalisation drifts within a
+        # series ("WNBA Finals - Game 3" and "WNBA FINALS - Game 3" both occur
+        # in 2025), and game 1 is reliably normal case. Display only.
+        round_name = (first.get('headline') or '').split(' - ')[0]
+        best_of = last.get('total_competitions')
+        teams = ' vs '.join(
+            esc(names.get(abbr_by_id.get(t, ''), abbr_by_id.get(t, str(t))))
+            for t in key)
+
+        game_rows = ''
+        for r in rows:
+            gid = int(r['game_id'])
+            pair = sides.get(gid)
+            label = (r.get('headline') or '').split(' - ')[-1] or r['game_date']
+            if pair:
+                away, home = pair
+                slug = game_slug(r['game_date'], away['abbr'], home['abbr'], names)
+                # Names both teams, so fixture order: away first.
+                score = (f"{esc(away['abbr'])} {away['score']}"
+                         f"&ndash;{esc(home['abbr'])} {home['score']}")
+                cell = (f'<a class="pl" href="/games/{slug}/">{score}</a>')
+            else:
+                cell = '&mdash;'
+            game_rows += (f'<tr><td>{esc(label)}</td>'
+                          f'<td>{esc(r["game_date"])}</td><td>{cell}</td></tr>')
+
+        meta = ' &middot; '.join(x for x in (
+            f'best of {best_of}' if best_of else '',
+            'final' if last.get('completed') else 'in progress') if x)
+        blocks.append(
+            f'<div class="ser-blk"><h3 class="ser-h">{esc(round_name)}</h3>'
+            f'<div class="ser-t">{teams}</div>'
+            f'<div class="ser-s">{esc(last.get("summary", ""))}'
+            + (f' <span class="ser-m">&middot; {meta}</span>' if meta else '')
+            + '</div>'
+            f'<table class="ser-g">{game_rows}</table></div>')
+
+    return ('<div id="series" class="section">\n<h2>Playoff Series</h2>\n'
+            '<p class="tab-note"><em>Tap a score for the full box score'
+            '</em></p>\n' + ''.join(blocks) + '\n</div>\n')
+
+
 def build_games_section(player_raw, team_raw):
     """Build the Games tab: today's schedule + yesterday's results with
     inline box scores. Returns HTML string.
@@ -1554,6 +1669,7 @@ def build_games_section(player_raw, team_raw):
 # Assembled from the shared chrome (sag.render.chrome) plus this page's own
 # styles, in the order the monolithic block always had — golden_check.py
 # holds the rendered page byte-identical through this split.
+
 # ── Type stacks (variant B, 2026-09-08) ──────────────────────────────────
 # Byte-identical to sites/wwc/build_wwc_pages.py's SANS/MONO. The two sites
 # are one publication with different accents, so the type stack is shared by
@@ -1571,6 +1687,72 @@ def build_games_section(player_raw, team_raw):
 MONO = "ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace"
 SANS = ("-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,"
         "'Helvetica Neue',Arial,sans-serif")
+
+# The Games-tab styles, extracted 2026-09-08 so the standalone playoff
+# box-score pages (build_box_pages.py) can reuse the SAME rules that style
+# the inline box scores. One source of truth: a change here moves both, and
+# the two renderings cannot drift apart. Spliced back into PAGE_CSS at the
+# position it always occupied, so the tab site's bytes do not move —
+# golden_check proves it.
+GAMES_CSS = f"""\
+  /* ── Games tab ── */
+  .gm-daybar{{color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    border-bottom:1px solid var(--border);padding:10px 0 5px;margin-top:6px}}
+  .gm-daybar:first-child{{margin-top:0}}
+  .gm-row{{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 2px;border-bottom:1px solid #161618}}
+  .gm-row .gm-match{{font-size:15px}}
+  .gm-row.gm-sched .gm-match{{color:var(--text)}}
+  .gm-row.gm-sched .gm-when{{color:var(--muted);font-size:12px}}
+  .gm-row.gm-result{{cursor:pointer}}
+  .gm-row.gm-result .gm-s{{color:var(--muted)}}
+  .gm-row.gm-result .gm-s.gm-win{{color:var(--text);font-weight:700}}
+  .gm-row .gm-dash{{color:var(--muted)}}
+  .gm-row .gm-chev{{color:var(--muted);font-size:18px}}
+  .gm-row.gm-result:active{{background:var(--surface)}}
+  .gm-hint{{color:var(--muted);font-size:11px;margin-top:14px}}
+  .gm-empty{{color:var(--muted);font-size:12px;padding:14px 2px}}
+  .gm-back{{color:var(--accent);font-size:13px;padding:4px 0 12px;cursor:pointer;display:inline-block}}
+  .gm-hd{{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px}}
+  .gm-hd .gm-tm{{font-size:15px;font-weight:700}}
+  .gm-hd .gm-sc{{font-size:22px;font-weight:700}}
+  .gm-hd .gm-rec{{color:var(--muted);font-weight:400;font-size:12px}}
+  .gm-fin{{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:11px;text-align:center}}
+  .gm-win{{color:#7ec27e}}
+  .gm-meta{{color:var(--muted);font-size:11px;margin:8px 0 14px}}
+  .gm-h2{{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;
+    border-bottom:1px solid var(--border);padding-bottom:5px;margin:18px 0 6px}}
+  .gm-ls{{border-collapse:collapse;width:auto;margin:10px 0 20px;font-size:13px}}
+  .gm-ls th,.gm-ls td{{padding:3px 10px;text-align:right}}
+  .gm-ls .gm-pl{{text-align:left;color:var(--muted)}}.gm-ls .gm-t{{border-left:1px solid var(--border)}}
+  .gm-ts{{border-collapse:collapse;width:auto;margin:4px 0 8px;font-size:12px}}
+  .gm-ts th,.gm-ts td{{padding:2px 10px;text-align:right;white-space:nowrap}}
+  .gm-ts .gm-pl{{text-align:left}}
+  .gm-ts .gm-cols th{{color:var(--muted);font-weight:400;border-bottom:1px solid var(--border)}}
+  .gm-ts .gm-v td{{padding-top:7px}}.gm-ts .gm-v .gm-pl{{font-weight:700}}
+  .gm-ts .gm-p td{{color:var(--muted);font-size:10px;padding-top:0;padding-bottom:3px}}
+  .gm-tcap{{font-weight:700;margin:18px 0 3px}}.gm-tcap .gm-rec{{color:var(--muted);font-weight:400;font-size:12px}}
+  .gm-tscroll{{position:relative;margin-bottom:6px}}
+  .gm-tscroll::after{{content:"";position:absolute;top:0;bottom:0;right:0;width:26px;
+    pointer-events:none;opacity:0;transition:opacity .15s ease;z-index:5;
+    background:linear-gradient(to right, rgba(15,15,15,0), var(--bg))}}
+  .gm-tscroll.more-right::after{{opacity:1}}
+  .gm-tw{{overflow-x:auto;-webkit-overflow-scrolling:touch}}
+  .gm-bx{{border-collapse:collapse;min-width:520px;width:100%;font-size:12px}}
+  .gm-bx th,.gm-bx td{{padding:3px 6px;text-align:right;white-space:nowrap}}
+  .gm-bx .gm-pl{{text-align:left;position:sticky;left:0;background:var(--bg);min-width:88px;padding-left:0}}
+  .gm-bx .gm-cols th{{border-bottom:1px solid var(--accent);color:var(--muted);font-weight:400}}
+  .gm-bx .gm-sec td{{color:var(--accent);font-size:10px;letter-spacing:.1em;padding-top:9px;text-transform:uppercase}}
+  .gm-bx tr:not(.gm-cols):not(.gm-sec) td{{border-top:1px solid #18181b}}
+  .gm-pos{{color:var(--muted);font-size:10px;display:inline-block;min-width:18px}}
+  /* Games-tab quantities that are NOT `tbody td:not(:first-child)` and so are
+     missed by the structural rule above: the big final score, the inline
+     result-row scores, W-L records, and the line score's period headers
+     (1 2 3 4 T). All read as numbers and take the mono face. Team names,
+     the day bar and the "Final" label stay in the sans face. */
+  .gm-row.gm-result .gm-s,.gm-hd .gm-sc,.gm-hd .gm-rec,
+  .gm-tcap .gm-rec,.gm-ls th{{font-family:{MONO};font-variant-numeric:tabular-nums}}"""
+
 
 PAGE_CSS = (
     chrome.tokens_css(WNBA.accent)
@@ -1689,65 +1871,27 @@ PAGE_CSS = (
   tr.lg-avg td:first-child{background:var(--bg)}
   tr.playoff-cutoff td:first-child{background:var(--bg)}
   thead tr:first-child th:first-child{position:sticky;left:0;z-index:4;background:var(--surface)}
-  /* ── Games tab ── */
-  .gm-daybar{color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
-    border-bottom:1px solid var(--border);padding:10px 0 5px;margin-top:6px}
-  .gm-daybar:first-child{margin-top:0}
-  .gm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:11px 2px;border-bottom:1px solid #161618}
-  .gm-row .gm-match{font-size:15px}
-  .gm-row.gm-sched .gm-match{color:var(--text)}
-  .gm-row.gm-sched .gm-when{color:var(--muted);font-size:12px}
-  .gm-row.gm-result{cursor:pointer}
-  .gm-row.gm-result .gm-s{color:var(--muted)}
-  .gm-row.gm-result .gm-s.gm-win{color:var(--text);font-weight:700}
-  .gm-row .gm-dash{color:var(--muted)}
-  .gm-row .gm-chev{color:var(--muted);font-size:18px}
-  .gm-row.gm-result:active{background:var(--surface)}
-  .gm-hint{color:var(--muted);font-size:11px;margin-top:14px}
-  .gm-empty{color:var(--muted);font-size:12px;padding:14px 2px}
-  .gm-back{color:var(--accent);font-size:13px;padding:4px 0 12px;cursor:pointer;display:inline-block}
-  .gm-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px}
-  .gm-hd .gm-tm{font-size:15px;font-weight:700}
-  .gm-hd .gm-sc{font-size:22px;font-weight:700}
-  .gm-hd .gm-rec{color:var(--muted);font-weight:400;font-size:12px}
-  .gm-fin{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:11px;text-align:center}
-  .gm-win{color:#7ec27e}
-  .gm-meta{color:var(--muted);font-size:11px;margin:8px 0 14px}
-  .gm-h2{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;
-    border-bottom:1px solid var(--border);padding-bottom:5px;margin:18px 0 6px}
-  .gm-ls{border-collapse:collapse;width:auto;margin:10px 0 20px;font-size:13px}
-  .gm-ls th,.gm-ls td{padding:3px 10px;text-align:right}
-  .gm-ls .gm-pl{text-align:left;color:var(--muted)}.gm-ls .gm-t{border-left:1px solid var(--border)}
-  .gm-ts{border-collapse:collapse;width:auto;margin:4px 0 8px;font-size:12px}
-  .gm-ts th,.gm-ts td{padding:2px 10px;text-align:right;white-space:nowrap}
-  .gm-ts .gm-pl{text-align:left}
-  .gm-ts .gm-cols th{color:var(--muted);font-weight:400;border-bottom:1px solid var(--border)}
-  .gm-ts .gm-v td{padding-top:7px}.gm-ts .gm-v .gm-pl{font-weight:700}
-  .gm-ts .gm-p td{color:var(--muted);font-size:10px;padding-top:0;padding-bottom:3px}
-  .gm-tcap{font-weight:700;margin:18px 0 3px}.gm-tcap .gm-rec{color:var(--muted);font-weight:400;font-size:12px}
-  .gm-tscroll{position:relative;margin-bottom:6px}
-  .gm-tscroll::after{content:"";position:absolute;top:0;bottom:0;right:0;width:26px;
-    pointer-events:none;opacity:0;transition:opacity .15s ease;z-index:5;
-    background:linear-gradient(to right, rgba(15,15,15,0), var(--bg))}
-  .gm-tscroll.more-right::after{opacity:1}
-  .gm-tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .gm-bx{border-collapse:collapse;min-width:520px;width:100%;font-size:12px}
-  .gm-bx th,.gm-bx td{padding:3px 6px;text-align:right;white-space:nowrap}
-  .gm-bx .gm-pl{text-align:left;position:sticky;left:0;background:var(--bg);min-width:88px;padding-left:0}
-  .gm-bx .gm-cols th{border-bottom:1px solid var(--accent);color:var(--muted);font-weight:400}
-  .gm-bx .gm-sec td{color:var(--accent);font-size:10px;letter-spacing:.1em;padding-top:9px;text-transform:uppercase}
-  .gm-bx tr:not(.gm-cols):not(.gm-sec) td{border-top:1px solid #18181b}
-  .gm-pos{color:var(--muted);font-size:10px;display:inline-block;min-width:18px}"""
-    + f"""
-  /* Games-tab quantities that are NOT `tbody td:not(:first-child)` and so are
-     missed by the structural rule above: the big final score, the inline
-     result-row scores, W-L records, and the line score's period headers
-     (1 2 3 4 T). All read as numbers and take the mono face. Team names,
-     the day bar and the "Final" label stay in the sans face. */
-  .gm-row.gm-result .gm-s,.gm-hd .gm-sc,.gm-hd .gm-rec,
-  .gm-tcap .gm-rec,.gm-ls th{{font-family:{MONO};font-variant-numeric:tabular-nums}}"""
+"""
+    + f"""\
+  /* ── Series tab (playoffs only) ── */
+  .ser-blk{{margin-bottom:22px}}
+  .ser-h{{color:var(--accent);font-size:11px;letter-spacing:.9px;
+    text-transform:uppercase;font-weight:700;margin-bottom:3px}}
+  .ser-t{{font-size:15px;font-weight:600;margin-bottom:2px}}
+  .ser-s{{color:var(--text);font-size:12.5px;margin-bottom:7px}}
+  .ser-m{{color:var(--muted)}}
+  .ser-g{{border-collapse:collapse;width:100%;font-size:12px}}
+  .ser-g td{{padding:6px 8px 6px 0;border-bottom:1px solid var(--border);
+    white-space:nowrap}}
+  .ser-g td:first-child{{color:var(--muted);width:5.5em}}
+  .ser-g td:nth-child(2){{color:var(--muted);font-family:{MONO};width:7em}}
+  .ser-g td:last-child{{font-family:{MONO};text-align:right}}
+"""
+    + GAMES_CSS
 )
+
+
+
 
 PAGE_JS = (
     chrome.usage_js(WNBA.slug)
@@ -1969,10 +2113,18 @@ window.addEventListener('hashchange', openTabFromHash);"""
 def assemble_page(display_date, data_through_iso,
                   games_html,
                   standings_html, leaders_html, team_eff_html,
-                  team_totals_html, players_html, abbreviations_html):
-    """Combine all sections into the final HTML string."""
+                  team_totals_html, players_html, abbreviations_html,
+                  series_html=None):
+    """Combine all sections into the final HTML string.
+
+    `series_html` is None outside the playoffs and the Series tab is then
+    omitted entirely — an empty tab is a dead end, and the tab strip is the
+    site's whole navigation.
+    """
+    series_section = series_html or ''
     tabs = [
         ('games', 'Games'),
+        *([('series', 'Series')] if series_html else []),
         ('standings', 'Standings'),
         ('leaders', 'Leaders'),
         ('teameff', 'Efficiency'),
@@ -2017,7 +2169,7 @@ def assemble_page(display_date, data_through_iso,
         f'<div class="meta">Fast, ad-free — updated through games of {display_date}</div>\n'
         f'{wwc_promo_html(today_et())}\n'
         f'<div class="tabs">\n{tab_buttons}\n</div>\n\n'
-        f'{games_html}\n'
+        f'{games_html}{series_section}\n'
         f'{standings_html}\n'
         f'{leaders_html}\n'
         f'{team_eff_html}\n'
@@ -2068,6 +2220,8 @@ def main():
 
     # Build each section
     games_html         = build_games_section(player_all, team_all)
+    # None outside the playoffs; assemble_page then omits the tab entirely.
+    series_html        = build_series_section(load_series(), player_all, team_all)
     standings_html     = build_standings_section(standings_df)
     leaders_html       = build_leaders_section(leaders, team_abbrevs)
     team_eff_html      = build_team_efficiency_section(ff_df, team_options)
@@ -2078,7 +2232,8 @@ def main():
     html = assemble_page(display_date, data_through_iso,
                          games_html,
                          standings_html, leaders_html, team_eff_html,
-                         team_totals_html, players_html, abbreviations_html)
+                         team_totals_html, players_html, abbreviations_html,
+                         series_html)
 
     OUTPUT.write_text(html)
     print(f"Written -> {OUTPUT}")

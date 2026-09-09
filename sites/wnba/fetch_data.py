@@ -61,6 +61,7 @@ LINESCORE_JSON = CFG.linescores
 SCHEDULE_JSON = CFG.schedule_today
 UPCOMING_JSON = CFG.schedule_upcoming
 ROSTER_JSON = CFG.rosters
+SERIES_JSON = CFG.series
 # Where to reach ESPN's API.
 #
 # 2026-08-05: `site.api.espn.com` — the host used since the ESPN migration —
@@ -273,17 +274,19 @@ def _is_noncounting_game(event: dict) -> str | None:
 def discover_games(start: date, end: date) -> tuple[list[tuple[int, str, int]], list[str]]:
     """Scan date range via scoreboard, return [(game_id, "YYYY-MM-DD",
     season_type)] for completed games worth keeping (regular season + playoffs;
-    exhibitions like the All-Star Game and Cup Championship are skipped).
+    exhibitions like the All-Star Game and Cup Championship are skipped),
+    plus per-game playoff-series rows (see parse_series).
 
     season_type is ESPN's integer (2 = regular season, 3 = postseason); it is
     stored on each row so regular-season aggregations can filter to == 2 while
     future playoff views select == 3. Defaults to 2 when ESPN omits it.
 
-    Returns (completed, failed_dates). A date whose scoreboard call failed is
+    Returns (completed, failed_dates, series_rows). A date whose scoreboard call failed is
     NOT the same as a date with no games, and the caller must not conflate
     them — see the 2026-08-05 note in main()."""
     completed = []
     failed_dates: list[str] = []
+    series_rows: list[dict] = []
     d = start
     while d <= end:
         date_str = d.strftime("%Y%m%d")
@@ -322,8 +325,62 @@ def discover_games(start: date, end: date) -> tuple[list[tuple[int, str, int]], 
             st = event.get("season", {}).get("type")
             season_type = int(st) if st is not None else 2
             completed.append((game_id, iso_date, season_type))
+            row = parse_series(event, game_id, iso_date, season_type)
+            if row:
+                series_rows.append(row)
         d += timedelta(days=1)
-    return completed, failed_dates
+    return completed, failed_dates, series_rows
+
+
+def parse_series(event: dict, game_id: int, iso_date: str,
+                 season_type: int) -> dict | None:
+    """Playoff-series state as of ONE game, or None if this isn't one.
+
+    ESPN attaches a `series` object to each postseason competition, so series
+    grouping and win counts are a join on data we already receive rather than
+    something to derive from dates and matchups.
+
+    Two traps, both found by re-running the spike on 2025 (2026-09-08):
+
+    1. **Gate on `season_type == 3`, never on the presence of `series`.**
+       A REGULAR-SEASON event carried a series object: 2025-09-12 GS @ MIN,
+       season type 2, summary "MIN wins series 2-0" — the FINAL state of a
+       series whose games were actually played 9/14–9/18. Selecting on the
+       object's presence pulls that phantom into a playoff surface.
+
+    2. **`totalCompetitions` takes three values, not two.** 2025 ran
+       best-of-3 first round, best-of-**5** semifinals, best-of-7 Finals.
+       Earlier notes recorded only the 3 and the 7. It is read live here and
+       must never be hardcoded — re-verify against 2026 once real playoff
+       games exist rather than assuming 2025's shape holds.
+
+    `wins` is the state AS OF THIS GAME, not the series total, so the final
+    standing of a series is the row for its most recent game. There is no
+    series id: a series is identified by its unordered pair of team ids.
+    """
+    if season_type != 3:
+        return None
+    comp = (event.get("competitions") or [{}])[0]
+    series = comp.get("series")
+    if not series:
+        return None
+    notes = comp.get("notes") or []
+    # ESPN's own capitalisation is inconsistent ("WNBA Finals - Game 3" and
+    # "WNBA FINALS - Game 3" both appear in 2025), so this is carried for
+    # display only — never parsed or matched on.
+    headline = (notes[0].get("headline") if notes else "") or ""
+    return {
+        "game_id": game_id,
+        "game_date": iso_date,
+        "headline": headline,
+        "summary": series.get("summary", ""),
+        "completed": bool(series.get("completed", False)),
+        "total_competitions": series.get("totalCompetitions"),
+        "competitors": [
+            {"team_id": int(c["id"]), "wins": int(c.get("wins") or 0)}
+            for c in series.get("competitors", []) if c.get("id")
+        ],
+    }
 
 
 # ── Parsing helpers ──────────────────────────────────────────────────────
@@ -981,7 +1038,7 @@ def main() -> None:
 
     today = datetime.now(ET).date()
     print(f"Scanning scoreboard from {scan_start} to {today}...")
-    completed, failed_dates = discover_games(scan_start, today)
+    completed, failed_dates, series_rows = discover_games(scan_start, today)
     new_games = [(gid, d, st) for gid, d, st in completed if gid not in existing_ids]
     print(f"Found {len(completed)} completed game(s), {len(new_games)} new")
 
@@ -1090,6 +1147,16 @@ def main() -> None:
     # `problems` list below: a missing forward window costs one line on a team
     # page and a missing roster is rendered as unknown, but neither is a reason
     # to withhold the whole site. The landing page does not read either file.
+    # Playoff series state. Rewritten in full each run rather than appended:
+    # `wins` is the state as of each game, so a re-fetch of the same game must
+    # replace its row, never sit beside a stale one. Empty until the playoffs
+    # begin, which is the correct content for a regular-season day.
+    if series_rows:
+        SERIES_JSON.write_text(json.dumps(
+            {"fetched": str(datetime.now(ET).date()), "games": series_rows},
+            indent=2))
+        print(f"Series: {len(series_rows)} playoff game(s) → {SERIES_JSON.name}")
+
     fetch_schedule_window()
     # ESPN team_id -> TLA, taken from the box scores we already have rather
     # than a hardcoded list, so an expansion club appears the day it plays.
