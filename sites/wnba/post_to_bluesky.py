@@ -17,6 +17,8 @@ Design notes:
   - UTM-tagged (utm_source=bluesky-post) so the usage beacon can attribute
     clicks, but rendered as a clean native link card (built from our own og
     image + copy) rather than an ugly tracked string in the visible post text.
+  - The card lands on the page the post is ABOUT — the featured category's
+    leader — rather than always on the site root. See card_url().
   - Stdlib only (urllib) — no new dependency, in keeping with the site ethos.
 
 Env:
@@ -35,12 +37,14 @@ import urllib.request
 from zoneinfo import ZoneInfo
 
 from config import WNBA
+from sag import seo
 
 PDS         = "https://bsky.social"
 # Tagged so the usage beacon can separate "clicked the daily card" from direct
 # traffic. Matches the /bsky bio redirect's `bluesky-bio`; keep these two values
 # stable — they are the historical series in the wnba_usage dataset.
 SITE_URL    = "https://wnba.statsataglance.com/?utm_source=bluesky-post"
+UTM         = "utm_source=bluesky-post"
 CARD_TITLE  = "WNBA 2026 — At a Glance"
 CARD_DESC   = ("Fast, ad-free WNBA stats — leaders, standings, four factors, "
                "updated every morning.")
@@ -128,6 +132,50 @@ def category_for_today():
     return BROADCAST_ORDER[ordinal % len(BROADCAST_ORDER)]
 
 
+def card_url(payload, cat):
+    """Where the day's link card lands: the featured leader's page, or the root.
+
+    The post is a leader board and its first line names one player; sending the
+    tap to the site root made the reader hunt for what they just read. Her own
+    page is the answer to the post.
+
+    It is also the only outbound link this project emits. Google has discovered
+    250 of our URLs and crawled one (GSC, 2026-09-09), and every daily post so
+    far pointed at the single page that needed the help least. A rotating deep
+    URL is not a fix for that — the constraint is inbound authority, and
+    Bluesky's link equity is dubious at best — but it costs nothing and is
+    strictly better aimed.
+
+    CORRECT-OR-BLANK, twice over, because a link card cannot be edited after it
+    posts and a 404 in it is permanent:
+
+      * A SHARED lead falls back to the root. Picking one of two tied players
+        as "the" leader is an editorial claim the board itself refuses to make,
+        which is the whole point of tie_safe_counts() above.
+      * A slug with no page on disk falls back to the root. This runs after the
+        page build in the same job, so the filesystem is authoritative; a name
+        that does not resolve means something upstream disagreed, and the root
+        is always right.
+
+    Slugs come from sag.seo.slugify — THE slug function. A second slugifier
+    here would eventually disagree with the emitter, and the failure mode is a
+    published post pointing at a page that does not exist.
+    """
+    rows = (payload.get('categories') or {}).get(cat) or []
+    if not rows:
+        return SITE_URL
+    leaders = [r for r in rows if r.get('rank') == rows[0].get('rank')]
+    if len(leaders) != 1:
+        print(f"  card: {len(leaders)}-way tie for the {cat} lead — linking the root")
+        return SITE_URL
+
+    slug = seo.slugify(leaders[0].get('player', ''))
+    if not slug or not (WNBA.public_dir / "players" / slug / "index.html").exists():
+        print(f"  card: no page for {leaders[0].get('player')!r} — linking the root")
+        return SITE_URL
+    return f"{seo.canonical_url(WNBA, f'/players/{slug}/')}?{UTM}"
+
+
 def tie_safe_counts(rows, wanted=(5, 4, 3)):
     """Row counts to try, in order, none of which splits a shared place.
 
@@ -187,7 +235,7 @@ def build_text(payload, cat):
     return assemble(rows[:counts[-1]], bool(factoid))[:MAX_CHARS]
 
 
-def post(text):
+def post(text, url=SITE_URL):
     handle = os.environ.get('BLUESKY_HANDLE')
     pw = os.environ.get('BLUESKY_APP_PASSWORD')
     if not handle or not pw:
@@ -198,7 +246,7 @@ def post(text):
                 {"identifier": handle, "password": pw})
     token, did = sess['accessJwt'], sess['did']
 
-    external = {"uri": SITE_URL, "title": CARD_TITLE, "description": CARD_DESC}
+    external = {"uri": url, "title": CARD_TITLE, "description": CARD_DESC}
     if os.path.exists(OG_IMAGE):
         with open(OG_IMAGE, 'rb') as fh:
             blob = _api("/xrpc/com.atproto.repo.uploadBlob", fh.read(),
@@ -238,9 +286,11 @@ def main():
         return 0
     cat = category_for_today()
     text = build_text(payload, cat)
+    url = card_url(payload, cat)
     print(f"--- category: {cat} ({len(text)} chars) ---\n{text}\n---")
+    print(f"--- card links to: {url} ---")
     try:
-        return post(text)
+        return post(text, url)
     except urllib.error.HTTPError as e:
         print(f"Bluesky post FAILED: HTTP {e.code} {e.read().decode('utf-8', 'replace')[:500]}",
               file=sys.stderr)
