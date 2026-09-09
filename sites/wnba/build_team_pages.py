@@ -550,7 +550,6 @@ def main():
     standings = bsp.compute_standings(team_rs).reset_index(drop=True)
     through_dt = pd.Timestamp(player_rs["game_date"].max())
     data_through = through_dt.strftime("%B %-d, %Y")
-    data_through_iso = through_dt.strftime("%Y-%m-%d")
 
     abbr_by_name = (team_rs.drop_duplicates("team_display_name")
                     .set_index("team_display_name")["team_abbreviation"]
@@ -646,7 +645,7 @@ def main():
              + [f"/players/{s}/" for s in player_slugs]
              + [f"/teams/{e['slug']}/" for e in entries]
              + bbp.page_paths(player_all, team_all))
-    seo.write_sitemap(WNBA, paths, data_through_iso)
+    seo.write_sitemap(WNBA, paths, seo.resolve_lastmod(WNBA, paths))
 
     print(f"Wrote {len(entries)} team pages + index to {OUT_DIR}")
     print(f"  roster links to player pages: {n_linked}")

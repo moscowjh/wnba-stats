@@ -1,0 +1,190 @@
+{
+ "/": {
+  "date": "2026-09-08",
+  "hash": "d17a515bb91225a4"
+ },
+ "/games/": {
+  "date": "2026-09-09",
+  "hash": "fbed6d7de8baa129"
+ },
+ "/games/2026-09-04-australia-puerto-rico/": {
+  "date": "2026-09-04",
+  "hash": "85fcbef75d6ca48b"
+ },
+ "/games/2026-09-04-belgium-turkiye/": {
+  "date": "2026-09-04",
+  "hash": "4aebc0a082b76a0f"
+ },
+ "/games/2026-09-04-czechia-italy/": {
+  "date": "2026-09-04",
+  "hash": "ee920374fc2b52c6"
+ },
+ "/games/2026-09-04-hungary-france/": {
+  "date": "2026-09-04",
+  "hash": "b96dfcd37acb8168"
+ },
+ "/games/2026-09-04-japan-mali/": {
+  "date": "2026-09-04",
+  "hash": "21f2651f91964509"
+ },
+ "/games/2026-09-04-korea-nigeria/": {
+  "date": "2026-09-04",
+  "hash": "9261fce84476dd1b"
+ },
+ "/games/2026-09-04-spain-germany/": {
+  "date": "2026-09-04",
+  "hash": "4a9b74e31f02e63f"
+ },
+ "/games/2026-09-04-usa-china/": {
+  "date": "2026-09-04",
+  "hash": "a3dec4a6fd56a600"
+ },
+ "/games/2026-09-05-france-korea/": {
+  "date": "2026-09-05",
+  "hash": "3c3415371a5317eb"
+ },
+ "/games/2026-09-05-germany-japan/": {
+  "date": "2026-09-05",
+  "hash": "4d54433c31c5ba97"
+ },
+ "/games/2026-09-05-mali-spain/": {
+  "date": "2026-09-05",
+  "hash": "7f61527c47804b82"
+ },
+ "/games/2026-09-05-nigeria-hungary/": {
+  "date": "2026-09-05",
+  "hash": "9f89c6901c5cc8f6"
+ },
+ "/games/2026-09-06-china-czechia/": {
+  "date": "2026-09-06",
+  "hash": "4810b8f58861c9a7"
+ },
+ "/games/2026-09-06-italy-usa/": {
+  "date": "2026-09-06",
+  "hash": "f43cd1bf65d4d26e"
+ },
+ "/games/2026-09-06-puerto-rico-belgium/": {
+  "date": "2026-09-06",
+  "hash": "3f999f6acd8dc520"
+ },
+ "/games/2026-09-06-turkiye-australia/": {
+  "date": "2026-09-06",
+  "hash": "6d95b5b4f2d0f26f"
+ },
+ "/games/2026-09-07-belgium-australia/": {
+  "date": "2026-09-07",
+  "hash": "88eef2a21c21f44e"
+ },
+ "/games/2026-09-07-germany-mali/": {
+  "date": "2026-09-07",
+  "hash": "e7d671103bc2adbb"
+ },
+ "/games/2026-09-07-hungary-korea/": {
+  "date": "2026-09-07",
+  "hash": "07eeaeaec85d1799"
+ },
+ "/games/2026-09-07-italy-china/": {
+  "date": "2026-09-07",
+  "hash": "048800a689863140"
+ },
+ "/games/2026-09-07-japan-spain/": {
+  "date": "2026-09-07",
+  "hash": "5625805fde04ddcf"
+ },
+ "/games/2026-09-07-nigeria-france/": {
+  "date": "2026-09-07",
+  "hash": "5ffae11b8560abf8"
+ },
+ "/games/2026-09-07-puerto-rico-turkiye/": {
+  "date": "2026-09-07",
+  "hash": "23f8a66105ecab3b"
+ },
+ "/games/2026-09-07-usa-czechia/": {
+  "date": "2026-09-07",
+  "hash": "cca60dfc8b3e1947"
+ },
+ "/games/qqf-25/": {
+  "date": "2026-09-08",
+  "hash": "4db446ad7f2254fb"
+ },
+ "/games/qqf-26/": {
+  "date": "2026-09-08",
+  "hash": "b17ce88dc41b4e63"
+ },
+ "/groups/": {
+  "date": "2026-09-07",
+  "hash": "cff59078f77abca4"
+ },
+ "/leaders/": {
+  "date": "2026-09-08",
+  "hash": "a9900d0a696f0dcf"
+ },
+ "/teams/": {
+  "date": "2026-09-04",
+  "hash": "380de1bf4c34f192"
+ },
+ "/teams/australia/": {
+  "date": "2026-09-07",
+  "hash": "46ad86b861eae229"
+ },
+ "/teams/belgium/": {
+  "date": "2026-09-08",
+  "hash": "35bc3c6aa936cd25"
+ },
+ "/teams/china/": {
+  "date": "2026-09-07",
+  "hash": "6c84e0a2fa8911d7"
+ },
+ "/teams/czechia/": {
+  "date": "2026-09-07",
+  "hash": "0262c267115ed79e"
+ },
+ "/teams/france/": {
+  "date": "2026-09-07",
+  "hash": "272379887d48036c"
+ },
+ "/teams/germany/": {
+  "date": "2026-09-08",
+  "hash": "cf6dd0fdda86d0f5"
+ },
+ "/teams/hungary/": {
+  "date": "2026-09-09",
+  "hash": "4b52704e4c4c1d30"
+ },
+ "/teams/italy/": {
+  "date": "2026-09-07",
+  "hash": "16b94140eb30f1e1"
+ },
+ "/teams/japan/": {
+  "date": "2026-09-08",
+  "hash": "d90a8b45b1c50a1a"
+ },
+ "/teams/korea/": {
+  "date": "2026-09-08",
+  "hash": "f4c0be739a94f42a"
+ },
+ "/teams/mali/": {
+  "date": "2026-09-07",
+  "hash": "050a6853288127e5"
+ },
+ "/teams/nigeria/": {
+  "date": "2026-09-07",
+  "hash": "286246ae0d111ca1"
+ },
+ "/teams/puerto-rico/": {
+  "date": "2026-09-07",
+  "hash": "c66b0ec9d9fac197"
+ },
+ "/teams/spain/": {
+  "date": "2026-09-09",
+  "hash": "14aeacddd59321f3"
+ },
+ "/teams/turkiye/": {
+  "date": "2026-09-07",
+  "hash": "0d0136ee3870ea3e"
+ },
+ "/teams/usa/": {
+  "date": "2026-09-09",
+  "hash": "c71a2a88f3695558"
+ }
+}

@@ -197,7 +197,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add sites/wnba/public/index.html
           git add sites/wnba/public/players sites/wnba/public/teams sites/wnba/public/games
+          # sitemap_lastmod.json is STATE, not output: it carries each URL's
+          # last-changed date across builds. Uncommitted, every run would
+          # look like a first run and re-stamp all 251 URLs with today.
           git add sites/wnba/public/sitemap.xml sites/wnba/public/robots.txt
+          git add sites/wnba/public/sitemap_lastmod.json
           git add validation_report.json player_id_crosswalk.json
           git add usage_history.jsonl
           # Only commit if something actually changed (e.g. skip on an off-day).

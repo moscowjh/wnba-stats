@@ -8,9 +8,11 @@ PER-HOST facts (wnba., wwc., ncaaw. each need their own), so they are
 emitted per-league from the league's own ``base_url``, never hand-placed.
 """
 
+import hashlib
 import json
 import re
 import unicodedata
+from datetime import datetime, timezone
 from html import escape as esc
 
 
@@ -92,13 +94,90 @@ def social_tags(cfg, path, title, description, *, og_type="website",
     return tags
 
 
+def _page_file(cfg, path):
+    """The emitted file behind a sitemap path. Every page this repo publishes
+    is a directory index ('/players/foo/' -> public/players/foo/index.html),
+    which is what makes the content hash below possible at all."""
+    rel = path.strip("/")
+    return (cfg.public_dir / rel / "index.html") if rel else cfg.index_html
+
+
+def lastmod_path(cfg):
+    """State for `resolve_lastmod`, deliberately INSIDE public_dir.
+
+    Two reasons. It travels with the sitemap it describes, and a preview run
+    (which redirects public_dir via `public_dir_override`) writes its own copy
+    instead of corrupting production's — the same isolation `--preview` already
+    relies on. It is served at /sitemap_lastmod.json as a side effect; it holds
+    nothing but public paths, content hashes and dates.
+    """
+    return cfg.public_dir / "sitemap_lastmod.json"
+
+
+def resolve_lastmod(cfg, paths, today_iso=None):
+    """Per-URL lastmod = the date that URL's rendered bytes last changed.
+
+    Replaces stamping every URL with the build's data date, which was wrong in
+    two directions. A page created today announced a `lastmod` from before it
+    existed (the 15 team pages shipped 2026-09-08 carrying 2026-08-30), and a
+    template change that rewrote all 232 player pages moved no date at all.
+    Hashing what we actually wrote gets both right by construction, and needs
+    no emitter to remember to declare anything.
+
+    It also does the honest thing over a break: with no games, the pages really
+    are byte-identical, so their dates hold instead of advertising a freshness
+    that isn't there. In season the data date is printed on every page, so
+    every hash moves daily and the behaviour matches what it replaced.
+
+    State is MERGED, not replaced. Two callers write the WNBA sitemap
+    (build_player_pages.py, then build_team_pages.py with a superset), and a
+    replacing write would let the first truncate the second's history and
+    re-stamp every team page as new. Entries are pruned only when the page
+    itself is gone.
+
+    First run has no history, so everything gets `today_iso` — a one-time
+    reset, self-correcting from the next build on.
+    """
+    # The build's own UTC date, not the data date: this answers "when did
+    # these bytes change", and CI runs in UTC. Injectable for tests.
+    today_iso = today_iso or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    state_file = lastmod_path(cfg)
+    prior = {}
+    if state_file.exists():
+        try:
+            prior = json.loads(state_file.read_text())
+        except json.JSONDecodeError:
+            prior = {}   # corrupt state costs one day of dates, not the build
+
+    state = {p: rec for p, rec in prior.items() if _page_file(cfg, p).exists()}
+    out = {}
+    for p in paths:
+        f = _page_file(cfg, p)
+        if not f.exists():
+            # Nothing was emitted for a path we are about to publish. Keep any
+            # date we had rather than inventing one; the sitemap is not the
+            # right place to discover this.
+            out[p] = state.get(p, {}).get("date", today_iso)
+            continue
+        digest = hashlib.sha256(f.read_bytes()).hexdigest()[:16]
+        rec = state.get(p)
+        date = rec["date"] if rec and rec.get("hash") == digest else today_iso
+        out[p] = date
+        state[p] = {"hash": digest, "date": date}
+
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(json.dumps(state, indent=1, sort_keys=True) + "\n")
+    return out
+
+
 def sitemap_xml(cfg, paths, lastmod):
-    """One <url> per path, all stamped with the build's data date. The daily
-    build regenerates this whole file; lastmod moving forward each morning is
-    the truthful signal (the stats on every page really did update)."""
+    """One <url> per path. `lastmod` is either a single date for every URL or
+    a {path: date} map from `resolve_lastmod` — see there for why per-URL is
+    the truthful form."""
+    at = lastmod.get if isinstance(lastmod, dict) else (lambda p, d=lastmod: d)
     urls = "".join(
         f"  <url><loc>{esc(canonical_url(cfg, p))}</loc>"
-        f"<lastmod>{lastmod}</lastmod></url>\n"
+        f"<lastmod>{at(p)}</lastmod></url>\n"
         for p in paths
     )
     return (

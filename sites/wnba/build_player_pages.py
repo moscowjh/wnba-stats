@@ -679,7 +679,6 @@ def main():
 
     through_dt = pd.Timestamp(player_raw["game_date"].max())
     data_through = through_dt.strftime("%B %-d, %Y")
-    data_through_iso = through_dt.strftime("%Y-%m-%d")
 
     bios = load_or_fetch_bios(list(season["athlete_id"]), fetch=not args.no_fetch)
     hooks = load_hooks()
@@ -770,11 +769,12 @@ def main():
     (OUT_DIR / "index.html").write_text(render_index(entries, data_through))
 
     # This step knows every published URL, so the per-host SEO files are
-    # emitted here: sitemap.xml (all pages, lastmod = the data date) and
+    # emitted here: sitemap.xml (all pages, lastmod per URL — see
+    # sag.seo.resolve_lastmod) and
     # robots.txt (minimal + absolute Sitemap line; see sag.seo.robots_txt
     # for why the Cloudflare Content Signals block is NOT replicated).
     paths = ["/", "/players/"] + [f"/players/{s}/" for s in slugs]
-    seo.write_sitemap(WNBA, paths, data_through_iso)
+    seo.write_sitemap(WNBA, paths, seo.resolve_lastmod(WNBA, paths))
     seo.write_robots(WNBA)
 
     n = len(entries)

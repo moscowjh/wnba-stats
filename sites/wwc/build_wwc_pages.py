@@ -2907,36 +2907,29 @@ def main():
         if not box.get("_fixture"):
             paths.append(f"/games/{gid}/")
 
-    # lastmod is the tournament's own DATA date, never today's date: the
-    # pages genuinely have not changed since the data behind them did, and a
-    # lastmod that moves every build on a static programme site is a
-    # freshness claim we cannot back.
+    # lastmod is no longer computed here. `seo.resolve_lastmod` hashes what
+    # was actually written and dates each URL by when ITS bytes last changed,
+    # which is what the two-term max here used to approximate.
     #
-    # TWO sources, because the reference file alone is not the whole data
-    # date. `_schema.generated` covers editorial and roster edits; the date
-    # of the newest game we hold a result for covers the tournament itself.
-    # Without the second term the stamp freezes on Sep 4 and the sitemap
-    # spends the entire Cup claiming nothing changed while every Games,
-    # Groups and team page changes daily — the inverse of the over-claiming
-    # this comment was originally written to prevent, and just as wrong.
+    # The proxy is worth remembering, because it failed in both directions and
+    # the exact measurement fails in neither. `_schema.generated` alone froze
+    # the stamp on Sep 4 while every Games, Groups and team page changed daily
+    # (under-claiming); a stamp that moved every build would have claimed a
+    # freshness we could not back (over-claiming). Hashing needs no proxy and
+    # no emitter has to remember to declare anything.
     #
-    # Taking the max means the stamp advances when, and only when, something
-    # on the pages really moved. ISO dates compare correctly as strings, so
-    # no parsing is needed. Results whose game_id is not in the schedule are
-    # skipped rather than crashing the build on a match day.
-    #
-    # NOTE: `_schema.generated` is hand-maintained. It went stale once
-    # already — it still read 2026-08-19 on 2026-09-01, nine days after the
-    # real rosters for all 16 teams landed. Bump it in the same commit as
-    # any edit to this file's contents.
-    played = [rows_by_id[g]["date"] for g in results if g in rows_by_id]
-    lastmod = max([doc["_schema"]["generated"][:10]] + played)
+    # Consequence: `_schema.generated` now feeds nothing. It stays in the
+    # reference file as human provenance, but it is no longer load-bearing —
+    # so the note that used to live here, warning that it had gone stale for
+    # nine days and must be bumped by hand, no longer guards anything. An edit
+    # to that file changes the rendered pages, and the hash sees it.
+
     # `sag.seo` writes into cfg.public_dir, so a preview run redirects it via
     # the config's own override rather than by writing paths by hand — the
     # same move golden_check.py makes, and the reason that override exists.
     out_cfg = (dataclasses.replace(WWC, public_dir_override=pub)
                if args.preview else WWC)
-    seo.write_sitemap(out_cfg, paths, lastmod)
+    seo.write_sitemap(out_cfg, paths, seo.resolve_lastmod(out_cfg, paths))
     seo.write_robots(out_cfg)
 
     print(f"WWC pages -> {pub}: {len(paths)} in sitemap "
