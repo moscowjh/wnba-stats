@@ -158,24 +158,59 @@ def ff_to_html(df, table_id):
 
 # ── Data computation ──────────────────────────────────────────────────────
 
+def _read_boxes():
+    """Read the box-score CSVs and drop did-not-play rows. EVERY season type.
+
+    The shared base for both loaders below. Splitting it this way keeps the
+    read-and-clean step in one place, so the ONLY difference between the
+    aggregation frame and the presentation frame is the season filter."""
+    player = pd.read_csv(WNBA.player_box)
+    team   = pd.read_csv(WNBA.team_box)
+    player = player[player['did_not_play'] != True].copy()
+    return player, team.copy()
+
+
 def load_data():
-    """Load and clean the box-score CSVs.  Returns (player_raw, team_raw).
+    """Regular-season box scores.  Returns (player_raw, team_raw).
 
     Filters to regular-season games (season_type == 2) so every downstream
     aggregation, guard, and the Bluesky factoid operate on the same
-    regular-season-only frame. Postseason rows (season_type == 3), once the
-    playoffs begin, are carried in the CSVs but excluded here; a future playoff
-    view can select them explicitly. Guarded by a column check so a pre-migration
-    CSV (no season_type) still builds, treating all rows as regular season."""
-    player_raw = pd.read_csv(WNBA.player_box)
-    team_raw   = pd.read_csv(WNBA.team_box)
+    regular-season-only frame. This is the right frame for anything that
+    *totals* or *ranks* — leaders, standings, four factors, per-game averages:
+    WNBA season statistics are regular-season statistics, and folding playoff
+    games into them would be wrong, not merely different. Guarded by a column
+    check so a pre-migration CSV (no season_type) still builds, treating all
+    rows as regular season.
+
+    Anything that *displays a specific game* wants load_all_games() instead —
+    see the note there. `build_player_pages.py` shares this loader, so a player
+    page's splits and game log are likewise regular-season-only."""
+    player_raw, team_raw = _read_boxes()
     if 'season_type' in player_raw.columns:
-        player_raw = player_raw[player_raw['season_type'] == 2]
+        player_raw = player_raw[player_raw['season_type'] == 2].copy()
     if 'season_type' in team_raw.columns:
-        team_raw = team_raw[team_raw['season_type'] == 2]
-    player_raw = player_raw[player_raw['did_not_play'] != True].copy()
-    team_raw = team_raw.copy()
+        team_raw = team_raw[team_raw['season_type'] == 2].copy()
     return player_raw, team_raw
+
+
+def load_all_games():
+    """Every completed game, regular season AND postseason.  Returns
+    (player_all, team_all) — the frame the Games tab renders from.
+
+    Why this exists, and why it is a SEPARATE function rather than a flag:
+    the Games tab is a presentation surface, not an aggregation. It shows
+    "yesterday's finals" by selecting rows for one date, so a season filter
+    upstream of it does not shrink an average — it makes whole games vanish.
+    Before this split, load_data()'s season_type == 2 filter reached the Games
+    tab, and the first day of the playoffs would have rendered the day's
+    matchups (which come from the separately-fetched, unfiltered
+    schedule_today.json) above EMPTY box scores. The data was always correct;
+    fetch_data.py tags season_type 2/3 and keeps both.
+
+    Keep the two frames distinct. A future playoff surface that ranks or totals
+    postseason play should filter to season_type == 3 explicitly rather than
+    reaching for this one."""
+    return _read_boxes()
 
 
 # Core counting stats. A genuine did-not-play row has all of these blank;
@@ -1398,7 +1433,12 @@ def _sched_row(away, home, tip_et):
 
 def build_games_section(player_raw, team_raw):
     """Build the Games tab: today's schedule + yesterday's results with
-    inline box scores. Returns HTML string."""
+    inline box scores. Returns HTML string.
+
+    Takes the ALL-GAMES frames from load_all_games(), not load_data()'s
+    regular-season ones — a playoff game is still a game that needs a box
+    score. Passing the regular-season frame here renders the day's matchups
+    with nothing underneath them."""
     today = today_et()
     yest_et = today - timedelta(days=1)
 
@@ -1901,7 +1941,12 @@ def assemble_page(display_date, data_through_iso,
 
 def main():
     WNBA.ensure_dirs()
+    # Two frames, deliberately: player_raw/team_raw are regular-season only and
+    # feed every aggregation; player_all/team_all include the postseason and
+    # feed only the Games tab, which displays individual games. See load_data()
+    # and load_all_games().
     player_raw, team_raw = load_data()
+    player_all, team_all = load_all_games()
 
     through_dt   = pd.to_datetime(player_raw['game_date'].max())
     display_date = f"{through_dt.strftime('%B')} {through_dt.day}"
@@ -1928,7 +1973,7 @@ def main():
     )
 
     # Build each section
-    games_html         = build_games_section(player_raw, team_raw)
+    games_html         = build_games_section(player_all, team_all)
     standings_html     = build_standings_section(standings_df)
     leaders_html       = build_leaders_section(leaders, team_abbrevs)
     team_eff_html      = build_team_efficiency_section(ff_df, team_options)
