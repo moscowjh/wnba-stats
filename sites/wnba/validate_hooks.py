@@ -7,7 +7,9 @@ machine check, because "a human proofread it once" does not survive edits.
 Asserted, per live entry (underscore-prefixed keys are metadata):
   1. The slug maps to a rendered player page — an entry for a player who no
      longer renders is stale editorial nobody will ever see or re-verify.
-  2. `sentence` is a non-empty string.
+  2. At least one of `sentence` (the one-line Tier 1 slot) or `paragraph`
+     (the longer block added 2026-09-08) is a non-empty string; any field
+     that IS present is non-empty.
   3. `sources` is a LIST with >=1 item, each carrying a `url` and a
      non-empty verbatim `quote` (the quote is what survives link rot).
   4. `falsifiable_by_game` is exactly false — the author's explicit
@@ -51,8 +53,17 @@ def main():
     for slug, e in entries.items():
         check(slug in rendered, slug,
               "no rendered player page for this slug — stale entry?")
-        check(isinstance(e.get("sentence"), str) and e["sentence"].strip(),
-              slug, "missing or empty `sentence`")
+        # A live entry must carry SOMETHING to render: the one-line Tier 1
+        # `sentence`, the longer `paragraph` added 2026-09-08 for the indexing
+        # test, or both. An entry with neither is a sourced claim nobody sees.
+        has_sentence = isinstance(e.get("sentence"), str) and e["sentence"].strip()
+        has_paragraph = isinstance(e.get("paragraph"), str) and e["paragraph"].strip()
+        check(has_sentence or has_paragraph, slug,
+              "entry has neither a `sentence` nor a `paragraph`")
+        for field in ("sentence", "paragraph"):
+            if field in e:
+                check(isinstance(e[field], str) and e[field].strip(), slug,
+                      f"`{field}` present but empty")
         sources = e.get("sources")
         check(isinstance(sources, list) and len(sources) >= 1, slug,
               "`sources` must be a list with at least one source")
