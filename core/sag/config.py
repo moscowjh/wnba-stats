@@ -119,6 +119,22 @@ class LeagueConfig:
     def schedule_today(self) -> Path:
         return self.data_dir / "schedule_today.json"
 
+    @property
+    def schedule_upcoming(self) -> Path:
+        """Forward window of not-yet-played games, for "next game" on entity
+        pages. Deliberately a SEPARATE file from `schedule_today`, which the
+        Games tab reads and `golden_check` pins: a widened fetch must not be
+        able to move the landing page's bytes."""
+        return self.data_dir / "schedule_upcoming.json"
+
+    @property
+    def rosters(self) -> Path:
+        """Current rosters from ESPN's /teams/{id}/roster. A roster is the
+        first LIVE-STATE fact this site publishes — everything else derives
+        from completed games and is immutable once played, while this is
+        correct at the 7am build and can be wrong by noon."""
+        return self.data_dir / f"rosters_{self.season}.json"
+
     # ── Build outputs ────────────────────────────────────────────────────
     @property
     def page_output(self) -> Path:
