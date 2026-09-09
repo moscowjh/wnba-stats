@@ -287,53 +287,86 @@ def generated_sentence(bio):
 
 # Page-specific styles; the shared chrome (tokens, masthead, footer,
 # scroll fade) is prepended in PAGE_CSS below.
-_CARD_CSS = """\
-body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);
-  font-size:13px;padding:14px 10px;max-width:480px;margin:0 auto;line-height:1.45}
-a{color:var(--muted)}
-.pf{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px}
-.pf h1{color:var(--accent);font-size:15px;margin-bottom:2px;font-weight:normal}
-.mu{color:var(--muted);font-size:10px}
-.ac{color:var(--accent)}
-.hd{display:flex;gap:11px;align-items:flex-start}
-.mono{width:60px;height:60px;background:var(--surface);border:1px solid var(--border);
-  flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
-.mono .tm{color:var(--muted);font-size:9px}
-.mono .num{color:var(--accent);font-size:23px;margin-top:4px}
-.slot-ed{font-size:11px;line-height:1.65;margin-top:10px}
-.slot-gen{color:var(--muted);font-size:10px;line-height:1.7;margin-top:10px}
-.grid4{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:10px}
-.card{background:var(--surface);padding:7px 8px}
-.card .big{font-size:19px}
+#
+# RATIONALE LIVES HERE, NOT IN CSS COMMENTS. This block is inlined into all
+# 232 player pages, so a comment in the string is paid 232 times over the
+# wire; the tab site's equivalent is paid once. Python comments never ship.
+#
+# Typography, 2026-09-08 — variant B, matching sites/wwc. Stacks are imported
+# from build_stats_page (bsp.SANS / bsp.MONO) rather than redeclared, so the
+# two WNBA surfaces cannot drift from each other. Mono is scoped by the same
+# structural rule the tab site uses: in `table.s` the first column names the
+# split (season, opponent, date) and every other column is a quantity.
+#
+# The expand affordance, same date. The old cue was a leading "+" glyph and
+# the label "full splits & game log". Jason watched friends and family fail to
+# register it as tappable — on phones, where there is no hover state to fall
+# back on. Three changes, all aimed at that one failure:
+#   1. the copy leads with a verb ("See full splits & game log", in build_card)
+#   2. the summary is a flex row with a real chevron pinned right, where a
+#      disclosure control is expected to be
+#   3. the tap target goes from ~29px to ~43px, against Apple's 44px guidance
+# The chevron is drawn from two borders and ROTATES on open (down -> up), so
+# the control animates its own state rather than swapping one glyph for
+# another — which is what makes it read as a control at all.
+_CARD_CSS = f"""\
+body{{font-family:{bsp.SANS};background:var(--bg);color:var(--text);
+  font-size:13.5px;padding:14px 10px;max-width:480px;margin:0 auto;line-height:1.55;
+  -webkit-font-smoothing:antialiased}}
+a{{color:var(--muted)}}
+.pf{{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px}}
+.pf h1{{color:var(--accent);font-size:16px;margin-bottom:2px;font-weight:700;
+  letter-spacing:-.2px}}
+.mu{{color:var(--muted);font-size:10.5px}}
+.ac{{color:var(--accent)}}
+.hd{{display:flex;gap:11px;align-items:flex-start}}
+.mono{{width:60px;height:60px;background:var(--surface);border:1px solid var(--border);
+  flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}}
+.mono .tm{{color:var(--muted);font-size:9px}}
+.mono .num{{color:var(--accent);font-size:23px;margin-top:4px;font-family:{bsp.MONO}}}
+.slot-ed{{font-size:12px;line-height:1.65;margin-top:10px}}
+.slot-gen{{color:var(--muted);font-size:10.5px;line-height:1.7;margin-top:10px}}
+.grid4{{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:10px}}
+.card{{background:var(--surface);padding:7px 8px}}
+.card .big{{font-size:19px;font-family:{bsp.MONO};font-variant-numeric:tabular-nums;
+  font-weight:600}}
 /* the sub-line reserves its height whether or not it has content — keeps the 2-up grid even */
-.card .sub{font-size:10px;color:var(--muted);min-height:14px;line-height:14px}
-.card .sub.badge{color:var(--accent)}
-details.exp{margin-top:9px}
-details.exp>summary{background:var(--surface);border:1px solid var(--border);color:var(--muted);
-  font-size:10px;padding:6px 9px;cursor:pointer;list-style:none;text-align:left}
-details.exp>summary::-webkit-details-marker{display:none}
-details.exp>summary::before{content:"+ "}
-details.exp[open]>summary::before{content:"\\2212 "}
-details.exp>summary:hover{border-color:var(--accent);color:var(--accent)}
-.sec{color:var(--accent);font-size:10px;letter-spacing:1px;text-transform:uppercase;
-  border-bottom:1px solid var(--border);padding-bottom:4px;margin:12px 0 6px}
-.pf table.s{border-collapse:collapse;width:100%;white-space:nowrap;font-size:10px}
-.pf table.s th{color:var(--muted);text-align:left;padding:3px 4px;
-  border-bottom:1px solid var(--border);font-weight:normal}
-.pf table.s td{padding:3px 4px;border-bottom:1px solid var(--border)}
-details.inl{display:inline-block}
+.card .sub{{font-size:10px;color:var(--muted);min-height:14px;line-height:14px}}
+.card .sub.badge{{color:var(--accent)}}
+details.exp{{margin-top:9px}}
+details.exp>summary{{background:var(--surface);border:1px solid var(--border);color:var(--muted);
+  font-size:11px;padding:12px;cursor:pointer;list-style:none;text-align:left;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:500}}
+details.exp>summary::-webkit-details-marker{{display:none}}
+details.exp>summary::after{{content:"";flex:0 0 auto;width:6px;height:6px;
+  border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+  transform:rotate(45deg);transform-origin:center;margin-bottom:3px;
+  transition:transform .15s ease}}
+details.exp[open]>summary::after{{transform:rotate(225deg);margin-bottom:-2px}}
+details.exp>summary:hover{{border-color:var(--accent);color:var(--accent)}}
+.sec{{color:var(--accent);font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  border-bottom:1px solid var(--border);padding-bottom:4px;margin:12px 0 6px;
+  font-weight:700}}
+.pf table.s{{border-collapse:collapse;width:100%;white-space:nowrap;font-size:10.5px;
+  font-variant-numeric:tabular-nums}}
+.pf table.s th{{color:var(--muted);text-align:left;padding:3px 4px;
+  border-bottom:1px solid var(--border);font-weight:normal;
+  text-transform:uppercase;letter-spacing:.4px}}
+.pf table.s td{{padding:4px 4px;border-bottom:1px solid var(--border)}}
+.pf table.s td:not(:first-child){{font-family:{bsp.MONO}}}
+details.inl{{display:inline-block}}
 /* Tap-target padding lives on the summary; the dotted "clickable" cue lives
    on the inner span so it underlines the text itself rather than drawing at
    the padded box's bottom edge, where it collided with the number below. */
-details.inl>summary{list-style:none;cursor:pointer;
-  display:inline-block;padding:6px 10px 6px 0;margin:-6px 0 -6px 0}
-details.inl>summary::-webkit-details-marker{display:none}
-details.inl>summary .t{border-bottom:1px dotted var(--muted)}
-details.inl[open]>summary{color:var(--accent)}
-details.inl[open]>summary .t{border-bottom-color:var(--accent)}
-details.inl .body{position:absolute;width:215px;background:#000;border:1px solid var(--accent);
-  padding:8px 9px;font-size:10px;line-height:1.65;color:var(--text);z-index:20;margin-top:5px}
-.data-note{color:var(--muted);font-size:10px;margin-top:14px}
+details.inl>summary{{list-style:none;cursor:pointer;
+  display:inline-block;padding:6px 10px 6px 0;margin:-6px 0 -6px 0}}
+details.inl>summary::-webkit-details-marker{{display:none}}
+details.inl>summary .t{{border-bottom:1px dotted var(--muted)}}
+details.inl[open]>summary{{color:var(--accent)}}
+details.inl[open]>summary .t{{border-bottom-color:var(--accent)}}
+details.inl .body{{position:absolute;width:215px;background:#000;border:1px solid var(--accent);
+  padding:8px 9px;font-size:10px;line-height:1.65;color:var(--text);z-index:20;margin-top:5px}}
+.data-note{{color:var(--muted);font-size:10px;margin-top:14px}}
 """
 
 PAGE_CSS = (
@@ -545,7 +578,10 @@ def render_page(row, bio, ranks, lg_ts, games, game_meta,
     if generated:
         parts.append(f'<p class="slot-gen">{generated}</p>')
     parts.append(
-        '<details class="exp"><summary>full splits &amp; game log</summary>'
+        # Verb-led: "See ..." reads as an instruction to act, where the old
+        # bare noun phrase read as a heading. Paired with the chevron in
+        # _CARD_CSS — copy and affordance are the same fix.
+        '<details class="exp"><summary><span>See full splits &amp; game log</span></summary>'
         '<div class="sec">Full season</div>' + season_splits_table(row)
         + '<div class="sec">Game log</div>'
         + game_log_table(games, game_meta) + "</details>")

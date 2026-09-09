@@ -25,39 +25,50 @@
     --avg:#aaa;
   }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);
-  font-size:13px;padding:14px 10px;max-width:480px;margin:0 auto;line-height:1.45}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);
+  font-size:13.5px;padding:14px 10px;max-width:480px;margin:0 auto;line-height:1.55;
+  -webkit-font-smoothing:antialiased}
 a{color:var(--muted)}
 .pf{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px}
-.pf h1{color:var(--accent);font-size:15px;margin-bottom:2px;font-weight:normal}
-.mu{color:var(--muted);font-size:10px}
+.pf h1{color:var(--accent);font-size:16px;margin-bottom:2px;font-weight:700;
+  letter-spacing:-.2px}
+.mu{color:var(--muted);font-size:10.5px}
 .ac{color:var(--accent)}
 .hd{display:flex;gap:11px;align-items:flex-start}
 .mono{width:60px;height:60px;background:var(--surface);border:1px solid var(--border);
   flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
 .mono .tm{color:var(--muted);font-size:9px}
-.mono .num{color:var(--accent);font-size:23px;margin-top:4px}
-.slot-ed{font-size:11px;line-height:1.65;margin-top:10px}
-.slot-gen{color:var(--muted);font-size:10px;line-height:1.7;margin-top:10px}
+.mono .num{color:var(--accent);font-size:23px;margin-top:4px;font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace}
+.slot-ed{font-size:12px;line-height:1.65;margin-top:10px}
+.slot-gen{color:var(--muted);font-size:10.5px;line-height:1.7;margin-top:10px}
 .grid4{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:10px}
 .card{background:var(--surface);padding:7px 8px}
-.card .big{font-size:19px}
+.card .big{font-size:19px;font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;
+  font-weight:600}
 /* the sub-line reserves its height whether or not it has content — keeps the 2-up grid even */
 .card .sub{font-size:10px;color:var(--muted);min-height:14px;line-height:14px}
 .card .sub.badge{color:var(--accent)}
 details.exp{margin-top:9px}
 details.exp>summary{background:var(--surface);border:1px solid var(--border);color:var(--muted);
-  font-size:10px;padding:6px 9px;cursor:pointer;list-style:none;text-align:left}
+  font-size:11px;padding:12px;cursor:pointer;list-style:none;text-align:left;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:500}
 details.exp>summary::-webkit-details-marker{display:none}
-details.exp>summary::before{content:"+ "}
-details.exp[open]>summary::before{content:"\2212 "}
+details.exp>summary::after{content:"";flex:0 0 auto;width:6px;height:6px;
+  border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+  transform:rotate(45deg);transform-origin:center;margin-bottom:3px;
+  transition:transform .15s ease}
+details.exp[open]>summary::after{transform:rotate(225deg);margin-bottom:-2px}
 details.exp>summary:hover{border-color:var(--accent);color:var(--accent)}
 .sec{color:var(--accent);font-size:10px;letter-spacing:1px;text-transform:uppercase;
-  border-bottom:1px solid var(--border);padding-bottom:4px;margin:12px 0 6px}
-.pf table.s{border-collapse:collapse;width:100%;white-space:nowrap;font-size:10px}
+  border-bottom:1px solid var(--border);padding-bottom:4px;margin:12px 0 6px;
+  font-weight:700}
+.pf table.s{border-collapse:collapse;width:100%;white-space:nowrap;font-size:10.5px;
+  font-variant-numeric:tabular-nums}
 .pf table.s th{color:var(--muted);text-align:left;padding:3px 4px;
-  border-bottom:1px solid var(--border);font-weight:normal}
-.pf table.s td{padding:3px 4px;border-bottom:1px solid var(--border)}
+  border-bottom:1px solid var(--border);font-weight:normal;
+  text-transform:uppercase;letter-spacing:.4px}
+.pf table.s td{padding:4px 4px;border-bottom:1px solid var(--border)}
+.pf table.s td:not(:first-child){font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace}
 details.inl{display:inline-block}
 /* Tap-target padding lives on the summary; the dotted "clickable" cue lives
    on the inner span so it underlines the text itself rather than drawing at
