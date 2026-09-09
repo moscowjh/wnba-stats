@@ -109,8 +109,19 @@ jobs:
           python sites/wnba/validate_hooks.py
           python sites/wnba/build_player_pages.py
 
+      # Standalone box-score pages for PLAYOFF games only (regular-season box
+      # scores stay inline). Emits nothing but its own index until the
+      # postseason starts — the index ships early on purpose, because a new
+      # URL surface has an indexing lead time that no amount of content
+      # quality compresses (backlog Decisions Log, 2026-09-06).
+      #
+      # Runs BEFORE team pages, which writes the sitemap covering all three
+      # page families.
+      - name: Build playoff box-score pages
+        run: python sites/wnba/build_box_pages.py
+
       # Team pages MUST run after player pages: this step writes the sitemap
-      # covering BOTH families, so running it first would publish a sitemap
+      # covering ALL THREE page families, so running it first would publish a sitemap
       # with no player URLs. It derives the player slugs itself rather than
       # reading the previous step's output, so the file is still correct if
       # that ordering is ever disturbed — but the ordering is the contract.
@@ -176,7 +187,7 @@ jobs:
           git config user.name  "wnba-stats-bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add sites/wnba/public/index.html
-          git add sites/wnba/public/players sites/wnba/public/teams
+          git add sites/wnba/public/players sites/wnba/public/teams sites/wnba/public/games
           git add sites/wnba/public/sitemap.xml sites/wnba/public/robots.txt
           git add validation_report.json player_id_crosswalk.json
           git add usage_history.jsonl

@@ -53,6 +53,7 @@ import pandas as pd
 from sag import seo
 from sag.render import chrome
 
+import build_box_pages as bbp
 import build_stats_page as bsp
 from config import WNBA
 
@@ -517,7 +518,7 @@ def main():
     # record); all-games frame for the results list, so a playoff game shows
     # up the day it is played. Same split as build_stats_page.main().
     player_rs, team_rs = bsp.load_data()
-    _player_all, team_all = bsp.load_all_games()
+    player_all, team_all = bsp.load_all_games()
 
     standings = bsp.compute_standings(team_rs).reset_index(drop=True)
     through_dt = pd.Timestamp(player_rs["game_date"].max())
@@ -601,9 +602,15 @@ def main():
     # The sitemap covers BOTH page families. This step owns it because it runs
     # last; the player slugs are derived here rather than read back from the
     # previous step's output, so the file is correct regardless of ordering.
-    paths = (["/", "/players/", "/teams/"]
+    # /games/ is included even while empty: an event surface has an indexing
+    # lead time that content quality cannot compress (2026-09-06 decision), so
+    # the index wants to be crawlable BEFORE the playoffs, not on the day they
+    # start. Individual box-score URLs are derived through the same
+    # bsp.game_slug() the emitter uses.
+    paths = (["/", "/players/", "/teams/", "/games/"]
              + [f"/players/{s}/" for s in player_slugs]
-             + [f"/teams/{e['slug']}/" for e in entries])
+             + [f"/teams/{e['slug']}/" for e in entries]
+             + bbp.page_paths(player_all, team_all))
     seo.write_sitemap(WNBA, paths, data_through_iso)
 
     print(f"Wrote {len(entries)} team pages + index to {OUT_DIR}")

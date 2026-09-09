@@ -128,6 +128,13 @@ class LeagueConfig:
         return self.data_dir / "schedule_upcoming.json"
 
     @property
+    def series(self) -> Path:
+        """Per-game playoff-series state, one row per postseason game.
+        Written from the scoreboard's `series` object rather than derived
+        from dates and matchups — see fetch_data.parse_series()."""
+        return self.data_dir / f"series_{self.season}.json"
+
+    @property
     def rosters(self) -> Path:
         """Current rosters from ESPN's /teams/{id}/roster. A roster is the
         first LIVE-STATE fact this site publishes — everything else derives
