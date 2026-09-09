@@ -109,6 +109,19 @@ jobs:
           python sites/wnba/validate_hooks.py
           python sites/wnba/build_player_pages.py
 
+      # Team pages MUST run after player pages: this step writes the sitemap
+      # covering BOTH families, so running it first would publish a sitemap
+      # with no player URLs. It derives the player slugs itself rather than
+      # reading the previous step's output, so the file is still correct if
+      # that ordering is ever disturbed — but the ordering is the contract.
+      #
+      # Not allowed to fail. The team pages carry the roster links that are
+      # the crawl path to the 232 player pages, and a half-built /teams/ would
+      # leave the tab site's Standings/Totals/Efficiency links pointing at
+      # 404s — the two ship together for that reason (sequencing plan §6b).
+      - name: Build team pages
+        run: python sites/wnba/build_team_pages.py
+
       # Layer-2 external verification (validate_stats.py) — diffs our leader
       # boards against stats.wnba.com's API. Never blocks the site deploy
       # (continue-on-error), but its leaders_ok output gates the Bluesky post
@@ -163,7 +176,8 @@ jobs:
           git config user.name  "wnba-stats-bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add sites/wnba/public/index.html
-          git add sites/wnba/public/players sites/wnba/public/sitemap.xml sites/wnba/public/robots.txt
+          git add sites/wnba/public/players sites/wnba/public/teams
+          git add sites/wnba/public/sitemap.xml sites/wnba/public/robots.txt
           git add validation_report.json player_id_crosswalk.json
           git add usage_history.jsonl
           # Only commit if something actually changed (e.g. skip on an off-day).

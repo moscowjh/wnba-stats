@@ -2,6 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://wnba.statsataglance.com/</loc><lastmod>2026-08-30</lastmod></url>
   <url><loc>https://wnba.statsataglance.com/players/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/</loc><lastmod>2026-08-30</lastmod></url>
   <url><loc>https://wnba.statsataglance.com/players/kelsey-mitchell/</loc><lastmod>2026-08-30</lastmod></url>
   <url><loc>https://wnba.statsataglance.com/players/aja-wilson/</loc><lastmod>2026-08-30</lastmod></url>
   <url><loc>https://wnba.statsataglance.com/players/kahleah-copper/</loc><lastmod>2026-08-30</lastmod></url>
@@ -234,4 +235,19 @@
   <url><loc>https://wnba.statsataglance.com/players/darianna-littlepage-buggs/</loc><lastmod>2026-08-30</lastmod></url>
   <url><loc>https://wnba.statsataglance.com/players/morgan-maly/</loc><lastmod>2026-08-30</lastmod></url>
   <url><loc>https://wnba.statsataglance.com/players/iliana-rupert/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/minnesota-lynx/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/golden-state-valkyries/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/las-vegas-aces/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/indiana-fever/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/atlanta-dream/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/dallas-wings/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/new-york-liberty/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/washington-mystics/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/portland-fire/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/chicago-sky/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/los-angeles-sparks/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/phoenix-mercury/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/toronto-tempo/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/connecticut-sun/</loc><lastmod>2026-08-30</lastmod></url>
+  <url><loc>https://wnba.statsataglance.com/teams/seattle-storm/</loc><lastmod>2026-08-30</lastmod></url>
 </urlset>

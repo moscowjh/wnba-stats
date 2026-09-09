@@ -59,6 +59,8 @@ REQUIRED_TEAM_COLS = {"season_type"}
 PBP_CSV = CFG.pbp
 LINESCORE_JSON = CFG.linescores
 SCHEDULE_JSON = CFG.schedule_today
+UPCOMING_JSON = CFG.schedule_upcoming
+ROSTER_JSON = CFG.rosters
 # Where to reach ESPN's API.
 #
 # 2026-08-05: `site.api.espn.com` — the host used since the ESPN migration —
@@ -84,6 +86,8 @@ SCHEDULE_JSON = CFG.schedule_today
 ESPN_ORIGIN = os.environ.get("ESPN_ORIGIN", "https://site.web.api.espn.com").rstrip("/")
 ESPN_SCOREBOARD = f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba/scoreboard"
 ESPN_SUMMARY = f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba/summary"
+ESPN_TEAM_ROSTER = (f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba"
+                    "/teams/{tid}/roster")
 ET = ZoneInfo("America/New_York")
 MAX_STALENESS_DAYS = 2
 FETCH_DELAY = 0.5
@@ -830,6 +834,138 @@ def fetch_schedule() -> bool:
     return True
 
 
+def fetch_schedule_window(days: int = 21) -> bool:
+    """Fetch the next `days` days of not-yet-played games → schedule_upcoming.json.
+
+    Feeds "next game" on team pages. Written to its OWN file rather than
+    widening schedule_today.json, because that file is what the Games tab
+    reads and what golden_check pins — a forward window must not be able to
+    move the landing page's bytes.
+
+    ESPN's scoreboard accepts a `YYYYMMDD-YYYYMMDD` range in one call
+    (verified 2026-09-08: 20260909-20260930 returned 30 events across nine
+    dates), so this is one request, not one per day.
+
+    Carries the same `status` contract as fetch_schedule() and for the same
+    reason: "ok" with an empty list means ESPN says there is nothing
+    scheduled, "unavailable" means we never got an answer. A team page must
+    be able to tell "no game scheduled" from "we don't know" — the 2026-08-05
+    failure published the former while meaning the latter.
+
+    Fails SOFT. A missing forward window costs one line on a team page; it
+    must never fail the daily build that publishes the whole site.
+    """
+    today_et = datetime.now(ET).date()
+    end = today_et + timedelta(days=days)
+    span = f"{today_et.strftime('%Y%m%d')}-{end.strftime('%Y%m%d')}"
+
+    try:
+        data = espn_get(ESPN_SCOREBOARD, {"dates": span})
+    except Exception as e:
+        print(f"WARNING: upcoming-schedule fetch failed ({e}) — marking unavailable.")
+        UPCOMING_JSON.write_text(json.dumps(
+            {"from": str(today_et), "through": str(end), "status": "unavailable",
+             "error": str(e)[:200], "games": []}, indent=2))
+        return False
+
+    games = []
+    for event in data.get("events", []):
+        competition = event.get("competitions", [{}])[0]
+        competitors = competition.get("competitors", [])
+        if len(competitors) != 2:
+            continue
+        state = event.get("status", {}).get("type", {}).get("state", "pre")
+        # Only games that have not been played. The window starts today, and
+        # today's games are already handled by schedule_today.json.
+        if state != "pre":
+            continue
+
+        teams = {}
+        for comp in competitors:
+            teams[comp.get("homeAway", "")] = _tla(
+                comp.get("team", {}).get("abbreviation", ""))
+
+        utc_str = event.get("date", "")
+        game_date, tip_et = "", ""
+        if utc_str:
+            try:
+                et_dt = datetime.fromisoformat(
+                    utc_str.replace("Z", "+00:00")).astimezone(ET)
+                game_date = et_dt.strftime("%Y-%m-%d")
+                tip_et = et_dt.strftime("%-I:%M %p ET")
+            except Exception:
+                pass
+
+        games.append({
+            "date": game_date,
+            "away": teams.get("away", ""),
+            "home": teams.get("home", ""),
+            "tip_et": tip_et,
+            "season_type": event.get("season", {}).get("type"),
+        })
+
+    games.sort(key=lambda g: (g["date"], g["tip_et"]))
+    UPCOMING_JSON.write_text(json.dumps(
+        {"from": str(today_et), "through": str(end), "status": "ok",
+         "games": games}, indent=2))
+    print(f"Upcoming through {end}: {len(games)} game(s) → {UPCOMING_JSON.name}")
+    return True
+
+
+def fetch_rosters(team_ids: dict[int, str]) -> bool:
+    """Fetch each team's CURRENT roster → rosters_{season}.json.
+
+    `team_ids` maps ESPN team_id → team abbreviation, taken from the box
+    scores we already have, so this never needs a hardcoded team list and
+    picks up expansion clubs for free.
+
+    Scope, settled by the 2026-08-16 probe and re-confirmed 2026-08-18:
+    the current roster, and nothing derived from it. **Injured/developmental
+    designations are deliberately NOT carried** — every athlete this endpoint
+    returns reads `Active` (re-verified 2026-09-08), so there is no status
+    taxonomy here and we do not invent one. A page that showed a fabricated
+    designation would be worse than one that shows none.
+
+    This is the first LIVE-STATE fact the site publishes: every other number
+    derives from a completed game and cannot change, while a roster is correct
+    at the 7am build and can be wrong by noon with no game to correct it.
+    Hence the per-team `status` — a team whose fetch failed is rendered as
+    unknown, never as an empty roster.
+
+    Fails SOFT overall; returns False if any team failed.
+    """
+    teams, ok = {}, True
+    for tid, abbr in sorted(team_ids.items()):
+        try:
+            data = espn_get(ESPN_TEAM_ROSTER.format(tid=tid))
+        except Exception as e:
+            print(f"  WARNING: roster fetch failed for {abbr} ({e})")
+            teams[abbr] = {"status": "unavailable", "error": str(e)[:200],
+                           "players": []}
+            ok = False
+            continue
+
+        players = []
+        for a in data.get("athletes", []):
+            pos = (a.get("position") or {})
+            players.append({
+                "athlete_id": str(a.get("id", "")),
+                "name": a.get("displayName", ""),
+                "jersey": a.get("jersey", ""),
+                "position": pos.get("abbreviation", "") or pos.get("name", ""),
+            })
+        teams[abbr] = {"status": "ok", "team_id": tid,
+                       "team_name": data.get("team", {}).get("displayName", ""),
+                       "players": players}
+        time.sleep(FETCH_DELAY)
+
+    n = sum(len(t["players"]) for t in teams.values())
+    ROSTER_JSON.write_text(json.dumps(
+        {"fetched": str(datetime.now(ET).date()), "teams": teams}, indent=2))
+    print(f"Rosters: {n} players across {len(teams)} teams → {ROSTER_JSON.name}")
+    return ok
+
+
 # ── Main ─────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -949,6 +1085,24 @@ def main() -> None:
               f"({len(new_linescores)} new, {len(existing_ls)} total)")
 
     schedule_ok = fetch_schedule()
+
+    # Team-page inputs. Both fail SOFT and are deliberately left out of the
+    # `problems` list below: a missing forward window costs one line on a team
+    # page and a missing roster is rendered as unknown, but neither is a reason
+    # to withhold the whole site. The landing page does not read either file.
+    fetch_schedule_window()
+    # ESPN team_id -> TLA, taken from the box scores we already have rather
+    # than a hardcoded list, so an expansion club appears the day it plays.
+    frames = [f for f in (old_team,
+                          pd.DataFrame(new_team_rows) if new_team_rows else None)
+              if f is not None and len(f)]
+    if frames:
+        allteams = pd.concat(frames, ignore_index=True)
+        fetch_rosters({int(k): str(v) for k, v in
+                       allteams.drop_duplicates("team_id")
+                       .set_index("team_id")["team_abbreviation"].items()})
+    else:
+        print("WARNING: no team ids available — skipping roster fetch.")
 
     # ── Fail loud on an incomplete fetch ──────────────────────────────────
     #

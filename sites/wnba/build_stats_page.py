@@ -102,7 +102,12 @@ def df_to_html(df, table_id, lg_avg=False, data_col=None, data_attr='data-team')
         attr = ''
         if data_col and not is_lg:
             attr = f' {data_attr}="{esc(str(row[data_col]))}"'
-        cells = ''.join(f'<td>{v}</td>' for v in row)
+        # The Team cell links to that team's page; every other cell is plain.
+        # Done on the DISPLAY value only — `row[data_col]` still holds the bare
+        # name, which the matchup-filter JS reads via data-team.
+        cells = ''.join(
+            f'<td>{team_href(v)}</td>' if c == 'Team' else f'<td>{v}</td>'
+            for c, v in zip(df.columns, row))
         rows += f'<tr{cls}{attr}>{cells}</tr>\n'
     headers = ''.join(
         f'<th onclick="sortTable(\'{table_id}\',{i})">{h}</th>'
@@ -125,7 +130,10 @@ def ff_to_html(df, table_id):
         is_avg = row['Team'] == 'League Average'
         cls = ' class="lg-avg"' if is_avg else ''
         attr = '' if is_avg else f' data-team="{esc(str(row["Team"]))}"'
-        cells = ''.join(f'<td>{v if pd.notna(v) else "\u2014"}</td>' for v in row)
+        cells = ''.join(
+            (f'<td>{team_href(v)}</td>' if c == 'Team'
+             else f'<td>{v if pd.notna(v) else "\u2014"}</td>')
+            for c, v in zip(df.columns, row))
         rows += f'<tr{cls}{attr}>{cells}</tr>\n'
     return f'''
     <div class="table-scroll"><div class="table-wrap">
@@ -892,8 +900,33 @@ def emit_social_payload(player_raw, leaders, display_date, data_through_iso,
 
 # ── HTML section builders ─────────────────────────────────────────────────
 
+#: Rows that carry a team's NAME but are not a team. These must never link.
+_NOT_A_TEAM = {'League Average'}
+
+
+def team_href(name):
+    """Team name as a link to its page, or as plain text when it isn't a team.
+
+    The one place a team page URL is constructed on this site. Uses the same
+    `seo.slugify` the emitter uses, so a link here and the directory
+    build_team_pages.py writes cannot disagree — the same guarantee
+    player_row() relies on for player pages.
+
+    Correct-or-blank: the League Average row appears in the Team column of two
+    tables and has no page, so it renders as text. §6b requires team pages and
+    these links to ship in ONE merge for exactly this reason — links without
+    pages are 404s, and pages without links are undiscoverable.
+    """
+    s = str(name)
+    if not s or s in _NOT_A_TEAM:
+        return esc(s)
+    return f'<a class="pl" href="/teams/{seo.slugify(s)}/">{esc(s)}</a>'
+
+
 def _color_cell(col, val):
     """Apply red/green styling to Streak and +/- cells."""
+    if col == 'Team':
+        return f'<td>{team_href(val)}</td>'
     s = str(val)
     if col == 'Strk':
         if s.startswith('W'):
@@ -1907,7 +1940,27 @@ function backToGames() {
   document.querySelectorAll('.gm-box').forEach(function(s) { s.style.display = 'none'; });
   document.getElementById('games-view').style.display = 'block';
   window.scrollTo(0, 0);
-}"""
+}
+/* Deep links into a tab, added 2026-09-08 with the team pages.
+   Every tab is a `display:none` div until a click activates it, so before
+   this a fragment like /#teamtotals scrolled to a hidden element and
+   appeared to do nothing at all. The team pages' link row points here, so
+   without this they would ship as links that silently fail — the same class
+   of defect as linking to a 404.
+   Guarded on every side: the id must be a known section AND have a matching
+   tab button, and the pattern test keeps an attacker-supplied fragment out
+   of the selector. An absent or unrecognised hash leaves Games active, which
+   is the pre-existing behaviour. Also bound to hashchange so a link followed
+   while already on the page works the same as one followed on arrival. */
+function openTabFromHash() {
+  var id = (location.hash || '').replace(/^#/, '');
+  if (!/^[a-z][a-z0-9-]*$/.test(id)) return;
+  var sec = document.getElementById(id);
+  var btn = document.querySelector('.tab[data-tab="' + id + '"]');
+  if (sec && btn && sec.classList.contains('section')) showTab(id, btn);
+}
+window.addEventListener('DOMContentLoaded', openTabFromHash);
+window.addEventListener('hashchange', openTabFromHash);"""
 )
 
 
