@@ -96,14 +96,14 @@ EXPECTED = {
     "qqf-26": ("HUNGARY", "MALI"),                 # 2nd B - 3rd A
     "qqf-27": ("PUERTO RICO", "CZECHIA"),          # 3rd C - 2nd D
     "qqf-28": ("ITALY", "BELGIUM"),                # 3rd D - 2nd C
-    "qf-29": ("GERMANY", "PUERTO RICO"),           # 1st A - W27
-    "qf-30": ("FRANCE", "BELGIUM"),                # 1st B - W28
+    "qf-29": ("CHINA", "HUNGARY"),                 # 1st D - W26
+    "qf-30": ("FRANCE", "BELGIUM"),                # W28 - 1st B
     "qf-31": ("JAPAN", "AUSTRALIA"),               # 1st C - W25, stored reversed
-    "qf-32": ("CHINA", "HUNGARY"),                 # 1st D - W26
-    "sf-33": ("GERMANY", "CHINA"),                 # W29 - W32
+    "qf-32": ("GERMANY", "PUERTO RICO"),           # W27 - 1st A
+    "sf-33": ("CHINA", "GERMANY"),                 # W29 - W32
     "sf-34": ("FRANCE", "AUSTRALIA"),              # W30 - W31
-    "third-place": ("CHINA", "AUSTRALIA"),         # L33 - L34
-    "final": ("GERMANY", "FRANCE"),                # W33 - W34
+    "third-place": ("GERMANY", "AUSTRALIA"),       # L33 - L34
+    "final": ("CHINA", "FRANCE"),                  # W33 - W34
 }
 
 #: The rule text a reader sees on an unresolved side. Locks `_RULE_WORDS`,
@@ -115,10 +115,10 @@ EXPECTED_SIDE_TEXT = {
     "qqf-26": ("2nd Grp B", "3rd Grp A"),
     "qqf-27": ("3rd Grp C", "2nd Grp D"),
     "qqf-28": ("3rd Grp D", "2nd Grp C"),
-    "qf-29": ("1st Grp A", "QF Qual winner"),
+    "qf-29": ("1st Grp D", "QF Qual winner"),
     "qf-30": ("1st Grp B", "QF Qual winner"),
     "qf-31": ("1st Grp C", "QF Qual winner"),
-    "qf-32": ("1st Grp D", "QF Qual winner"),
+    "qf-32": ("1st Grp A", "QF Qual winner"),
     "sf-33": ("QF winner", "QF winner"),
     "sf-34": ("QF winner", "QF winner"),
     "third-place": ("SF loser", "SF loser"),
@@ -139,9 +139,9 @@ EXPECTED_STATUS = {
     "BELGIUM": "Eliminated — lost the quarter-final",
     "JAPAN": "Eliminated — lost the quarter-final",
     "HUNGARY": "Eliminated — lost the quarter-final",
-    "CHINA": "3rd place",
+    "GERMANY": "3rd place",
     "AUSTRALIA": "4th place",
-    "GERMANY": "Champion",
+    "CHINA": "Champion",
     "FRANCE": "Runner-up",
 }
 
@@ -267,7 +267,7 @@ def main():
         slots = B.resolve_slots(rows, doc, results)
         want = {"qqf-25": ("JAPAN", None),      # 2nd A - 3rd B
                 "qqf-26": (None, "MALI"),       # 2nd B - 3rd A
-                "qf-29": ("GERMANY", None)}     # 1st A - W27
+                "qf-32": ("GERMANY", None)}     # W27 - 1st A
         bad = [f"{gid}: {slots.get(gid)}, expected {pair}"
                for gid, pair in want.items() if slots.get(gid) != pair]
         resolved = {k for k, v in slots.items() if v != (None, None)}

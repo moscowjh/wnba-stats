@@ -27,10 +27,10 @@ game_no,date,phase,group,team_1,team_2,tip_cest,tip_gmt,tip_et,time_tba,venue_sl
 26,2026-09-08,qualification_to_qf,,TBD,TBD,17:45 or 20:45,,,TRUE,,2nd B - 3rd A
 27,2026-09-09,qualification_to_qf,,TBD,TBD,17:45 or 20:45,,,TRUE,,3rd C - 2nd D
 28,2026-09-09,qualification_to_qf,,TBD,TBD,17:45 or 20:45,,,TRUE,,3rd D - 2nd C
-29,2026-09-10,quarter_final,,TBD,TBD,11:30,09:30,05:30,FALSE,,W27 - 1st A  [QF slot 1; game_no mapping assumed]
-30,2026-09-10,quarter_final,,TBD,TBD,14:30,12:30,08:30,FALSE,,W28 - 1st B  [QF slot 2; game_no mapping assumed]
-31,2026-09-10,quarter_final,,TBD,TBD,17:45,15:45,11:45,FALSE,,1st C - W25  [QF slot 3; game_no mapping assumed]
-32,2026-09-10,quarter_final,,TBD,TBD,20:45,18:45,14:45,FALSE,,1st D - W26  [QF slot 4; game_no mapping assumed]
+29,2026-09-10,quarter_final,,TBD,TBD,11:30,09:30,05:30,FALSE,,1st D - W26  [slot verified 2026-09-09 vs ESPN: USA v Hungary]
+30,2026-09-10,quarter_final,,TBD,TBD,14:30,12:30,08:30,FALSE,,W28 - 1st B  [slot verified 2026-09-09 vs ESPN: France v TBD]
+31,2026-09-10,quarter_final,,TBD,TBD,17:45,15:45,11:45,FALSE,,1st C - W25  [slot verified 2026-09-09 vs ESPN: Belgium v Germany]
+32,2026-09-10,quarter_final,,TBD,TBD,20:45,18:45,14:45,FALSE,,W27 - 1st A  [slot verified 2026-09-09 vs ESPN: Spain v TBD]
 33,2026-09-12,semi_final,,TBD,TBD,16:30 or 20:00,,,TRUE,,W29 - W32
 34,2026-09-12,semi_final,,TBD,TBD,16:30 or 20:00,,,TRUE,,W30 - W31
 ,2026-09-13,third_place,,TBD,TBD,16:30,14:30,10:30,FALSE,,L33 - L34  [no game number in official schedule]
