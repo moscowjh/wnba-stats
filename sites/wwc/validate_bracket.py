@@ -91,19 +91,26 @@ REVERSED_RULE_ORDER = {"qf-31": ("AUSTRALIA", "JAPAN")}
 #: from `matchup_rule` in the schedule CSV plus PLACINGS above — never pasted
 #: from this code's output. `qf-31` is listed in its stored (reversed) order,
 #: which is what the page must render.
+#:
+#: Read the `matchup_rule` comments, not the ids: FIBA does NOT number the
+#: knockout rounds chronologically, so `qf-29` is the LAST quarter-final and
+#: `qf-32` the first. Renumbering them into date order is the 2026-09-10 bug
+#: (USA-Hungary rendered twice, Australia-Spain not at all) — the numbers are
+#: FIBA's, cross-checked against its own teamAFrom/teamBFrom, and the ids look
+#: out of order here because they genuinely are.
 EXPECTED = {
     "qqf-25": ("JAPAN", "KOREA"),                  # 2nd A - 3rd B
     "qqf-26": ("HUNGARY", "MALI"),                 # 2nd B - 3rd A
-    "qqf-27": ("PUERTO RICO", "CZECHIA"),          # 3rd C - 2nd D
-    "qqf-28": ("ITALY", "BELGIUM"),                # 3rd D - 2nd C
-    "qf-29": ("CHINA", "HUNGARY"),                 # 1st D - W26
-    "qf-30": ("FRANCE", "BELGIUM"),                # W28 - 1st B
+    "qqf-27": ("ITALY", "BELGIUM"),                # 3rd D - 2nd C
+    "qqf-28": ("PUERTO RICO", "CZECHIA"),          # 3rd C - 2nd D
+    "qf-29": ("GERMANY", "ITALY"),                 # W27 - 1st A
+    "qf-30": ("FRANCE", "CZECHIA"),                # W28 - 1st B
     "qf-31": ("JAPAN", "AUSTRALIA"),               # 1st C - W25, stored reversed
-    "qf-32": ("GERMANY", "PUERTO RICO"),           # W27 - 1st A
-    "sf-33": ("CHINA", "GERMANY"),                 # W29 - W32
+    "qf-32": ("CHINA", "HUNGARY"),                 # 1st D - W26
+    "sf-33": ("GERMANY", "CHINA"),                 # W29 - W32
     "sf-34": ("FRANCE", "AUSTRALIA"),              # W30 - W31
-    "third-place": ("GERMANY", "AUSTRALIA"),       # L33 - L34
-    "final": ("CHINA", "FRANCE"),                  # W33 - W34
+    "third-place": ("CHINA", "AUSTRALIA"),         # L33 - L34
+    "final": ("GERMANY", "FRANCE"),                # W33 - W34
 }
 
 #: The rule text a reader sees on an unresolved side. Locks `_RULE_WORDS`,
@@ -113,12 +120,12 @@ EXPECTED = {
 EXPECTED_SIDE_TEXT = {
     "qqf-25": ("2nd Grp A", "3rd Grp B"),
     "qqf-26": ("2nd Grp B", "3rd Grp A"),
-    "qqf-27": ("3rd Grp C", "2nd Grp D"),
-    "qqf-28": ("3rd Grp D", "2nd Grp C"),
-    "qf-29": ("1st Grp D", "QF Qual winner"),
+    "qqf-27": ("3rd Grp D", "2nd Grp C"),
+    "qqf-28": ("3rd Grp C", "2nd Grp D"),
+    "qf-29": ("1st Grp A", "QF Qual winner"),
     "qf-30": ("1st Grp B", "QF Qual winner"),
     "qf-31": ("1st Grp C", "QF Qual winner"),
-    "qf-32": ("1st Grp A", "QF Qual winner"),
+    "qf-32": ("1st Grp D", "QF Qual winner"),
     "sf-33": ("QF winner", "QF winner"),
     "sf-34": ("QF winner", "QF winner"),
     "third-place": ("SF loser", "SF loser"),
@@ -133,15 +140,15 @@ EXPECTED_STATUS = {
     "USA": "Eliminated — 4th in Group D",
     "KOREA": "Eliminated — lost the qualification play-off",
     "MALI": "Eliminated — lost the qualification play-off",
-    "CZECHIA": "Eliminated — lost the qualification play-off",
-    "ITALY": "Eliminated — lost the qualification play-off",
-    "PUERTO RICO": "Eliminated — lost the quarter-final",
-    "BELGIUM": "Eliminated — lost the quarter-final",
+    "PUERTO RICO": "Eliminated — lost the qualification play-off",
+    "BELGIUM": "Eliminated — lost the qualification play-off",
+    "CZECHIA": "Eliminated — lost the quarter-final",
+    "ITALY": "Eliminated — lost the quarter-final",
     "JAPAN": "Eliminated — lost the quarter-final",
     "HUNGARY": "Eliminated — lost the quarter-final",
-    "GERMANY": "3rd place",
+    "CHINA": "3rd place",
     "AUSTRALIA": "4th place",
-    "CHINA": "Champion",
+    "GERMANY": "Champion",
     "FRANCE": "Runner-up",
 }
 
@@ -267,7 +274,7 @@ def main():
         slots = B.resolve_slots(rows, doc, results)
         want = {"qqf-25": ("JAPAN", None),      # 2nd A - 3rd B
                 "qqf-26": (None, "MALI"),       # 2nd B - 3rd A
-                "qf-32": ("GERMANY", None)}     # W27 - 1st A
+                "qf-29": ("GERMANY", None)}     # W27 - 1st A
         bad = [f"{gid}: {slots.get(gid)}, expected {pair}"
                for gid, pair in want.items() if slots.get(gid) != pair]
         resolved = {k for k, v in slots.items() if v != (None, None)}
