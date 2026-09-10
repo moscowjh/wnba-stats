@@ -1,11 +1,11 @@
 {
  "/": {
-  "date": "2026-09-09",
-  "hash": "4a201a03dcf4908d"
+  "date": "2026-09-10",
+  "hash": "35b0250baac38f5c"
  },
  "/games/": {
-  "date": "2026-09-09",
-  "hash": "eee662e17aabd52a"
+  "date": "2026-09-10",
+  "hash": "e61e59936ef69d1e"
  },
  "/games/2026-09-04-australia-puerto-rico/": {
   "date": "2026-09-04",
@@ -132,8 +132,8 @@
   "hash": "380de1bf4c34f192"
  },
  "/teams/australia/": {
-  "date": "2026-09-09",
-  "hash": "84fcd01102f96650"
+  "date": "2026-09-10",
+  "hash": "4c3d7352d962a838"
  },
  "/teams/belgium/": {
   "date": "2026-09-08",
@@ -156,8 +156,8 @@
   "hash": "cf6dd0fdda86d0f5"
  },
  "/teams/hungary/": {
-  "date": "2026-09-09",
-  "hash": "4b52704e4c4c1d30"
+  "date": "2026-09-10",
+  "hash": "3fa4c2dbe08a2302"
  },
  "/teams/italy/": {
   "date": "2026-09-09",
@@ -184,15 +184,15 @@
   "hash": "41cdb2ea97492ba8"
  },
  "/teams/spain/": {
-  "date": "2026-09-09",
-  "hash": "cdf00719c5cc6301"
+  "date": "2026-09-10",
+  "hash": "504af0b8c922aee1"
  },
  "/teams/turkiye/": {
   "date": "2026-09-07",
   "hash": "0d0136ee3870ea3e"
  },
  "/teams/usa/": {
-  "date": "2026-09-09",
-  "hash": "c71a2a88f3695558"
+  "date": "2026-09-10",
+  "hash": "6bb03225084771cb"
  }
 }
