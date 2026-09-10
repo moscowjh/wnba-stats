@@ -167,10 +167,12 @@ jobs:
       #
       # ⚠️ BOTH SITES ARE SNAPSHOTTED HERE, in the WNBA workflow, and that is
       # deliberate (2026-09-06). usage_history.jsonl is ONE shared file and
-      # this workflow is its only writer: the commit step below pushes without
-      # a `git pull --rebase` because it runs first each morning, so a second
-      # workflow appending to the same file would race it — and wwc.yml is
-      # dispatched on the same 11:17 UTC trigger. One writer, one commit.
+      # this workflow is its ONLY WRITER — wwc.yml stages nothing but
+      # sites/wwc/public. That rule is about CONTENT, and it is what keeps the
+      # rebase in the commit step below trivial: the two workflows touch
+      # disjoint paths, so their commits never conflict. Do not add a second
+      # writer of this file; wwc.yml shares the 11:17 UTC dispatch and would
+      # race it in a way no rebase can resolve.
       #
       # The cost of that choice: a WNBA fetch failure aborts the job before
       # this step, taking the WWC rollup down with it. Bounded on purpose —
@@ -209,6 +211,13 @@ jobs:
             echo "No changes to publish today."
           else
             git commit -m "Daily stats update: $(date -u +'%Y-%m-%d')"
+            # wwc.yml rides the SAME 11:17 UTC dispatch and finishes in ~50s
+            # while this job spends ~5min fetching, so when the WWC build has
+            # anything to commit it lands on main first and this push is
+            # rejected (2026-09-04 and 2026-09-10 both died here, taking the
+            # deploy and the Bluesky post with them). Starting first is not
+            # finishing first — rebase, exactly as wwc.yml does.
+            git pull --rebase
             git push
           fi
 

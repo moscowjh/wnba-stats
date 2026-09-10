@@ -54,10 +54,10 @@ on:
   #
   # ⚠️ THIS SITE'S USAGE SNAPSHOT IS TAKEN IN build.yml, not here — do not add
   # a `usage_report.py --snapshot --site wwc` step to this workflow.
-  # usage_history.jsonl is one shared file, build.yml is its only writer and
-  # pushes without a `git pull --rebase`, and this workflow shares its 11:17
-  # UTC dispatch. A second writer would race it. See the "Snapshot usage
-  # stats" step over there.
+  # usage_history.jsonl is one shared file and build.yml is its only writer;
+  # this workflow shares its 11:17 UTC dispatch, so a second writer would race
+  # it on the file's CONTENTS — something neither side's rebase can fix. See
+  # the "Snapshot usage stats" step over there.
   push:
     branches: [main]
     paths:
