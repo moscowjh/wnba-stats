@@ -31,7 +31,7 @@ game_no,date,phase,group,team_1,team_2,tip_cest,tip_gmt,tip_et,time_tba,venue_sl
 30,2026-09-10,quarter_final,,TBD,TBD,14:30,12:30,08:30,FALSE,,W28 - 1st B  [slot verified 2026-09-09 vs ESPN: France v TBD]
 31,2026-09-10,quarter_final,,TBD,TBD,17:45,15:45,11:45,FALSE,,1st C - W25  [slot verified 2026-09-09 vs ESPN: Belgium v Germany]
 29,2026-09-10,quarter_final,,TBD,TBD,20:45,18:45,14:45,FALSE,,W27 - 1st A  [game no. is FIBA's, not chronological: verified 2026-09-10 vs FIBA teamAFrom/teamBFrom 'Winner of Game 27' v '1st of group A' = Australia v Spain]
-33,2026-09-12,semi_final,,TBD,TBD,16:30 or 20:00,,,TRUE,,W29 - W32
-34,2026-09-12,semi_final,,TBD,TBD,16:30 or 20:00,,,TRUE,,W30 - W31
+34,2026-09-12,semi_final,,TBD,TBD,16:30,14:30,10:30,FALSE,,W30 - W31  [times announced by FIBA, read off its schedule 2026-09-10: game 34 = 2026-09-12T14:30Z]
+33,2026-09-12,semi_final,,TBD,TBD,20:00,18:00,14:00,FALSE,,W29 - W32  [times announced by FIBA, read off its schedule 2026-09-10: game 33 = 2026-09-12T18:00Z; rows swapped so file order stays chronological, which is display order]
 ,2026-09-13,third_place,,TBD,TBD,16:30,14:30,10:30,FALSE,,L33 - L34  [no game number in official schedule]
 ,2026-09-13,final,,TBD,TBD,20:00,18:00,14:00,FALSE,,W33 - W34  [no game number in official schedule]
