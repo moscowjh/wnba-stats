@@ -1,0 +1,23 @@
+when_et,platform,what,utm_tag
+# One row per public post. This file is the only record of WHY traffic moved:
+# Analytics Engine can say 22 people arrived at 15:00 UTC, never that a post
+# went out at 14:47. Read by:  python usage_report.py --hourly --site wwc
+#
+# when_et  LOCAL wall-clock (America/New_York), format YYYY-MM-DD HH:MM.
+#          An EVENING ET POST LANDS ON THE NEXT UTC DAY - 9pm ET is 01:00 UTC
+#          tomorrow, so look for it under the following --date, not this one.
+# utm_tag  the ?utm_source= value in the link you posted; blank if the post
+#          carried no tagged link (then proximity is the only evidence).
+#          Convention (agreed 2026-09-09): manual WWC links should carry
+#          ?utm_source=bluesky-manual, appended directly in the post text
+#          before publishing (Bluesky preserves the query string in the
+#          card's embed URI even though the visible card only shows the
+#          domain). Distinct from the automated card's bluesky-post and the
+#          bio link's bluesky-bio. Posts before 2026-09-09 predate this
+#          convention and are correctly blank, not missing data.
+2026-09-03 14:54,bluesky,"Guide to all 16 WWC teams (rules, schedule ET+local times, rosters w/ WNBA connections)",
+2026-09-03 21:01,bluesky,"Bracket format explainer: win your group and skip to QF, finish 4th and you're out",
+2026-09-04 22:31,bluesky,"Spain talent reaction (Martin/Fam/Carrera/Florez/Conde)",
+2026-09-07 05:33,bluesky,"Trinity San Antonio (Puerto Rico) tournament steals leader through 2 rounds",
+2026-09-09 21:21,bluesky,"QF bracket set / USA-Hungary 5:30am ET earliest tip hook (thread pt 1, no link)",
+2026-09-09 21:21,bluesky,"Follow-up: Juhasz (Hungary) 15.3p/11.0r stat, thread pt 2, links Hungary team page (untagged - convention started after this post)",
