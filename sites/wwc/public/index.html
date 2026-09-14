@@ -72,6 +72,21 @@
   h2.sec{color:var(--accent);font-size:11.5px;letter-spacing:.9px;
     text-transform:uppercase;border-bottom:1px solid var(--border);
     padding-bottom:5px;margin:22px 0 9px;font-weight:700}
+  /* The archive header — the Guide's section heading once the final is
+     played. It stands where `h2.sec` stood, so it keeps that element's
+     bottom rule and does the same separating job; what changes is that a
+     result is a headline and "World Cup overview" was a label. Sized off
+     `.hd h2`, the team-page headline, rather than inventing a scale, and
+     clamped for the same reason `.mast h1` is: it is long enough to wrap on
+     a 375px phone. No box and no second accent — the .xsite strip already
+     sits above it and a second bordered block would be furniture. Sans, not
+     mono, even for the score: mono is scoped to data in tables, and this is
+     a sentence. */
+  .fhead{border-bottom:1px solid var(--border);padding-bottom:11px;
+    margin:4px 0 14px}
+  .fhead h2{color:var(--accent);font-size:clamp(17px,4.6vw,21px);
+    line-height:1.25;font-weight:700;letter-spacing:-.2px}
+  .fhead p{color:var(--muted);font-size:13px;line-height:1.6;margin-top:6px}
   table{border-collapse:collapse;width:100%;font-size:12px}
   th{color:var(--muted);text-align:left;font-weight:normal;padding:6px;
     border-bottom:1px solid var(--border);white-space:nowrap;
@@ -242,31 +257,28 @@
 </div>
 <div class="xsite"><a href="https://wnba.statsataglance.com/" target="_blank" rel="noopener">WNBA 2026 — At a Glance</a> · our companion site: standings, leaders, box scores.</div>
 <nav><a href="/" class="on">Guide</a><a href="/games/">Games</a><a href="/teams/">Teams</a><a href="/groups/">Groups</a><a href="/leaders/">Leaders</a></nav>
-<h2 class="sec">World Cup overview</h2>
+<div class="fhead"><h2>2026 FIBA Women’s World Cup — Final: USA 97, France 79</h2><p>Team USA’s fifth straight title, and their twelfth overall.</p></div>
 <p class="prose"><b>The FIBA Women&#x27;s Basketball World Cup</b> is the world championship of
 women’s basketball and the sport’s biggest event outside the Olympics,
-held every four years. Berlin 2026 is the <b>20th edition</b>.</p>
-<p class="prose"><b>16 national teams</b> play
-36 games over ten days, September 4–13. The
-format is short and unforgiving. The teams are divided into four groups, and in
-the first round every team plays the other three in its group. Win your group
-and you skip straight to the quarter-finals; finish second or third and you play
-an extra knockout game to reach them.</p>
-<p class="prose"><b><a href="/teams/usa/">The United States</a></b> have won 11 of the
-19 World Cups, including the past four. The other
-contenders are <a href="/teams/france/">France</a> (silver medalists at the 2024 Paris
-Olympics), <a href="/teams/australia/">Australia</a> (Asia Cup champions), <a href="/teams/china/">China</a> (2022
-World Cup runners-up) and <a href="/teams/belgium/">Belgium</a> (EuroBasket champions). All of them return experienced lineups that have played together
-internationally. Every team’s full record is on its own page — see
-<a href="/teams/">Teams</a>.</p>
-<p class="prose"><b>50 current WNBA players are in this field</b>,
-spread across 15 of the 16 teams. The US roster is the
-most star-studded, with <a href="https://wnba.statsataglance.com/players/napheesa-collier/" target="_blank" rel="noopener">Napheesa Collier</a>, <a href="https://wnba.statsataglance.com/players/breanna-stewart/" target="_blank" rel="noopener">Breanna Stewart</a>,
-<a href="https://wnba.statsataglance.com/players/caitlin-clark/" target="_blank" rel="noopener">Caitlin Clark</a> and <a href="https://wnba.statsataglance.com/players/paige-bueckers/" target="_blank" rel="noopener">Paige Bueckers</a> among its names. France,
-which nearly beat the US in Paris in 2024, returns a strong team headlined by
-<a href="https://wnba.statsataglance.com/players/gabby-williams/" target="_blank" rel="noopener">Gabby Williams</a>. Even the host nation, <b><a href="/teams/germany/">Germany</a></b>,
-which has qualified only once
-before, carries 4 WNBA players on its roster.</p>
+held every four years. Berlin 2026 was the <b>20th edition</b>.</p>
+<p class="prose"><b>16 national teams</b> played
+36 games over ten days, September 4–13. The teams were
+divided into four groups, and in the first round every team played the other
+three in its group. Winning the group meant a place straight in the
+quarter-finals; second or third meant an extra knockout game to get there.</p>
+<p class="prose"><b><a href="/teams/usa/">The United States</a></b> won it, beating
+<a href="/teams/france/">France</a> 97–79 in the final for their
+twelfth title and their
+fifth in a row. That equals the longest run in the tournament’s history — the Soviet Union won five in a row between 1959 and 1975. <a href="/teams/spain/">Spain</a> beat <a href="/teams/germany/">Germany</a> 81–58 for the bronze. Every team’s
+full record is on its own page — see <a href="/teams/">Teams</a>.</p>
+<p class="prose"><a href="https://wnba.statsataglance.com/players/breanna-stewart/" target="_blank" rel="noopener">Breanna Stewart</a> was named MVP, the first player to win it twice (2018, 2026).
+The five players named tournament all-stars were Breanna Stewart (USA), <a href="https://wnba.statsataglance.com/players/jackie-young/" target="_blank" rel="noopener">Jackie Young</a> (USA), <a href="https://wnba.statsataglance.com/players/gabby-williams/" target="_blank" rel="noopener">Gabby Williams</a> (France), Iyana Martín (Spain) and
+<a href="https://wnba.statsataglance.com/players/leonie-fiebich/" target="_blank" rel="noopener">Leonie Fiebich</a> (Germany). Martín was the only member of the
+all-star five not playing in the WNBA, but she was Portland’s 1st round draft
+pick in 2026 and is nearly certain to join the Fire next season.
+<b>50 current WNBA players were in this field</b> including all
+12 on the US roster, 8 who played for France, 7 for
+<a href="/teams/australia/">Australia</a> and 4 each for <a href="/teams/belgium/">Belgium</a> and host country, Germany, who finished 4th in the tournament.</p>
 
 <h2 class="sec">Rules: differences to know</h2>
 <div class="table-scroll"><div class="table-wrap"><table>

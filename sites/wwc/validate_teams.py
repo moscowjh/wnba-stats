@@ -38,6 +38,16 @@ def warn(label, cond, detail=""):
 doc = json.loads(TEAMS.read_text())
 T = doc["teams"]
 
+#: This tournament's own year, read rather than typed — it is the boundary
+#: between "recorded" and "not yet played" for every editions array.
+EDITION_YEAR = int(doc["tournament"]["start_date"][:4])
+
+#: `data/results.json` if a build has fetched one. The medal cross-check below
+#: is skipped when it is absent, because a fresh clone has no build artifacts
+#: and must still validate — this file's own job is the reference data.
+RESULTS = HERE / "data/results.json"
+results = json.loads(RESULTS.read_text()) if RESULTS.exists() else {}
+
 check("expected 16 teams", len(T) == 16, len(T))
 check("codes must be unique", len({t["code"] for t in T}) == len(T))
 groups = collections.Counter(t["group"] for t in T)
@@ -62,8 +72,18 @@ for t in T:
             continue
         check(f"{c}.{field}: editions length equals appearances_count",
               len(eds) == r["appearances_count"], f"{len(eds)} vs {r['appearances_count']}")
-        check(f"{c}.{field}: 2026 must not appear in editions",
-              all(e["year"] != 2026 for e in eds))
+        # Until 2026-09-14 this read "2026 must not appear in editions", and
+        # that was right for every day it was true: the schema stores one entry
+        # per COMPLETED tournament, and a speculative Berlin entry would have
+        # flowed straight into best_finish and into the Guide's prose as
+        # fabricated data. The tournament finishing is what retired the rule,
+        # not a convenience — so what replaces it is the same rule stated
+        # durably: nothing may be recorded for a tournament that has not
+        # happened. The medal places are separately cross-checked against
+        # results.json below, which is the half a year bound cannot do.
+        check(f"{c}.{field}: no edition may be in the future",
+              all(e["year"] <= EDITION_YEAR for e in eds),
+              [e["year"] for e in eds if e["year"] > EDITION_YEAR])
         check(f"{c}.{field}: ranks must be 1..16", all(1 <= e["rank"] <= 16 for e in eds))
         check(f"{c}.{field}: years must be unique", len({e["year"] for e in eds}) == len(eds))
         best = min(e["rank"] for e in eds)
@@ -75,6 +95,57 @@ for t in T:
         if field == "olympic_record":
             check(f"{c}.{field}: most_recent_year derives from editions",
                   max(e["year"] for e in eds) == r["most_recent_year"])
+
+# --- This tournament's own result, cross-checked against the games we published ---
+# The 1-16 classification written in on 2026-09-14 is FIBA's, transcribed by
+# hand, and a hand-transcribed rank is exactly the kind of thing that ships
+# silently wrong: it flows into best_finish, into "12 of the 20 World Cups",
+# and into every team page's history card, with no game to contradict it.
+#
+# Four of the sixteen ARE contradictable. The medal games are on our own site,
+# so USA/France/Spain/Germany can be re-derived from results.json and compared.
+# The other twelve rest on FIBA's classification alone and are unprovable here
+# — which is worth knowing rather than pretending otherwise.
+#
+# Gate: only once the data CLAIMS this edition and the final is really played.
+# Mid-tournament, and on a clone with no build artifacts, this is skipped
+# rather than failed.
+final_res = results.get("final") or {}
+claims_edition = any(
+    any(e["year"] == EDITION_YEAR for e in (t["wwc_record"]["editions"] or []))
+    for t in T)
+if claims_edition and final_res.get("status") == "final":
+    medal = {}
+    # `third-place` and `final` are the emitter's game_ids for the two medal
+    # games — the phase name itself, per the id scheme in wwc-site-internals.md
+    # ("Third place, Final (2) | the phase"). Sides come from the RESULT and
+    # never from the bracket, the same rule orient() forces everywhere else.
+    for gid, places in (("third-place", (3, 4)), ("final", (1, 2))):
+        res = results.get(gid) or {}
+        if res.get("status") != "final":
+            continue
+        (a, b), (sa, sb) = res["teams"], res.get("score") or [None, None]
+        if sa is None or sb is None:
+            continue
+        win, lose = places
+        medal[a], medal[b] = (win, lose) if sa > sb else (lose, win)
+
+    check("both medal games resolve from results.json", len(medal) == 4, medal)
+    by_key = {t["schedule_key"]: t for t in T}
+    for key, rank in sorted(medal.items(), key=lambda kv: kv[1]):
+        t = by_key.get(key)
+        check(f"{key}: medal team is in the reference data", t is not None)
+        if not t:
+            continue
+        got = next((e["rank"] for e in t["wwc_record"]["editions"]
+                    if e["year"] == EDITION_YEAR), None)
+        check(f"{t['code']}.wwc_record: {EDITION_YEAR} rank agrees with the "
+              f"medal games we published", got == rank, f"{got} vs {rank}")
+
+    placed = sorted(e["rank"] for t in T
+                    for e in t["wwc_record"]["editions"] if e["year"] == EDITION_YEAR)
+    check(f"{EDITION_YEAR} classification is a complete 1..{len(T)} with no ties",
+          placed == list(range(1, len(T) + 1)), placed)
 
 # --- WNBA block ---
 WNBA_STATUS = {"current", "former", "drafted_only"}

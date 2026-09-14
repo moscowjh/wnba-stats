@@ -9,6 +9,18 @@
 *.csv
 sites/*/data/
 
+# ...but a FINISHED event's data is source too, by the same rule. The WWC ended
+# 2026-09-13 and its data stopped being regenerable: there is no season still
+# producing it, and FIBA's event endpoints outlive the event by nobody's
+# promise. Left as an artifact it was carried only by the Actions cache, which
+# GitHub evicts after 7 days unused — so the first `core/` change after the
+# daily build stopped would have rebuilt this site from an EMPTY data/ against
+# a dead upstream, and `continue-on-error` would have published the whole
+# archive back in its pre-tournament state. 584K, 37 files, frozen forever.
+# Added 2026-09-14. The WNBA's data stays ignored: that season is live and its
+# CSVs really are regenerated every run.
+!sites/wwc/data/
+
 # ...but hand-maintained reference data is SOURCE, not an artifact. The rule is
 # provenance, not extension: anything under sites/<slug>/reference/ is typed by a
 # human, has no upstream to re-fetch it from, and is lost forever if it isn't

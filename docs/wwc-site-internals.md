@@ -539,10 +539,144 @@ typed.** The edition number, the game count, the venue list, the USA title
 count, the count of returning teams, Germany's single prior appearance — all
 derived. That is not tidiness: the schema doc's falsifiability rule says a
 superlative a game can break must not be stored as a string, and the USA medal
-streak is exactly such a claim. `page_guide()` walks `editions` backwards to
+streak is exactly such a claim. `title_streak()` walks `editions` backwards to
 find the run, so the sentence updates itself when 2026's result lands instead
 of going quietly stale. Writing "since 1994" by hand would also have been
 needlessly weak — the computed answer is 1979, twelve editions.
+
+### The archive header, and the retrospective overview (2026-09-14)
+
+Once the final is played, the Guide stops being a programme. Two things change,
+both switched by `played_final()` and nothing else:
+
+**1. The section heading becomes the result.** `final_header()` replaces
+`World Cup overview` with:
+
+> **2026 FIBA Women's World Cup — Final: USA 97, France 79**
+> Team USA's fifth straight title, and their twelfth overall.
+
+**A result, not a congratulation** (Jason, 2026-09-14). The first draft read
+"Congratulations to Team USA". An archive header's job is to orient someone
+arriving months after the confetti, and a congratulation ages badly where a
+score does not.
+
+**The record belongs in the body, not the headline** (Jason, 2026-09-14). An
+earlier version put "tying the longest streak in tournament history" in the
+subline. A headline states what happened; the Soviet Union's 1959–75 run is
+context for it, and context needing a second clause to land is prose. It is now
+a sentence in paragraph three, where it can name the USSR outright.
+
+It is **not** in `shell()` — it is the Guide's own section heading, not site
+chrome, so the other six surfaces are untouched. The editable top block
+(`WNBA_PROMO_HTML`) is a separate element and is not this.
+
+**2. The overview goes into the past tense.** Rewritten at Jason's direction:
+treat those paragraphs "more as a retrospective than a preview". A preview names
+contenders; a retrospective names a winner, the medal games, the MVP and the
+all-star five.
+
+Its four paragraphs split on a line Jason drew in his 2026-09-14 edit pass:
+
+| ¶ | Carries |
+|---|---|
+| 1 | What the tournament is. Evergreen but for one verb. |
+| 2 | The format, past tense. *"The format was short and unforgiving"* was cut. |
+| 3 | **Teams only** — champion, final score, titles, streak, the USSR record, the bronze game. |
+| 4 | **People** — MVP, the all-star five, the one all-star not yet in the WNBA, then the per-squad WNBA counts. |
+
+The ¶3/¶4 boundary is the edit worth preserving: the MVP sentence used to end ¶3
+and now opens ¶4, so the champion's paragraph is not carrying an individual
+award as a tail. The standalone All-Star Five paragraph that briefly existed is
+folded into ¶4.
+
+**The per-squad counts are computed, not typed.** Jason supplied 12 / 8 / 7 / 4 /
+4; each was checked against `wnba_on_squad()` and then handed back to the
+binding that produces it, so the sentence cannot drift from the roster data. The
+"4 each for Belgium and host country, Germany" clause only parses as English
+while those two agree, so it degrades to naming both numbers if a roster
+correction ever separates them.
+
+**Spain is deliberately absent from that list** — it has five current WNBA
+players, between Australia's seven and Belgium's four. Flagged to Jason on
+2026-09-14; his copy stands.
+
+**The preview copy is kept, not deleted.** The three lifecycle states are this
+site's one non-negotiable, so `page_guide` carries one brief written twice and
+selects with `done`. The split is by **sentence**, not by paragraph: most of
+paragraphs 1–2 is evergreen and changes by a verb, while 3–4 genuinely differ.
+
+### `editions_before()` — the inversion, and the off-by-one it guards
+
+On 2026-09-14 FIBA's official 1–16 classification was written into
+`wwc2026_teams.json` (see below), which **inverts which sentences are at risk**.
+Before, `editions` stopped at 2022 and this tournament had to be folded in;
+now the file is the complete record, every count includes Berlin by default, and
+it is the *pre-tournament* copy that silently gains one if nobody thinks about
+it.
+
+> Prose meaning **"before this World Cup"** reads `editions_before()`.
+> Prose meaning **"including it"** reads the array.
+
+Germany is the live trap: *"has qualified only once before"* (preview) and *"in
+only its second World Cup"* (retrospective) are the same array asked two
+different questions, and both ship. Get it backwards and nothing crashes — the
+page states a number that is off by one, which is the failure this whole file
+exists to prevent.
+
+`RECORD_TITLE_RUN = 5` (the Soviet Union, 1959–75) is the one typed number in
+the overview's structural claims. It has to be — the USSR is not a 2026 team, so
+no record exists to derive it from — and it is safe to type only because the
+tournament is over and no remaining game can break it. The clause it licenses is
+still **gated on the computed run matching it**: a run of 5 says "equals", a
+longer run says "passing", anything shorter drops the clause. Correct-or-blank,
+applied to a superlative.
+
+### The MVP and the All-Star Five are typed; the links are not
+
+`TOURNAMENT_MVP`, `MVP_NOTE`, `ALL_STAR_FIVE` and `ALL_STAR_OUTLIER` are the
+only typed facts in the overview. There is no MVP or All-Star field anywhere in `wwc2026_teams.json` and
+no game to derive one from. The falsifiability rule permits this where it forbids
+"all-time coaching wins leader": **an award is a settled historical fact, not a
+superlative the next result overturns.** Both FIBA reports of 2026-09-13 are
+cited in the constant's own comment.
+
+Names are written in **our** published spelling, not FIBA's — `person_id` is the
+identity and the name is a display field. That is why Spain's forward is
+`Iyana Martín` here, and why `plink()` still verifies before linking: the four
+WNBA players resolve to real player pages, and Martín degrades to plain text
+rather than a 404.
+
+The Martín sentence reads as prose but is **not** an unsupported claim: our own
+`wnba.players` block records her as `drafted_only` with `wnba_team_full`
+"Portland Fire", the only one of the five who is not `current`. The data agrees
+with the sentence, which is what makes the sentence safe to write.
+
+`MVP_NOTE`'s "(2018, 2026)" is one step off its source: FIBA wrote *"eight years
+after taking the TISSOT MVP accolade in Tenerife"*, and Tenerife hosted the 2018
+World Cup. Checked at Jason's request, 2026-09-14.
+
+### First mention only now has teeth
+
+The rule (Jason, 2026-08-29) was kept **by hand** until 2026-09-14 — the preview
+copy simply never named anyone twice, so nothing had to enforce it. The
+retrospective broke that immediately: naming the champion, the runner-up and the
+MVP, then again in the All-Star Five, then again in the WNBA paragraph, took
+France to three links and Breanna Stewart to three. `_linked` now degrades every
+later mention to plain text.
+
+**One consequence, and it bit twice in one day.** `_linked` fills as each
+f-string is **evaluated**, so *construction* order decides which mention carries
+the link — not the order text appears in, and not the order paragraphs are
+joined in.
+
+- Built beside `p3`, the all-star five stole the link from *"headlined by Gabby
+  Williams"* — the retention bridge's own sentence.
+- Inside `p4`, `five` is built on the line **above** the f-string that reads it,
+  so it took Breanna Stewart's link off *"was named MVP"* and put it on her
+  all-star entry. `mvp = plink(...)` is therefore taken first.
+
+Both rendered as perfectly reasonable pages. Neither is visible in the source.
+**Check link placement by reading the rendered output, not the template.**
 
 ## The group table — FIBA Appendix D
 
@@ -777,6 +911,30 @@ own string agrees on 69. Never print that field.
 emitter's per-team column gating is therefore currently a no-op; it is kept
 because the next event's capture will not be this complete.
 
+~~`wwc_record.editions` stops at 2022 — all 16 teams~~: **closed 2026-09-14**,
+the day after the final, by writing FIBA's official 1–16 classification into
+`wwc2026_teams.json` (schema `3.1.0`, `_corrections.wwc_record.2026`). Every
+team page's history card now carries Berlin — the USA reads *19 appearances,
+Champions (2026)*; Germany's best finish moved from *11th place (1998)* to
+*Fourth place (2026)*.
+
+**The rule it retired was right, and the retirement is the point.** The schema
+said `editions` holds one entry per **completed** tournament and
+`validate_teams.py` enforced *"2026 must not appear"* — because a speculative
+Berlin entry would have flowed straight into `best_finish` and into the Guide's
+prose as fabricated data. The tournament finishing is what ended that risk, so
+the check was replaced rather than deleted: **no edition may be in the future**,
+bounded by `tournament.start_date` rather than a typed year.
+
+Twelve of the sixteen ranks rest on FIBA's classification alone. **Four do
+not** — the medal games are on our own site, so `validate_teams.py` now
+re-derives USA/France/Spain/Germany from `data/results.json` and fails if a
+hand-typed rank disagrees, plus asserts the sixteen places form a complete
+1..16 with no ties. It skips when `results.json` is absent (a fresh clone must
+still validate) and while the final is unplayed (mid-tournament CI must not
+fail). All three checks were proved to bite by breaking them: swapping the USA
+and France ranks, demoting Nigeria into a duplicate, and adding a 2030 edition.
+
 The "players to watch" gap is the `hooks.json` retrofit trap the sequencing
 plan already flagged: the product brief asks for 1–2 players who *aren't*
 WNBA-known and there is nowhere in `wwc2026_teams.json` to put them. The
@@ -788,10 +946,14 @@ worse than no heading.
 There is no test suite. What exists:
 
 ```
-.venv/bin/python sites/wwc/validate_teams.py          # 16/16, gates CI
+.venv/bin/python sites/wwc/validate_teams.py          # 16/16, gates CI;
+                                                      #   cross-checks the four
+                                                      #   2026 medal places vs
+                                                      #   data/results.json
 .venv/bin/python sites/wwc/validate_standings.py      # 7/7 Appendix D examples
 .venv/bin/python sites/wwc/validate_leaders.py        # 23/23, gates CI
-.venv/bin/python sites/wwc/build_wwc_pages.py         # must print 20 in sitemap
+.venv/bin/python sites/wwc/build_wwc_pages.py         # 20 in sitemap pre-Cup,
+                                                      #   57 with all 36 boxes
 .venv/bin/python sites/wnba/golden_check.py check     # WNBA must not move
 ```
 

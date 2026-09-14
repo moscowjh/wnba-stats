@@ -294,6 +294,21 @@ SITE_CSS = f"""\
   h2.sec{{color:var(--accent);font-size:11.5px;letter-spacing:.9px;
     text-transform:uppercase;border-bottom:1px solid var(--border);
     padding-bottom:5px;margin:22px 0 9px;font-weight:700}}
+  /* The archive header — the Guide's section heading once the final is
+     played. It stands where `h2.sec` stood, so it keeps that element's
+     bottom rule and does the same separating job; what changes is that a
+     result is a headline and "World Cup overview" was a label. Sized off
+     `.hd h2`, the team-page headline, rather than inventing a scale, and
+     clamped for the same reason `.mast h1` is: it is long enough to wrap on
+     a 375px phone. No box and no second accent — the .xsite strip already
+     sits above it and a second bordered block would be furniture. Sans, not
+     mono, even for the score: mono is scoped to data in tables, and this is
+     a sentence. */
+  .fhead{{border-bottom:1px solid var(--border);padding-bottom:11px;
+    margin:4px 0 14px}}
+  .fhead h2{{color:var(--accent);font-size:clamp(17px,4.6vw,21px);
+    line-height:1.25;font-weight:700;letter-spacing:-.2px}}
+  .fhead p{{color:var(--muted);font-size:13px;line-height:1.6;margin-top:6px}}
   table{{border-collapse:collapse;width:100%;font-size:12px}}
   th{{color:var(--muted);text-align:left;font-weight:normal;padding:6px;
     border-bottom:1px solid var(--border);white-space:nowrap;
@@ -1898,23 +1913,8 @@ def page_guide(doc, teams):
     t = doc["tournament"]
     ger = next(x for x in doc["teams"] if x["code"] == "GER")
     usa = next(x for x in doc["teams"] if x["code"] == "USA")
-    usa_eds = sorted(usa["wwc_record"]["editions"], key=lambda e: e["year"])
-    titles = sum(1 for e in usa_eds if e["rank"] == 1)
     wnba_total = sum(wnba_on_squad(x) for x in doc["teams"])
     with_wnba = sum(1 for x in doc["teams"] if wnba_on_squad(x))
-
-    # The USA's run of consecutive TITLES, derived rather than typed. Jason's
-    # 2026-08-28 copy pass changed the claim from "medalled at every one since
-    # 1979" to "including the past four", which is a different metric, not a
-    # rewording — so the binding changed with it. The schema doc's
-    # falsifiability rule applies either way: a superlative one game can break
-    # must not be stored as a string. This one breaks the moment they lose a
-    # final, and recomputes itself when 2026's result lands.
-    title_run = 0
-    for e in reversed(usa_eds):
-        if e["rank"] != 1:
-            break
-        title_run += 1
 
     start_day = int(t["start_date"][-2:])
     end_day = int(t["end_date"][-2:])
@@ -1923,17 +1923,69 @@ def page_guide(doc, teams):
     results = load_results()
     pub = wnba_player_pages()
 
+    # THE ONE SWITCH THIS PAGE TURNS ON. `wwc2026_teams.json` recorded Berlin
+    # on 2026-09-14, so every count taken from `editions` now INCLUDES this
+    # tournament — which is right for the retrospective and wrong for every
+    # sentence written before it was played. Both sets of prose still ship
+    # (the three lifecycle states are not negotiable), so both sets of numbers
+    # have to exist, and `done` is what selects between them.
+    #
+    # Get this backwards and the page does not crash; it states a number that
+    # is off by one, which is the failure mode this whole file is built to
+    # avoid. So the rule is flat: prose that means "before this World Cup"
+    # reads `pre`, prose that means "including it" reads the full array.
+    done = played_final(rows, results) is not None
+
+    # The USA's title count and run of consecutive TITLES, derived rather than
+    # typed. Jason's 2026-08-28 copy pass changed the claim from "medalled at
+    # every one since 1979" to "including the past four", which is a different
+    # metric, not a rewording — so the binding changed with it. The schema
+    # doc's falsifiability rule applies either way: a superlative one game can
+    # break must not be stored as a string. This one breaks the moment they
+    # lose a final — which is exactly why it is still computed now that the
+    # answer is known rather than frozen into the copy.
+    usa_eds = usa["wwc_record"]["editions"] if done else editions_before(usa)
+    titles = sum(1 for e in usa_eds if e["rank"] == 1)
+    title_run = title_streak(usa_eds)
+    # COMPLETED World Cups — the denominator of "won 12 of the 20".
+    played_cups = t["edition"] if done else t["edition"] - 1
+    # Germany's appearances. The retrospective says "in only its second World
+    # Cup" and counts Berlin; the preview said "qualified only once BEFORE"
+    # and must not. Same array, two questions — see the note on `done`.
+    ger_apps = len(ger["wwc_record"]["editions"])
+    ger_prior = len(editions_before(ger))
+
     # Inline links, FIRST MENTION ONLY (Jason, 2026-08-29). Measured that day:
     # the Guide carried 4 internal links against Groups' 64 and Games' 48,
     # because those pages are tables of team links and this one is prose. It
     # named six countries and five players, all with pages one directory away,
     # and linked none of them. Linking every occurrence instead would turn the
     # paragraph into a link farm and read as SEO spam.
+    #
+    # Until 2026-09-14 the rule was kept by HAND — the preview copy simply did
+    # not name anyone twice, so nothing had to enforce it. The retrospective
+    # broke that: a paragraph that names the champion, the runner-up and the
+    # MVP, then names them again in the All-Star Five and again in the WNBA
+    # paragraph, took France to three links and Breanna Stewart to three. So
+    # the rule now has teeth. `_linked` is the memory; every later mention
+    # degrades to plain text, which is what the copy said before anyway.
+    #
+    # Consequence worth knowing when reordering paragraphs: WHICH mention gets
+    # the link is decided by emission order, so moving a paragraph moves its
+    # links. The All-Star Five sits after the WNBA paragraph for exactly this
+    # reason — ahead of it, it would have taken the link off "headlined by
+    # Gabby Williams", which is the retention bridge doing its actual job.
+    _linked = set()
+
     def tlink(key, label=None):
         """`label` overrides the team's own name — paragraph 3 opens on "The
         United States", which is the same page as the reference data's "USA"."""
         t = teams[key]
-        return f'<a href="/teams/{team_slug(t)}/">{esc(label or t["name"])}</a>'
+        disp = esc(label or t["name"])
+        if key in _linked:
+            return disp
+        _linked.add(key)
+        return f'<a href="/teams/{team_slug(t)}/">{disp}</a>'
 
     def plink(name):
         """Cross-site, to our own WNBA player page — the retention bridge.
@@ -1947,7 +1999,14 @@ def page_guide(doc, teams):
         # &#x27; and there is nothing left to replace afterwards. The
         # curly form passes through esc() untouched.
         disp = esc(name.replace("\u0027", "\u2019"))
+        # First mention only, same as tlink — see `_linked`. A name with no
+        # page is NOT recorded, so it never "uses up" its one link; it was
+        # plain text either way.
+        if name in _linked:
+            return disp
         href = player_href(name, pub)
+        if href:
+            _linked.add(name)
         # CROSS_SITE for the same reason the three table call sites carry it:
         # these five names are on the LANDING page, so they are the most
         # likely cross-site departure on the whole site, and the Cup tab has
@@ -1975,33 +2034,153 @@ def page_guide(doc, teams):
                f'<br><a href="{GAMES_PATH}">All {len(rows)} games, day by day →</a>'
                f' · <a href="/teams/">The {t["team_count"]} teams →</a>')
 
-    brief = f'''<h2 class="sec">World Cup overview</h2>
-<p class="prose"><b>The {esc(TOURNAMENT_NAME)}</b> is the world championship of
-women\u2019s basketball and the sport\u2019s biggest event outside the Olympics,
-held every four years. Berlin 2026 is the <b>{ordinal(t["edition"])} edition</b>.</p>
-<p class="prose"><b>{t["team_count"]} national teams</b> play
+    # The section heading is the archive header once there is a result to
+    # state, and the plain label until then. One line, three lifecycle states.
+    head = (final_header(teams, rows, results)
+            or '<h2 class="sec">World Cup overview</h2>')
+
+    # ── The overview, in two tenses ───────────────────────────────────────
+    # Rewritten 2026-09-14 (Jason): "changing much of the writing into the past
+    # tense and generally treating those few paragraphs more as a retrospective
+    # than a preview." The preview copy is KEPT rather than deleted — the three
+    # lifecycle states are this site's one non-negotiable, and a Program-state
+    # build must still read as a programme. So this is one brief written twice
+    # and selected by `done`, not a file that quietly stopped supporting a
+    # state it still claims to support.
+    #
+    # The split is by SENTENCE, not by paragraph. Most of paragraphs 1 and 2 is
+    # evergreen — what the tournament is, and how its format works, change by a
+    # verb and nothing more. Paragraphs 3 and 4 genuinely differ: a preview
+    # names contenders, a retrospective names a winner.
+    p1 = f'''<p class="prose"><b>The {esc(TOURNAMENT_NAME)}</b> is the world championship of
+women’s basketball and the sport’s biggest event outside the Olympics,
+held every four years. Berlin 2026 {"was" if done else "is"} the <b>{ordinal(t["edition"])} edition</b>.</p>'''
+
+    if done:
+        p2 = f'''<p class="prose"><b>{t["team_count"]} national teams</b> played
+{len(rows)} games over ten days, September {start_day}–{end_day}. The teams were
+divided into four groups, and in the first round every team played the other
+three in its group. Winning the group meant a place straight in the
+quarter-finals; second or third meant an extra knockout game to get there.</p>'''
+    else:
+        p2 = f'''<p class="prose"><b>{t["team_count"]} national teams</b> play
 {len(rows)} games over ten days, September {start_day}–{end_day}. The
 format is short and unforgiving. The teams are divided into four groups, and in
 the first round every team plays the other three in its group. Win your group
 and you skip straight to the quarter-finals; finish second or third and you play
-an extra knockout game to reach them.</p>
-<p class="prose"><b>{tlink("USA", "The United States")}</b> have won {titles} of the
-{t["edition"] - 1} World Cups, including the past {CARDINAL.get(title_run, title_run)}. The other
+an extra knockout game to reach them.</p>'''
+
+    if done:
+        champ_key, runner_key, ws, ls = played_final(rows, results)
+
+        # The record clause Jason moved out of the headline and into the body
+        # (2026-09-14), where it has room to name the Soviet Union rather than
+        # gesture at "tournament history". Still gated on the computed run, so
+        # it claims a tie only while the numbers actually tie.
+        if title_run > RECORD_TITLE_RUN:
+            rec = (' That is the longest run in the tournament’s history, '
+                   'passing the Soviet Union.')
+        elif title_run == RECORD_TITLE_RUN:
+            rec = (' That equals the longest run in the tournament’s '
+                   f'history — {RECORD_TITLE_NOTE}.')
+        else:
+            rec = ''
+
+        # The bronze game, read through the same orienting helper as the final
+        # so the two scores cannot disagree about which side is which. Omitted
+        # rather than guessed when it has not been played — a semi-final loser
+        # is still playing, and this paragraph has to survive that day too.
+        bronze = medal_game(rows, results, "third_place")
+        if bronze:
+            bw, bl, bws, bls = bronze
+            third = f' {tlink(bw)} beat {tlink(bl)} {bws}–{bls} for the bronze.'
+        else:
+            third = ''
+
+        # Paragraph 3 is about TEAMS ONLY (Jason, 2026-09-14). The MVP sentence
+        # opened this paragraph until then and now opens the next one, which
+        # gives the individual honours a paragraph of their own instead of a
+        # tail on the champion's.
+        subject = "The United States" if champ_key == "USA" else None
+        p3 = f'''<p class="prose"><b>{tlink(champ_key, subject)}</b> won it, beating
+{tlink(runner_key)} {ws}–{ls} in the final for their
+{ORDINAL_WORD.get(titles, ordinal(titles))} title and their
+{ORDINAL_WORD.get(title_run, title_run)} in a row.{rec}{third} Every team’s
+full record is on its own page — see <a href="/teams/">Teams</a>.</p>'''
+
+    else:
+        p3 = f'''<p class="prose"><b>{tlink("USA", "The United States")}</b> have won {titles} of the
+{played_cups} World Cups, including the past {CARDINAL.get(title_run, title_run)}. The other
 contenders are {tlink("FRANCE")} (silver medalists at the 2024 Paris
 Olympics), {tlink("AUSTRALIA")} (Asia Cup champions), {tlink("CHINA")} (2022
 World Cup runners-up) and {tlink("BELGIUM")} (EuroBasket champions). All of them return experienced lineups that have played together
-internationally. Every team\u2019s full record is on its own page — see
-<a href="/teams/">Teams</a>.</p>
-<p class="prose"><b>{wnba_total} current WNBA players are in this field</b>,
+internationally. Every team’s full record is on its own page — see
+<a href="/teams/">Teams</a>.</p>'''
+
+    if done:
+        # Paragraph 4, rewritten to Jason's copy (2026-09-14). It now carries
+        # the individual honours — MVP, the all-star five, the one all-star who
+        # is not yet a WNBA player — and then the per-squad WNBA counts, which
+        # replaced the old "most star-studded" name-drop.
+        #
+        # Every count is computed. Jason supplied 12 / 8 / 7 / 4 / 4 and all
+        # five were verified against `wnba_on_squad` before being handed back
+        # to the binding that produces them, so the sentence cannot drift from
+        # the roster data underneath it.
+        n_usa = wnba_on_squad(teams["USA"])
+        n_fra = wnba_on_squad(teams["FRANCE"])
+        n_aus = wnba_on_squad(teams["AUSTRALIA"])
+        n_bel = wnba_on_squad(teams["BELGIUM"])
+        n_ger = wnba_on_squad(ger)
+        # "4 each for Belgium and host country, Germany" only reads as English
+        # while the two numbers agree. They do today; this keeps the sentence
+        # true if a roster correction ever separates them.
+        pair = (f'{n_bel} each for {tlink("BELGIUM")} and host country, '
+                f'{tlink("GERMANY")}' if n_bel == n_ger else
+                f'{n_bel} for {tlink("BELGIUM")} and {n_ger} for host country, '
+                f'{tlink("GERMANY")}')
+
+        ger_rank = edition_rank(ger)
+        # Correct-or-blank: FIBA's classification covers all 16, but if a
+        # future event's data does not, drop the clause rather than invent a
+        # placing for it.
+        ger_end = (f', who finished {ordinal(ger_rank)} in the tournament'
+                   if ger_rank else '')
+
+        # The all-star five as a clause inside this paragraph rather than a
+        # paragraph of its own — Jason folded it in here on 2026-09-14. Every
+        # name goes through plink(), so the four WNBA players become cross-site
+        # links and Martín stays plain text rather than a 404. Stewart is named
+        # a second time and degrades to plain text: see `_linked`.
+        # The MVP link is taken FIRST, before the five are built. `_linked`
+        # fills at evaluation time, and `five` is evaluated a line before the
+        # f-string that reads it — so building the list first silently moved
+        # Stewart's link off "was named MVP" and onto her all-star entry. Same
+        # trap that put Gabby Williams's link in the wrong sentence earlier
+        # today: construction order is the behaviour, text order is not.
+        mvp = plink(TOURNAMENT_MVP)
+        five = ', '.join(f'{plink(n)} ({tlink(k)})' for n, k in ALL_STAR_FIVE[:-1])
+        last_n, last_k = ALL_STAR_FIVE[-1]
+
+        p4 = f'''<p class="prose">{mvp} was named MVP, {MVP_NOTE}.
+The five players named tournament all-stars were {five} and
+{plink(last_n)} ({tlink(last_k)}). {ALL_STAR_OUTLIER} was the only member of the
+all-star five not playing in the WNBA, but she was Portland’s 1st round draft
+pick in 2026 and is nearly certain to join the Fire next season.
+<b>{wnba_total} current WNBA players were in this field</b> including all
+{n_usa} on the US roster, {n_fra} who played for {tlink("FRANCE")}, {n_aus} for
+{tlink("AUSTRALIA")} and {pair}{ger_end}.</p>'''
+    else:
+        p4 = f'''<p class="prose"><b>{wnba_total} current WNBA players are in this field</b>,
 spread across {with_wnba} of the {t["team_count"]} teams. The US roster is the
 most star-studded, with {plink("Napheesa Collier")}, {plink("Breanna Stewart")},
 {plink("Caitlin Clark")} and {plink("Paige Bueckers")} among its names. France,
 which nearly beat the US in Paris in 2024, returns a strong team headlined by
 {plink("Gabby Williams")}. Even the host nation, <b>{tlink("GERMANY")}</b>,
-which has qualified only {NUM_WORD.get(len(ger["wwc_record"]["editions"]), len(ger["wwc_record"]["editions"]))}
-before, carries {wnba_on_squad(ger)} WNBA players on its roster.</p>
+which has qualified only {NUM_WORD.get(ger_prior, ger_prior)}
+before, carries {wnba_on_squad(ger)} WNBA players on its roster.</p>'''
 
-'''
+    brief = "\n".join((head, p1, p2, p3, p4)) + "\n\n"
     body = brief + f'''<h2 class="sec">Rules: differences to know</h2>
 {table_scroll("""<table>
 <tr><th style="width:32%">Difference</th><th>What changes</th></tr>
@@ -2033,6 +2212,200 @@ NUM_WORD = {1: "once", 2: "twice", 3: "three times"}
 CARDINAL = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
             7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven",
             12: "twelve"}
+
+#: Ordinals in prose, the same posture as CARDINAL: "fifth straight title",
+#: never "5th straight title". The number stays derived; only its spelling
+#: lives here.
+#: Stops at twelve, where CARDINAL stops, and for the same reason: past that
+#: the word form stops being the natural phrasing. Callers fall back to
+#: `ordinal()` — the USA's title count reached twelve in 2026, so the ceiling
+#: is load-bearing rather than decorative.
+ORDINAL_WORD = {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth",
+                6: "sixth", 7: "seventh", 8: "eighth", 9: "ninth", 10: "tenth",
+                11: "eleventh", 12: "twelfth"}
+
+#: The longest run of consecutive titles in the tournament's history before
+#: Berlin: the Soviet Union, 1959–75. It is the ONE number in the archive
+#: header that is typed rather than computed, and it has to be — the USSR is
+#: not a 2026 team, so `wwc2026_teams.json` carries no record to derive it
+#: from. Typing it is nevertheless safe here where the schema doc's
+#: falsifiability rule would normally forbid it, because that rule bars
+#: storing a superlative *one game can break* and no remaining game can break
+#: this one. The clause it licenses is still GATED on the computed run
+#: matching it (see `final_header`), so if the derived number ever moves, the
+#: claim disappears rather than going quietly wrong.
+RECORD_TITLE_RUN = 5
+
+#: How that record run is described in prose. Kept beside the number it
+#: depends on, because the sentence is only true while the number is.
+RECORD_TITLE_NOTE = ("the Soviet Union won five in a row between 1959 and 1975")
+
+#: The tournament's individual awards. TYPED, and the only typed facts in the
+#: overview — there is no MVP or All-Star field anywhere in
+#: `wwc2026_teams.json` and no game to derive one from. The falsifiability
+#: rule permits this where it forbids "all-time coaching wins leader": an
+#: award is a settled historical fact, not a superlative the next result can
+#: overturn. 2018 is typed for the same reason and is one step off the
+#: source: FIBA wrote "eight years after taking the TISSOT MVP accolade in
+#: Tenerife", and Tenerife hosted the 2018 World Cup. Both FIBA reports of
+#: 2026-09-13 are cited so the claim is traceable to a source rather than to
+#: whoever typed it:
+#:   .../news/breanna-stewart-makes-history-as-two-time-womens-world-cup-tissot-mvp
+#:   .../news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title
+#:
+#: Names are written in OUR published spelling, not FIBA's — `person_id` is
+#: the identity and the name is a display field (see the roster rules). That
+#: is why Spain's forward is "Iyana Martín" here and why the four WNBA names
+#: resolve to real player pages through `plink()`; a name that does not match
+#: degrades to plain text rather than emitting a 404.
+TOURNAMENT_MVP = "Breanna Stewart"
+MVP_NOTE = "the first player to win it twice (2018, 2026)"
+ALL_STAR_FIVE = [("Breanna Stewart", "USA"), ("Jackie Young", "USA"),
+                 ("Gabby Williams", "FRANCE"), ("Iyana Martín", "SPAIN"),
+                 ("Leonie Fiebich", "GERMANY")]
+
+#: The one all-star who is not a current WNBA player, by surname, for the
+#: sentence that says so. OUR spelling carries the accent, and the paragraph
+#: names her twice — once in the five, once here — so the two must agree.
+#:
+#: The claim behind it is not typed: `wnba.players` records her as
+#: `drafted_only` with `wnba_team_full` "Portland Fire", the only one of the
+#: five who is not `current`. That is our own data agreeing with the sentence,
+#: which is why the sentence is safe to write as prose.
+ALL_STAR_OUTLIER = "Martín"
+
+
+def medal_game(rows, results, phase):
+    """`(winner_key, loser_key, winner_score, loser_score)` or None.
+
+    `phase` is `"final"` or `"third_place"`. Both medal games are read through
+    here so the Guide's two scores cannot be oriented by two different rules.
+
+    Sides come from the RESULT, never from the bracket, for the same reason
+    `page_games` takes them from there: `orient()` in `fetch_data.py` leaves
+    knockout results in FIBA's order because our rows say `TBD`, and `score`
+    is parallel to `teams`. Reading the sides from anywhere else renders every
+    knockout game backwards — the one bug in this area that looks like a data
+    error rather than a plumbing one.
+    """
+    row = next((r for r in rows if r["phase"] == phase), None)
+    res = results.get(row["game_id"]) if row else None
+    if not res or res.get("status") != "final":
+        return None
+    (a, b), (sa, sb) = res["teams"], res.get("score") or [None, None]
+    # Correct-or-blank: a final with a half-carried score is not a result.
+    if sa is None or sb is None:
+        return None
+    return (a, b, sa, sb) if sa > sb else (b, a, sb, sa)
+
+
+def played_final(rows, results):
+    """The gold-medal game once it is really decided, else None.
+
+    The single gate for every archive-state element on the Guide — the header,
+    the tense of the overview, and which edition counts include Berlin.
+    Derived from `results.json` like every other lifecycle switch on this site,
+    so a local build in December behaves identically to one on match day:
+    neither consults a clock.
+    """
+    return medal_game(rows, results, "final")
+
+
+def edition_rank(team):
+    """Where this team finished in THIS tournament, or None.
+
+    Reads `wwc2026_teams.json`, which has carried FIBA's official 1-16
+    classification since 2026-09-14 — so this answers for all sixteen teams,
+    not only the four our own medal games can prove. `validate_teams.py`
+    cross-checks those four against `results.json`.
+    """
+    return next((e["rank"] for e in team["wwc_record"]["editions"]
+                 if e["year"] == int(WWC.season)), None)
+
+
+def editions_before(team):
+    """The team's edition list WITHOUT this tournament — the record going in.
+
+    The inverse of the helper this replaced, and the inversion is the point.
+    Until 2026-09-14 `wwc_record.editions` stopped at 2022 and Berlin had to be
+    folded in at build time; FIBA's official 1-16 classification is now written
+    into `wwc2026_teams.json`, so the file is the complete record and it is the
+    "before" view that has to be computed.
+
+    That flips which sentences are at risk. Every count now INCLUDES Berlin by
+    default, so the pre-tournament copy — "qualified only once before", "won 11
+    of the 19" — is the side that silently gains one if nobody thinks about it.
+    Anything phrased as *before* reads this; anything phrased as *including*
+    reads the array. See `done` in `page_guide`.
+    """
+    return [e for e in sorted(team["wwc_record"]["editions"],
+                              key=lambda e: e["year"])
+            if e["year"] < int(WWC.season)]
+
+
+def title_streak(editions):
+    """Consecutive titles at the END of an edition list — the live streak.
+
+    Breaks the moment a final is lost, which is exactly the property that
+    makes the claim safe to publish.
+    """
+    run = 0
+    for e in reversed(editions):
+        if e["rank"] != 1:
+            break
+        run += 1
+    return run
+
+
+def final_header(teams, rows, results):
+    """The archive header, or `""` while the tournament is unfinished.
+
+    Replaces the Guide's "World Cup overview" section heading once the final
+    is played — and only then, so all three lifecycle states still render.
+
+    **A result, not a congratulation** (Jason, 2026-09-14). An archive
+    header's job is to orient someone arriving months after the confetti, and
+    "Congratulations to Team USA" ages badly where a score does not.
+
+    **The record belongs in the body** (Jason, 2026-09-14). The first version
+    of this carried "tying the longest streak in tournament history" in the
+    subline. A headline states what happened; the Soviet Union's 1959–75 run
+    is context for it, and context that needs a second clause to land is prose.
+    It is now a sentence in the overview, where it can name the USSR outright.
+    What stays here is the pair of facts that need no explaining: the streak
+    and the total.
+
+    Every number is derived — the score and both teams from the result, the
+    titles and the streak from `editions`, which has carried Berlin since
+    2026-09-14.
+    """
+    got = played_final(rows, results)
+    if not got:
+        return ""
+    # Already oriented winner-first by `medal_game`, which is the only place
+    # on this page that decides which side of a knockout result is which.
+    a, b, sa, sb = got
+    champ, runner = teams[a], teams[b]
+    head = (f'{WWC.season} FIBA {WC} — Final: '
+            f'{esc(champ["name"])} {sa}, {esc(runner["name"])} {sb}')
+
+    eds = champ["wwc_record"]["editions"]
+    run, titles = title_streak(eds), sum(1 for e in eds if e["rank"] == 1)
+    name = esc(champ["name"])
+    streak = ORDINAL_WORD.get(run)
+    total = ORDINAL_WORD.get(titles, ordinal(titles))
+    if run >= 2 and streak and titles:
+        sub = f'Team {name}’s {streak} straight title, and their {total} overall.'
+    elif titles:
+        # A first title, or a streak past the words we spell.
+        sub = f'Team {name}’s {total} World Cup title.'
+    else:
+        # Correct-or-blank. A champion's record contains at least this title,
+        # so a zero means `editions` and `results.json` disagree — print the
+        # score, which is a fact, and nothing built on top of it.
+        sub = ""
+    body = f'<h2>{head}</h2>' + (f'<p>{sub}</p>' if sub else '')
+    return f'<div class="fhead">{body}</div>'
 
 
 def final_rematch_year(a, b):

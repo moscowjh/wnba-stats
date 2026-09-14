@@ -1,11 +1,11 @@
 {
   "_schema": {
-    "version": "3.0.0",
-    "generated": "2026-09-03",
+    "version": "3.1.0",
+    "generated": "2026-09-14",
     "note": "One record per team, 16 records. Field set frozen before profile writing. Source of truth for the WWC team pages; all views (spreadsheet, HTML table) are generated from this file and are disposable.",
     "keys": "code is the primary key (FIBA three-letter). schedule_key joins to sites/wwc/reference/wwc_schedule_2026.csv, which uses UPPERCASE full names, not codes. Both are needed; neither alone is sufficient.",
     "sources": "A LIST, not a single URL, following the hooks.json convention. Verbatim quotes are attached where the source stated a figure directly.",
-    "derived": "appearances_count and best_finish derive from the editions array wherever editions is non-null. Where editions is null the stored summary is the fallback.",
+    "derived": "appearances_count and best_finish derive from the editions array wherever editions is non-null. Where editions is null the stored summary is the fallback. editions holds one {year, rank} per COMPLETED tournament — 2026 was excluded until the tournament finished and was added on 2026-09-14 from FIBA's official final classification, so every count on this file now INCLUDES Berlin. Prose that means 'before this World Cup' must subtract it; see editions_before_berlin() in build_wwc_pages.py.",
     "confidence": "high = cross-validated across two independent sources. medium = single source. low = single source that conflicted with something else; re-check before publishing.",
     "nulls": "null = exists, not researched. [] = researched, genuinely none. Never write a profile claim off a null. Since 2026-09-03 every roster row on every team carries number, name, position, club, club_country, age, height, person_id and date_of_birth, because the official FIBA capture covers all sixteen teams — the per-team column gating in the emitter is therefore currently a no-op, and is KEPT because the next event's capture will not be this complete. plays_for.other_club stays null except where an override supplies it.",
     "roster_rule": "The roster is FIBA's `isOnFinalRoster` twelve, read from the official team page — not a count inferred from a source's label. person_id is the primary key of a roster row and the join to the box scores; name is a display field and must never be used as an identity. FIBA's own firstName/lastName are ASCII-stripped and give Korean and Chinese players given-name-first, so the names published here deliberately differ from the capture. See ingest_squads.py.",
@@ -94,7 +94,8 @@
     "roster.source": "Replaced the Wikipedia squads transcription with FIBA's own team pages on 2026-09-03, the day FIBA confirmed the sixteen rosters. This resolved the two teams the Wikipedia table never covered: Nigeria was carrying a 17-name pool inferred from nationality and camp invitations, Puerto Rico a squad with no numbers, ages or heights. Both are now the official twelve.",
     "roster.cuts": "Mali went from a 22-name preselection to twelve and Nigeria from seventeen; between them seventeen players came off. Aicha Coulibaly (Chicago Sky) is the one that changes a published number — Mali now brings one current WNBA player, not two. She is in wnba.not_on_squad, not deleted.",
     "roster.height": "Heights are converted from FIBA's heightInCm with a real round. FIBA's own heightInFeetInches field is FLOOR-truncated — true for all 192 players of this field — and understates by up to an inch: 192cm renders 6'3\" where the honest round is 6'4\". Rounding from cm agrees with Wikipedia on 120 of 151 shared players; FIBA's string agrees on 69.",
-    "roster.names": "FIBA's firstName/lastName carry no diacritics and order Korean and Chinese names given-name-first. A player who joins an existing row keeps the name already published (Marine Johannès, Park Ji-hyun, Zhang Ziyu); six are published under FIBA's fuller registration by decision (Şenyürek Arslan, Takács-Kiss, Steph Talbot, Migna Touré, Pallas Kunaiyi, and Marie Gülich unchanged). Megan Gustafson is deliberately NOT among them — FIBA registers her maiden name and she has played as DiLeo since 2023. See overrides-fiba-2026-09-03.tsv."
+    "roster.names": "FIBA's firstName/lastName carry no diacritics and order Korean and Chinese names given-name-first. A player who joins an existing row keeps the name already published (Marine Johannès, Park Ji-hyun, Zhang Ziyu); six are published under FIBA's fuller registration by decision (Şenyürek Arslan, Takács-Kiss, Steph Talbot, Migna Touré, Pallas Kunaiyi, and Marie Gülich unchanged). Megan Gustafson is deliberately NOT among them — FIBA registers her maiden name and she has played as DiLeo since 2023. See overrides-fiba-2026-09-03.tsv.",
+    "wwc_record.2026": "Berlin was written into every team's editions array on 2026-09-14, the day after the final, from FIBA's official 1-16 classification. Until then the array stopped at 2022 by design — the schema's rule was 'one entry per COMPLETED tournament', and a speculative 2026 entry would have flowed straight into best_finish and into the Guide's prose as fabricated data. That risk ended when the tournament did. Four of the sixteen ranks (USA 1, France 2, Spain 3, Germany 4) are independently provable from our own results.json and validate_teams.py now cross-checks them; the other twelve rest on FIBA's classification alone. New best_finish: GER: best 11[1998] -> 4[2026]; FRA: best 3[1953] -> 2[2026]; USA: best 1[1953, 1957, 1979, 1986, 1990, 1998, 2002, 2010, 2014, 2018, 2022] -> 1[1953, 1957, 1979, 1986, 1990, 1998, 2002, 2010, 2014, 2018, 2022, 2026]."
   },
   "teams": [
     {
@@ -135,7 +136,7 @@
         "note": null
       },
       "wwc_record": {
-        "appearances_count": 7,
+        "appearances_count": 8,
         "best_finish": {
           "result": "Runners-up",
           "rank": 2,
@@ -171,11 +172,21 @@
           {
             "year": 2018,
             "rank": 3
+          },
+          {
+            "year": 2026,
+            "rank": 3
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://en.wikipedia.org/wiki/Spain_women%27s_national_basketball_team",
@@ -645,23 +656,33 @@
         "note": null
       },
       "wwc_record": {
-        "appearances_count": 1,
+        "appearances_count": 2,
         "best_finish": {
-          "result": "11th place",
-          "rank": 11,
+          "result": "Fourth place",
+          "rank": 4,
           "years": [
-            1998
+            2026
           ]
         },
         "editions": [
           {
             "year": 1998,
             "rank": 11
+          },
+          {
+            "year": 2026,
+            "rank": 4
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-are-germany-standing-on-the-verge-of-history",
@@ -1056,7 +1077,7 @@
         "note": null
       },
       "wwc_record": {
-        "appearances_count": 14,
+        "appearances_count": 15,
         "best_finish": {
           "result": "Runners-up",
           "rank": 2,
@@ -1120,11 +1141,21 @@
           {
             "year": 2022,
             "rank": 9
+          },
+          {
+            "year": 2026,
+            "rank": 12
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-can-japan-find-their-mojo-again",
@@ -1523,7 +1554,7 @@
         "note": "WITHDRAWN 2026-08-19. An earlier version named Hamchétou Maïga-Ba on the strength of a Wikipedia infobox and a 2025 AfroBasket squad page. Her FIBA player profile records no coaching role, and FIBA's Mali team profile names no coach at all. Nobody has been identified in her place — this is a genuine unknown, not a swap. Her playing record is real and is preserved in _context.maiga_ba, but nothing in this file should assert she coaches Mali."
       },
       "wwc_record": {
-        "appearances_count": 2,
+        "appearances_count": 3,
         "best_finish": {
           "result": "11th place",
           "rank": 11,
@@ -1539,11 +1570,21 @@
           {
             "year": 2022,
             "rank": 11
+          },
+          {
+            "year": 2026,
+            "rank": 13
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-mali-not-daunted-by-underdog-status",
@@ -1911,12 +1952,12 @@
         "note": null
       },
       "wwc_record": {
-        "appearances_count": 11,
+        "appearances_count": 12,
         "best_finish": {
-          "result": "Third place",
-          "rank": 3,
+          "result": "Runners-up",
+          "rank": 2,
           "years": [
-            1953
+            2026
           ]
         },
         "editions": [
@@ -1963,11 +2004,21 @@
           {
             "year": 2022,
             "rank": 7
+          },
+          {
+            "year": 2026,
+            "rank": 2
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-will-france-finally-end-an-epic-drought",
@@ -2461,7 +2512,7 @@
         "note": "English Wikipedia's infobox is stale and still lists László Cziczás, who is an assistant."
       },
       "wwc_record": {
-        "appearances_count": 5,
+        "appearances_count": 6,
         "best_finish": {
           "result": "5th place",
           "rank": 5,
@@ -2489,11 +2540,21 @@
           {
             "year": 1998,
             "rank": 10
+          },
+          {
+            "year": 2026,
+            "rank": 8
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": "Hungary History tab shows PLAYED 5 with no podiums: 1998 10th, 1986 8th, 1975 9th, 1959 7th, 1957 5th",
             "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026",
@@ -2871,7 +2932,7 @@
         "note": null
       },
       "wwc_record": {
-        "appearances_count": 17,
+        "appearances_count": 18,
         "best_finish": {
           "result": "Runners-up",
           "rank": 2,
@@ -2948,11 +3009,21 @@
           {
             "year": 2022,
             "rank": 10
+          },
+          {
+            "year": 2026,
+            "rank": 10
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": "Korea History tab shows PLAYED 17 with 17 listed editions, 1959 through 2022, and 2ND = 2",
             "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026",
@@ -3316,7 +3387,7 @@
         "note": null
       },
       "wwc_record": {
-        "appearances_count": 2,
+        "appearances_count": 3,
         "best_finish": {
           "result": "8th place",
           "rank": 8,
@@ -3332,11 +3403,21 @@
           {
             "year": 2018,
             "rank": 8
+          },
+          {
+            "year": 2026,
+            "rank": 16
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-are-nigeria-knocking-on-the-door-of-history-again",
@@ -3719,7 +3800,7 @@
         "note": "Supersedes an earlier entry naming Paul Goriss, which was wrong."
       },
       "wwc_record": {
-        "appearances_count": 16,
+        "appearances_count": 17,
         "best_finish": {
           "result": "Champions",
           "rank": 1,
@@ -3791,11 +3872,21 @@
           {
             "year": 2022,
             "rank": 3
+          },
+          {
+            "year": 2026,
+            "rank": 6
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/news/team-profile-australia-eye-another-podium-finish",
@@ -4265,7 +4356,7 @@
         "note": "The Thibault-Meesseman reunion is the strongest single WNBA hook in the field: he coached her to the 2019 WNBA title and she was Finals MVP. He is also an American coaching a rival by choice, three years after leaving the WNBA. NOTE: an earlier version of this record called him the WNBA's all-time coaching wins leader. Cheryl Reeve passed him in 2026. That claim was falsifiable by a game and should never have been stored — see the durability rule in the profile rules doc."
       },
       "wwc_record": {
-        "appearances_count": 2,
+        "appearances_count": 3,
         "best_finish": {
           "result": "Fourth place",
           "rank": 4,
@@ -4281,11 +4372,21 @@
           {
             "year": 2022,
             "rank": 5
+          },
+          {
+            "year": 2026,
+            "rank": 5
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/news/team-profile-can-the-belgian-cats-make-more-history",
@@ -4677,7 +4778,7 @@
         "note": "Confirmed in charge for 2026. Start year conflicts across sources (2014 vs 2017) so 'since' is left null."
       },
       "wwc_record": {
-        "appearances_count": 2,
+        "appearances_count": 3,
         "best_finish": {
           "result": "8th place",
           "rank": 8,
@@ -4693,11 +4794,21 @@
           {
             "year": 2022,
             "rank": 8
+          },
+          {
+            "year": 2026,
+            "rank": 11
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/news/team-profile-can-puerto-rico-defy-the-odds-and-advance",
@@ -5061,7 +5172,7 @@
         "note": "Ekrem Memnun, still listed on many pages, is out. Do not use him."
       },
       "wwc_record": {
-        "appearances_count": 2,
+        "appearances_count": 3,
         "best_finish": {
           "result": "Fourth place",
           "rank": 4,
@@ -5077,11 +5188,21 @@
           {
             "year": 2018,
             "rank": 10
+          },
+          {
+            "year": 2026,
+            "rank": 14
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-tuerkiye",
@@ -5453,7 +5574,7 @@
         "note": null
       },
       "wwc_record": {
-        "appearances_count": 11,
+        "appearances_count": 12,
         "best_finish": {
           "result": "Runners-up",
           "rank": 2,
@@ -5506,11 +5627,21 @@
           {
             "year": 2022,
             "rank": 2
+          },
+          {
+            "year": 2026,
+            "rank": 7
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/news/team-profile-can-china-repeat-their-sydney-success",
@@ -5924,7 +6055,7 @@
         "note": null
       },
       "wwc_record": {
-        "appearances_count": 3,
+        "appearances_count": 4,
         "best_finish": {
           "result": "Runners-up",
           "rank": 2,
@@ -5944,11 +6075,21 @@
           {
             "year": 2014,
             "rank": 9
+          },
+          {
+            "year": 2026,
+            "rank": 15
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/news/team-profile-will-czechia-make-the-most-of-their-return",
@@ -6319,7 +6460,7 @@
         "note": "Third stint (2015-17, 2019-20, and from September 2023); extended in July 2025 through June 2027."
       },
       "wwc_record": {
-        "appearances_count": 5,
+        "appearances_count": 6,
         "best_finish": {
           "result": "Fourth place",
           "rank": 4,
@@ -6347,11 +6488,21 @@
           {
             "year": 1994,
             "rank": 11
+          },
+          {
+            "year": 2026,
+            "rank": 9
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-can-italy-light-it-up-after-32-years-away",
@@ -6732,7 +6883,7 @@
         "note": null
       },
       "wwc_record": {
-        "appearances_count": 18,
+        "appearances_count": 19,
         "best_finish": {
           "result": "Champions",
           "rank": 1,
@@ -6747,7 +6898,8 @@
             2010,
             2014,
             2018,
-            2022
+            2022,
+            2026
           ]
         },
         "editions": [
@@ -6822,11 +6974,21 @@
           {
             "year": 2022,
             "rank": 1
+          },
+          {
+            "year": 2026,
+            "rank": 1
           }
         ],
         "confidence": "high",
-        "verified_on": "2026-08-18",
+        "verified_on": "2026-09-14",
         "sources": [
+          {
+            "claim": "2026 final classification",
+            "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/usa-continue-dominance-with-12th-fiba-womens-basketball-world-cup-title",
+            "publisher": "FIBA",
+            "quote": "1. USA 2. France 3. Spain 4. Germany 5. Belgium 6. Australia 7. China 8. Hungary 9. Italy 10. Korea 11. Puerto Rico 12. Japan 13. Mali 14. Türkiye 15. Czechia 16. Nigeria"
+          },
           {
             "claim": null,
             "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-world-cup-2026/news/team-profile-will-usa-be-unstoppable-again",

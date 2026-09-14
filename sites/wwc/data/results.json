@@ -1,0 +1,398 @@
+{
+  "2026-09-04-japan-mali": {
+    "status": "final",
+    "teams": [
+      "JAPAN",
+      "MALI"
+    ],
+    "score": [
+      102,
+      97
+    ]
+  },
+  "2026-09-04-australia-puerto-rico": {
+    "status": "final",
+    "teams": [
+      "AUSTRALIA",
+      "PUERTO RICO"
+    ],
+    "score": [
+      70,
+      54
+    ]
+  },
+  "2026-09-04-usa-china": {
+    "status": "final",
+    "teams": [
+      "USA",
+      "CHINA"
+    ],
+    "score": [
+      94,
+      61
+    ]
+  },
+  "2026-09-04-korea-nigeria": {
+    "status": "final",
+    "teams": [
+      "KOREA",
+      "NIGERIA"
+    ],
+    "score": [
+      99,
+      81
+    ]
+  },
+  "2026-09-04-belgium-turkiye": {
+    "status": "final",
+    "teams": [
+      "BELGIUM",
+      "TÜRKIYE"
+    ],
+    "score": [
+      89,
+      75
+    ]
+  },
+  "2026-09-04-spain-germany": {
+    "status": "final",
+    "teams": [
+      "SPAIN",
+      "GERMANY"
+    ],
+    "score": [
+      83,
+      53
+    ]
+  },
+  "2026-09-04-czechia-italy": {
+    "status": "final",
+    "teams": [
+      "CZECHIA",
+      "ITALY"
+    ],
+    "score": [
+      54,
+      63
+    ]
+  },
+  "2026-09-04-hungary-france": {
+    "status": "final",
+    "teams": [
+      "HUNGARY",
+      "FRANCE"
+    ],
+    "score": [
+      53,
+      99
+    ]
+  },
+  "2026-09-05-mali-spain": {
+    "status": "final",
+    "teams": [
+      "MALI",
+      "SPAIN"
+    ],
+    "score": [
+      82,
+      73
+    ]
+  },
+  "2026-09-05-nigeria-hungary": {
+    "status": "final",
+    "teams": [
+      "NIGERIA",
+      "HUNGARY"
+    ],
+    "score": [
+      67,
+      71
+    ]
+  },
+  "2026-09-05-germany-japan": {
+    "status": "final",
+    "teams": [
+      "GERMANY",
+      "JAPAN"
+    ],
+    "score": [
+      74,
+      58
+    ]
+  },
+  "2026-09-05-france-korea": {
+    "status": "final",
+    "teams": [
+      "FRANCE",
+      "KOREA"
+    ],
+    "score": [
+      95,
+      69
+    ]
+  },
+  "2026-09-06-turkiye-australia": {
+    "status": "final",
+    "teams": [
+      "TÜRKIYE",
+      "AUSTRALIA"
+    ],
+    "score": [
+      71,
+      87
+    ]
+  },
+  "2026-09-06-china-czechia": {
+    "status": "final",
+    "teams": [
+      "CHINA",
+      "CZECHIA"
+    ],
+    "score": [
+      74,
+      70
+    ]
+  },
+  "2026-09-06-puerto-rico-belgium": {
+    "status": "final",
+    "teams": [
+      "PUERTO RICO",
+      "BELGIUM"
+    ],
+    "score": [
+      64,
+      76
+    ]
+  },
+  "2026-09-06-italy-usa": {
+    "status": "final",
+    "teams": [
+      "ITALY",
+      "USA"
+    ],
+    "score": [
+      52,
+      55
+    ]
+  },
+  "2026-09-07-belgium-australia": {
+    "status": "final",
+    "teams": [
+      "BELGIUM",
+      "AUSTRALIA"
+    ],
+    "score": [
+      80,
+      68
+    ]
+  },
+  "2026-09-07-puerto-rico-turkiye": {
+    "status": "final",
+    "teams": [
+      "PUERTO RICO",
+      "TÜRKIYE"
+    ],
+    "score": [
+      75,
+      71
+    ]
+  },
+  "2026-09-07-hungary-korea": {
+    "status": "final",
+    "teams": [
+      "HUNGARY",
+      "KOREA"
+    ],
+    "score": [
+      82,
+      73
+    ]
+  },
+  "2026-09-07-nigeria-france": {
+    "status": "final",
+    "teams": [
+      "NIGERIA",
+      "FRANCE"
+    ],
+    "score": [
+      56,
+      111
+    ]
+  },
+  "2026-09-07-japan-spain": {
+    "status": "final",
+    "teams": [
+      "JAPAN",
+      "SPAIN"
+    ],
+    "score": [
+      59,
+      79
+    ]
+  },
+  "2026-09-07-germany-mali": {
+    "status": "final",
+    "teams": [
+      "GERMANY",
+      "MALI"
+    ],
+    "score": [
+      83,
+      58
+    ]
+  },
+  "2026-09-07-usa-czechia": {
+    "status": "final",
+    "teams": [
+      "USA",
+      "CZECHIA"
+    ],
+    "score": [
+      105,
+      64
+    ]
+  },
+  "2026-09-07-italy-china": {
+    "status": "final",
+    "teams": [
+      "ITALY",
+      "CHINA"
+    ],
+    "score": [
+      51,
+      71
+    ]
+  },
+  "qqf-25": {
+    "status": "final",
+    "teams": [
+      "GERMANY",
+      "KOREA"
+    ],
+    "score": [
+      94,
+      56
+    ]
+  },
+  "qqf-26": {
+    "status": "final",
+    "teams": [
+      "HUNGARY",
+      "JAPAN"
+    ],
+    "score": [
+      84,
+      63
+    ]
+  },
+  "qqf-28": {
+    "status": "final",
+    "teams": [
+      "PUERTO RICO",
+      "CHINA"
+    ],
+    "score": [
+      72,
+      75
+    ]
+  },
+  "qqf-27": {
+    "status": "final",
+    "teams": [
+      "ITALY",
+      "AUSTRALIA"
+    ],
+    "score": [
+      80,
+      82
+    ]
+  },
+  "qf-32": {
+    "status": "final",
+    "teams": [
+      "USA",
+      "HUNGARY"
+    ],
+    "score": [
+      108,
+      56
+    ]
+  },
+  "qf-30": {
+    "status": "final",
+    "teams": [
+      "CHINA",
+      "FRANCE"
+    ],
+    "score": [
+      61,
+      90
+    ]
+  },
+  "qf-31": {
+    "status": "final",
+    "teams": [
+      "BELGIUM",
+      "GERMANY"
+    ],
+    "score": [
+      74,
+      93
+    ]
+  },
+  "qf-29": {
+    "status": "final",
+    "teams": [
+      "AUSTRALIA",
+      "SPAIN"
+    ],
+    "score": [
+      66,
+      89
+    ]
+  },
+  "sf-34": {
+    "status": "final",
+    "teams": [
+      "FRANCE",
+      "GERMANY"
+    ],
+    "score": [
+      86,
+      64
+    ]
+  },
+  "sf-33": {
+    "status": "final",
+    "teams": [
+      "SPAIN",
+      "USA"
+    ],
+    "score": [
+      66,
+      76
+    ]
+  },
+  "third-place": {
+    "status": "final",
+    "teams": [
+      "SPAIN",
+      "GERMANY"
+    ],
+    "score": [
+      81,
+      58
+    ]
+  },
+  "final": {
+    "status": "final",
+    "teams": [
+      "USA",
+      "FRANCE"
+    ],
+    "score": [
+      97,
+      79
+    ]
+  }
+}
