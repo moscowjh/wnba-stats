@@ -6,13 +6,32 @@
 //                 live site is fresh. Emails an alert ONLY on failure —
 //                 silence means everything is fine.
 //      13:15 UTC  Same health check, second pass.
-//      14:45 UTC  Same health check, FINAL pass. Also reports on the WWC
-//                 site (report-only — the WWC path has no auto-repair).
-//   3. 22:00 UTC  Dispatch the WWC build ("wwc.yml") for
-//                 wwc.statsataglance.com, after the last Berlin game.
-//                 The 11:17 dispatch above ALSO fires a WWC catch-up run,
-//                 because the Free plan's 5-cron-per-ACCOUNT ceiling left
-//                 exactly one slot and the evening run needed it.
+//      14:45 UTC  Same health check, FINAL pass.
+//
+// ── The WWC schedule was RETIRED 2026-09-15 ────────────────────────────────
+// This Worker used to own a third job: a 22:00 UTC dispatch of "wwc.yml", a
+// catch-up dispatch riding the 11:17 trigger, and a report-only staleness
+// check on the 14:45 pass. The FIBA Women's World Cup ended 2026-09-13 and
+// wwc.statsataglance.com became an archive: its data is frozen and tracked in
+// git, so every scheduled rebuild produced byte-identical output.
+//
+// All three were removed together, and that TOGETHER is the point. The
+// staleness check emailed when the newest wwc.yml run passed 26h old, and its
+// alert read "the cron may have stopped firing" — which, once the cron was
+// retired on purpose, would have been perfectly accurate and perfectly
+// useless, once a day, forever. A monitor cannot tell a schedule that broke
+// from a schedule that was retired. **When you retire a scheduled job, its
+// monitor is part of the job.**
+//
+// Retiring the 22:00 trigger also returned a Cron Trigger to the account,
+// which had been at the Free plan's ceiling of 5.
+//
+// dispatchWwc() and wwcCheck() SURVIVE, reachable only by hand via
+// ?action=wwc and ?action=wwccheck. Nothing calls them on a schedule and
+// nothing they do can send an email. The site still rebuilds automatically on
+// any push to sites/wwc/** or core/** — that trigger lives in wwc.yml and
+// must stay, because core/ is shared and wwc.yml is the only thing that
+// re-renders the archive.
 //
 // ── Self-healing retries (added 2026-08-05) ────────────────────────────────
 // Most build failures are transient upstream blips, not bugs: ESPN's API goes
@@ -59,45 +78,18 @@ const CHECK_CRONS = [CHECK_CRON, RETRY_CRON, FINAL_CRON];
 const WWC_WORKFLOW = "wwc.yml";
 const WWC_REPO_PATH = "sites/wwc";
 
-// 22:00 UTC, and the arithmetic matters — the backlog's "~18:45 UTC, after
-// the last Berlin game" was TIP times misread as END times.
-//
-//   Latest tip of the tournament:  19:00 GMT, Sep 4 (2026-09-04, game 8)
-//   Four other days tip at         18:45 GMT
-//   A women's game runs            ~1h45-2h wall clock, plus OT
-//   => latest plausible final      ~21:15 GMT
-//
-// Dispatching at 18:45 would have fired while the day's last game was in the
-// FIRST QUARTER, then left the site frozen overnight showing the marquee game
-// as in-progress. 22:00 gives ~45 min of slack past the worst case.
-const WWC_DISPATCH_CRON = "0 22 * * *";
 
-// This is the ONLY new cron trigger, and that is a hard constraint rather
-// than a preference. **Cloudflare's Free plan allows 5 Cron Triggers PER
-// ACCOUNT** (Paid allows 250), and this Worker already owns 4 of them — it is
-// the only Worker on the account with any. So there was exactly one slot, and
-// adding it puts the account AT the ceiling with no headroom left.
-//
-// The morning catch-up therefore does NOT get its own trigger. It rides on
-// the existing 11:17 WNBA dispatch (see `scheduled()`), which costs nothing
-// and lands 13.3h after the evening run. That is late enough to be useless
-// for same-day results — which is why the 22:00 run is the one that got the
-// slot — and early enough to sweep up everything the evening run missed:
-//   1. FIBA published a box score after 22:00.
-//   2. The 22:00 run failed. Re-running is the whole repair.
-// It also keeps the Actions data cache warm; GitHub evicts after 7 days idle.
-//
-// If the account ever moves to Workers Paid, splitting this back out to a
-// dedicated ~06:30 trigger is a strictly better shape: it halves the worst
-// case lag on a straggling box score. Not worth $5/mo on its own.
-const WWC_CATCHUP_NOTE = "rides on the 11:17 WNBA dispatch — no free cron slot left";
-const WWC_CRONS = [WWC_DISPATCH_CRON];
+// Retired 2026-09-15 along with the 22:00 trigger: a "morning catch-up"
+// dispatch that rode the 11:17 WNBA cron, because the Free plan's
+// 5-cron-per-ACCOUNT ceiling left no slot of its own. Both existed to chase
+// late FIBA box scores and to keep the Actions data cache warm. Neither job
+// exists now — the tournament is over and the data is tracked in git rather
+// than cached. Removing the 22:00 trigger put the account back to 4 of 5.
 
-// How stale the newest wwc.yml run may be before the FINAL pass emails about
-// it. The two dispatches sit 10.7h and 13.3h apart, so 26h tolerates one
-// entirely missed dispatch and still catches a STOPPED cron. Catching a
-// silently-stopped schedule is the whole reason this Worker exists — GitHub's
-// native `schedule:` dropped three mornings in June 2026 and said nothing.
+// Kept for the manual ?action=wwccheck report only. It no longer gates an
+// email, and nothing calls it on a schedule: with the cron retired the newest
+// wwc.yml run is SUPPOSED to age indefinitely, so a staleness alarm would fire
+// every day about an archive behaving exactly as intended.
 const WWC_MAX_RUN_AGE_H = 26;
 const ALERT_FROM = "alerts@statsataglance.com";
 const ALERT_TO = "horowitz.jason@gmail.com";
@@ -221,28 +213,12 @@ async function wwcCheck(env) {
   }
 }
 
-// Runs wwcCheck() and emails if it found anything. Kept separate from the
-// check itself so a manual `?action=wwccheck` can report without mailing.
-async function reportWwc(env) {
-  const r = await wwcCheck(env);
-  if (r.ok) {
-    console.log("WWC check: OK");
-    return r;
-  }
-  console.log("WWC check FAILED:", r.problems.join("; "));
-  await sendAlert(
-    env,
-    "WWC site — build problem",
-    `The WWC site (${WWC_WORKFLOW}) needs attention.\n\n` +
-    r.problems.map((x) => `  - ${x}`).join("\n") +
-    `\n\nThe morning catch-up dispatch (${WWC_CATCHUP_NOTE}) has already run ` +
-    `and did not fix it, so this wants a human.\n\n` +
-    `Workflow: https://github.com/${REPO}/actions/workflows/${WWC_WORKFLOW}\n` +
-    `Site:     https://wwc.statsataglance.com/\n` +
-    `Source:   ${WWC_REPO_PATH}/\n`
-  );
-  return r;
-}
+// reportWwc() lived here until 2026-09-15. It wrapped wwcCheck() and emailed
+// on any problem, and the FINAL health-check pass was its only caller. It is
+// deleted rather than left unused: an emailer with no caller is one edit away
+// from being called again, and what it would say is "the cron may have stopped
+// firing" about a cron we retired on purpose. ?action=wwccheck still reports
+// the same information on demand, and deliberately does not email.
 
 async function todaysRun(env) {
   const url = `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=5&event=workflow_dispatch`;
@@ -660,23 +636,11 @@ export default {
         final: event.cron === FINAL_CRON,
         label: `pass ${pass}/${CHECK_CRONS.length}`,
       }));
-      // The FINAL pass also reports on the WWC site. A SEPARATE waitUntil,
-      // not folded into healthCheck(): the WWC site must never be able to
-      // break, delay or alter the WNBA check. Same rule that keeps the two
-      // workflows apart in CI — neither site may block the other.
-      if (event.cron === FINAL_CRON) ctx.waitUntil(reportWwc(env));
-    } else if (WWC_CRONS.includes(event.cron)) {
-      ctx.waitUntil(dispatchWwc(env, "evening — after the last Berlin game"));
+      // The FINAL pass used to also email a WWC staleness report here. Removed
+      // 2026-09-15 with the cron it watched — see the header. Nothing WWC runs
+      // on a schedule now.
     } else if (event.cron === DISPATCH_CRON) {
       ctx.waitUntil(dispatch(env));
-      // The WWC morning catch-up, riding this trigger because the Free plan
-      // has no cron slot left (see WWC_CATCHUP_NOTE). A SEPARATE waitUntil,
-      // so a WWC dispatch failure cannot affect the WNBA one.
-      //
-      // ⚠️ If this cron is ever renamed, retimed or removed, the WWC catch-up
-      // goes with it silently. The 26h staleness check in wwcCheck() is what
-      // would eventually notice.
-      ctx.waitUntil(dispatchWwc(env, "morning catch-up"));
     } else {
       console.log(
         `unrecognised cron "${event.cron}" — NO ACTION TAKEN. ` +
