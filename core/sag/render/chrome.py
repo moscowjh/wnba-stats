@@ -204,11 +204,52 @@ SUBPAGE_HEADER_CSS = """\
   .masthead .crumb a:hover{color:var(--accent)}
 """
 
+# The subpage navigation strip (2026-09-15). These rules are deliberately
+# IDENTICAL to the homepage's `.tabs`/`.tab` in build_stats_page.py's PAGE_CSS
+# — subpages do not load PAGE_CSS, so without a copy here the same strip would
+# render differently depending on which page you were standing on. They are
+# together in one string so the next person editing either meets both.
+#
+# On a subpage every entry is an `<a>`; on the homepage most are `<button>`.
+# The selectors cover both so the two surfaces stay pixel-identical.
+SUBPAGE_TABS_CSS = """\
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+  .tab{cursor:pointer;padding:5px 12px;border:1px solid var(--border);
+        color:var(--muted);background:var(--surface);font-family:inherit;
+        font-size:12px;letter-spacing:.3px;font-weight:500}
+  a.tab{text-decoration:none;display:inline-block}
+  .tab.active{border-color:var(--accent);color:var(--accent)}
+"""
 
-def subpage_header_html(site_title, home_url, crumb_html=""):
+
+def subpage_header_html(site_title, home_url, crumb_html="", tabs=None,
+                        active=None):
+    """The subpage masthead, optionally followed by a navigation strip.
+
+    `tabs` is a list of `(label, href)` pairs supplied BY THE SITE, and `core/`
+    never knows what is in it. That is the whole design: the WNBA strip is a
+    WNBA fact, and a shared layer that hardcoded "Standings" would be
+    WNBA-shaped with the names filed off — the thing `sites/wwc/` exists to
+    disprove. Omit `tabs` and the output is byte-identical to before, which is
+    what keeps the WWC archive (the only other consumer of this module) out of
+    the diff. Verified 2026-09-14 and again on this change: the WWC emitter
+    does not call this function at all.
+
+    `active` is the label to light. Added 2026-09-15 so every page carries the
+    same strip: entity pages were reachable only through quietly styled names
+    in table cells, and `/teams/` and `/players/` had zero inbound links from
+    anywhere on the site (Decisions Log 2026-09-09).
+    """
     crumb = f'<div class="crumb">{crumb_html}</div>' if crumb_html else ""
+    strip = ""
+    if tabs:
+        strip = '<div class="tabs">' + ''.join(
+            f'<a class="tab{" active" if label == active else ""}" '
+            f'href="{href}">{label}</a>'
+            for label, href in tabs
+        ) + '</div>\n'
     return (
         '<div class="masthead">'
         f'<a class="site-name" href="{home_url}">{site_title}</a>'
-        f'{crumb}</div>\n'
+        f'{crumb}</div>\n' + strip
     )

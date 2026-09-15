@@ -41,7 +41,8 @@ from sag.render import chrome
 
 import build_stats_page as bsp
 import fetch_data as fd
-from config import WNBA
+from config import (WNBA, SUBPAGE_TABS, ACTIVE_TEAMS, ACTIVE_PLAYERS,
+                    ACTIVE_GAMES)
 
 BIOS_PATH = WNBA.data_dir / f"player_bios_{WNBA.season}.json"
 HOOKS_PATH = WNBA.site_dir / "reference" / "hooks.json"
@@ -376,6 +377,7 @@ PAGE_CSS = (
     + "*{box-sizing:border-box;margin:0;padding:0}\n"
     + _CARD_CSS
     + chrome.SUBPAGE_HEADER_CSS
+    + chrome.SUBPAGE_TABS_CSS
     + chrome.SCROLL_FADE_CSS
     + chrome.SITE_FOOTER_CSS
 )
@@ -400,6 +402,40 @@ d.addEventListener('toggle',function(){
   try{localStorage.setItem('sag-expand',d.open?'1':'0')}catch(e){}
   if(restored){restored=false;return}
   if(d.open)track('expand','__PAGE_KEY__')})}
+"""
+
+
+# The /players/ index filter. Rows carry a precomputed lowercase `data-k`
+# (name + team), so a keystroke is one pass of string matching with no DOM
+# reads and no innerHTML writes — the same posture as the homepage's
+# filterPlayers(). Zero dependencies, which is the brand.
+#
+# Deliberately NOT debounced: 232 rows is small enough that the work is
+# invisible, and a debounce on a search box is a delay the user can feel.
+INDEX_FILTER_JS = """
+function filterIdx() {
+  var q = (document.getElementById('pq').value || '').trim().toLowerCase();
+  var rows = document.querySelectorAll('#ptbl tr[data-k]');
+  var n = 0;
+  rows.forEach(function (r) {
+    var hit = !q || r.getAttribute('data-k').indexOf(q) !== -1;
+    r.style.display = hit ? '' : 'none';
+    if (hit) n++;
+  });
+  /* Silent on an empty box: the crumb above already says how many players
+     there are, and repeating it unasked is noise. Speak only when filtering,
+     and say plainly when the answer is nothing — a blank table with no
+     explanation reads as a broken page. */
+  var c = document.getElementById('pcount');
+  c.textContent = !q ? '' : (n ? n + ' of ' + rows.length : 'no players match');
+}
+
+function clearIdx() {
+  var box = document.getElementById('pq');
+  box.value = '';
+  filterIdx();
+  box.focus();
+}
 """
 
 
@@ -606,9 +642,9 @@ def render_page(row, bio, ranks, lg_ts, games, game_meta,
         f"{bsp.f1(row['APG'])} APG. Fast, ad-free, updated every morning.")
     jsonld = seo.person_jsonld(name, seo.canonical_url(WNBA, path), team_full)
 
+    # "← all players" removed 2026-09-15 — the strip carries Players now.
     masthead = chrome.subpage_header_html(
-        esc(SITE_TITLE), "/",
-        crumb_html='<a href="/players/">← all players</a>')
+        esc(SITE_TITLE), "/", tabs=SUBPAGE_TABS, active=ACTIVE_PLAYERS)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -632,8 +668,13 @@ def render_index(entries, data_through):
         parts = e["name"].split()
         return (parts[-1].lower(), e["name"].lower())
 
+    # `data-k` is the lowercased haystack the filter matches on: name AND
+    # team, so "min" finds the Lynx and "collier" finds Napheesa. Precomputed
+    # at build time rather than read out of the DOM on every keystroke, and it
+    # means the filter never touches innerHTML.
     rows = "".join(
-        f'<tr><td><a href="/players/{e["slug"]}/">{esc(e["name"])}</a></td>'
+        f'<tr data-k="{esc((e["name"] + " " + str(e["team"])).lower())}">'
+        f'<td><a href="/players/{e["slug"]}/">{esc(e["name"])}</a></td>'
         f'<td>{esc(e["team"])}</td><td>{e["gp"]}</td><td>{e["ppg"]}</td></tr>'
         for e in sorted(entries, key=sort_key))
 
@@ -643,7 +684,8 @@ def render_index(entries, data_through):
         "stats at a glance, updated every morning. Fast, ad-free.")
     masthead = chrome.subpage_header_html(
         esc(SITE_TITLE), "/",
-        crumb_html=f'{len(entries)} players · stats through {data_through}')
+        crumb_html=f'{len(entries)} players · stats through {data_through}',
+        tabs=SUBPAGE_TABS, active=ACTIVE_PLAYERS)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -655,11 +697,32 @@ th{{color:var(--muted);text-align:left;padding:4px 6px;border-bottom:1px solid v
 td{{padding:4px 6px;border-bottom:1px solid var(--border)}}
 td a{{color:var(--text);text-decoration:underline;text-decoration-color:rgba(136,136,136,0.5);text-underline-offset:2px}}
 td a:hover{{color:var(--accent)}}
+/* Search on the index, added 2026-09-15. This page became a primary nav
+   destination the same day — before the strip it had ZERO inbound links
+   (Decisions Log 2026-09-09) — and it lists 232 names. Reachable and
+   unsearchable is worse than unreachable: the nav now promises something the
+   page could not deliver. Styled to match the homepage's .controls row so the
+   two surfaces read as one site. */
+.pfind{{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}}
+.pfind input[type=text]{{background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-family:inherit;font-size:12px;padding:5px 9px;width:170px}}
+.pfind input[type=text]:focus{{outline:none;border-color:var(--accent)}}
+.pfind button{{background:var(--surface);border:1px solid var(--border);
+  color:var(--muted);font-family:inherit;font-size:12px;padding:5px 10px;cursor:pointer}}
+.pfind button:hover{{border-color:var(--accent);color:var(--accent)}}
+.pcount{{color:var(--muted);font-size:11px}}
 </style>
 </head>
 <body style="max-width:640px">
-{masthead}<table><tr><th>Player</th><th>Team</th><th>GP</th><th>PPG</th></tr>{rows}</table>
-{chrome.SITE_FOOTER_HTML}<script>{page_js(INDEX_ANALYTICS_KEY)}</script>
+{masthead}<div class="pfind">
+<input type="text" id="pq" placeholder="search player or team&#8230;" oninput="filterIdx()"
+ autocomplete="off" autocapitalize="none" spellcheck="false">
+<button type="button" onclick="clearIdx()">Clear</button>
+<span class="pcount" id="pcount"></span>
+</div>
+<table id="ptbl"><tr><th>Player</th><th>Team</th><th>GP</th><th>PPG</th></tr>{rows}</table>
+{chrome.SITE_FOOTER_HTML}<script>{page_js(INDEX_ANALYTICS_KEY)}
+{INDEX_FILTER_JS}</script>
 {chrome.cf_beacon_html(WNBA.cf_analytics_token)}</body>
 </html>
 """

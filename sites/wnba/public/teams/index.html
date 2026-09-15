@@ -62,6 +62,26 @@ table.s td:not(:first-child){font-family:ui-monospace,SFMono-Regular,'SF Mono',M
 table.s td a{color:var(--text);text-decoration:underline;
   text-decoration-color:rgba(136,136,136,0.45);text-underline-offset:2px}
 table.s td a:hover{color:var(--accent)}
+/* The /teams/ index (2026-09-15). Its job is different from every other table
+   on the site: it is a list of ROUTES, not of data, so the links have to be
+   unmistakably links rather than the site's usual quietly-underlined text.
+   Accent colour, a visible underline, and a 3px offset so the descenders in
+   team names clear it. This is the fix for the finding that /teams/ and
+   /players/ had zero inbound links and entity pages were reachable only
+   through names in table cells that gave no sign of being tappable. */
+.tp .tl{color:var(--accent);text-decoration:underline;
+  text-decoration-color:rgba(245,166,35,.55);text-underline-offset:3px}
+.tp .tl:hover{text-decoration-color:var(--accent)}
+/* Muted, NOT accented, and that is Jason's call: conferences are nearly
+   vestigial in this league and exist here only to halve the list someone is
+   scanning. Accenting them would make the furniture compete with the links. */
+.conf{color:var(--muted);font-size:10px;letter-spacing:.7px;
+  text-transform:uppercase;margin:14px 0 4px;font-weight:600}
+.conf:first-child{margin-top:2px}
+/* The index's rows are names and routes, not numbers — the site-wide rule
+   that monospaces every column after the first is wrong here. */
+.tp table.s td:not(:first-child){font-family:inherit}
+.tp .tla{color:var(--muted);font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace}
 .w{color:#7ec27e}.l{color:var(--muted)}
 .also{color:var(--muted);font-size:11px;line-height:1.7;margin-top:7px}
 .also a{color:var(--muted);text-decoration:underline;
@@ -100,6 +120,12 @@ details.inl .body{position:absolute;width:230px;background:#000;
   .masthead .crumb{color:var(--muted);font-size:11px}
   .masthead .crumb a{color:var(--muted)}
   .masthead .crumb a:hover{color:var(--accent)}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+  .tab{cursor:pointer;padding:5px 12px;border:1px solid var(--border);
+        color:var(--muted);background:var(--surface);font-family:inherit;
+        font-size:12px;letter-spacing:.3px;font-weight:500}
+  a.tab{text-decoration:none;display:inline-block}
+  .tab.active{border-color:var(--accent);color:var(--accent)}
   .site-footer{margin-top:34px;padding-top:12px;border-top:1px solid var(--border);
       color:var(--muted);font-size:11px;line-height:1.8}
   .site-footer a{color:var(--muted);text-decoration:underline}
@@ -107,10 +133,9 @@ details.inl .body{position:absolute;width:230px;background:#000;
 </style>
 </head>
 <body>
-<div class="masthead"><a class="site-name" href="/">WNBA 2026 — At a Glance</a><div class="crumb">15 teams · stats through August 30, 2026</div></div>
-<div class="tp"><table class="s">
-<tr><th>Team</th><th>TLA</th><th>Record</th><th>Pythagorean</th></tr>
-<tr><td><a href="/teams/minnesota-lynx/">Minnesota Lynx</a></td><td>MIN</td><td>31-9</td><td>31.1-8.9</td></tr><tr><td><a href="/teams/golden-state-valkyries/">Golden State Valkyries</a></td><td>GSV</td><td>29-11</td><td>31.2-8.8</td></tr><tr><td><a href="/teams/las-vegas-aces/">Las Vegas Aces</a></td><td>LVA</td><td>27-13</td><td>26.2-13.8</td></tr><tr><td><a href="/teams/indiana-fever/">Indiana Fever</a></td><td>IND</td><td>26-14</td><td>28.4-11.6</td></tr><tr><td><a href="/teams/atlanta-dream/">Atlanta Dream</a></td><td>ATL</td><td>26-14</td><td>27.6-12.4</td></tr><tr><td><a href="/teams/dallas-wings/">Dallas Wings</a></td><td>DAL</td><td>24-16</td><td>25.7-14.3</td></tr><tr><td><a href="/teams/new-york-liberty/">New York Liberty</a></td><td>NYL</td><td>24-16</td><td>24.6-15.4</td></tr><tr><td><a href="/teams/washington-mystics/">Washington Mystics</a></td><td>WAS</td><td>24-16</td><td>19.7-20.3</td></tr><tr><td><a href="/teams/portland-fire/">Portland Fire</a></td><td>PDX</td><td>16-24</td><td>13.3-26.7</td></tr><tr><td><a href="/teams/chicago-sky/">Chicago Sky</a></td><td>CHI</td><td>15-25</td><td>15.4-24.6</td></tr><tr><td><a href="/teams/los-angeles-sparks/">Los Angeles Sparks</a></td><td>LAS</td><td>15-25</td><td>13.4-26.6</td></tr><tr><td><a href="/teams/phoenix-mercury/">Phoenix Mercury</a></td><td>PHX</td><td>14-26</td><td>15.1-24.9</td></tr><tr><td><a href="/teams/toronto-tempo/">Toronto Tempo</a></td><td>TOR</td><td>11-29</td><td>9.5-30.5</td></tr><tr><td><a href="/teams/connecticut-sun/">Connecticut Sun</a></td><td>CON</td><td>10-30</td><td>7.5-32.5</td></tr><tr><td><a href="/teams/seattle-storm/">Seattle Storm</a></td><td>SEA</td><td>8-32</td><td>11.8-28.2</td></tr></table></div>
+<div class="masthead"><a class="site-name" href="/">WNBA 2026 — At a Glance</a><div class="crumb">15 teams · tap a name for roster, schedule & coach</div></div>
+<div class="tabs"><a class="tab" href="/#games">Games</a><a class="tab" href="/#standings">Standings</a><a class="tab" href="/#leaders">Leaders</a><a class="tab active" href="/teams/">Teams</a><a class="tab" href="/players/">Players</a><a class="tab" href="/#stats">Stats</a><a class="tab" href="/#abbreviations">Key</a></div>
+<div class="tp"><div class="conf">Eastern Conference</div><table class="s"><tr><td><a class="tl" href="/teams/atlanta-dream/">Atlanta Dream</a></td><td class="tla">ATL</td><td><a class="tl" href="/#stats-team-totals?team=ATL">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/chicago-sky/">Chicago Sky</a></td><td class="tla">CHI</td><td><a class="tl" href="/#stats-team-totals?team=CHI">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/connecticut-sun/">Connecticut Sun</a></td><td class="tla">CON</td><td><a class="tl" href="/#stats-team-totals?team=CON">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/indiana-fever/">Indiana Fever</a></td><td class="tla">IND</td><td><a class="tl" href="/#stats-team-totals?team=IND">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/new-york-liberty/">New York Liberty</a></td><td class="tla">NYL</td><td><a class="tl" href="/#stats-team-totals?team=NYL">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/toronto-tempo/">Toronto Tempo</a></td><td class="tla">TOR</td><td><a class="tl" href="/#stats-team-totals?team=TOR">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/washington-mystics/">Washington Mystics</a></td><td class="tla">WAS</td><td><a class="tl" href="/#stats-team-totals?team=WAS">Team totals &rarr;</a></td></tr></table><div class="conf">Western Conference</div><table class="s"><tr><td><a class="tl" href="/teams/dallas-wings/">Dallas Wings</a></td><td class="tla">DAL</td><td><a class="tl" href="/#stats-team-totals?team=DAL">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/golden-state-valkyries/">Golden State Valkyries</a></td><td class="tla">GSV</td><td><a class="tl" href="/#stats-team-totals?team=GSV">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/las-vegas-aces/">Las Vegas Aces</a></td><td class="tla">LVA</td><td><a class="tl" href="/#stats-team-totals?team=LVA">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/los-angeles-sparks/">Los Angeles Sparks</a></td><td class="tla">LAS</td><td><a class="tl" href="/#stats-team-totals?team=LAS">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/minnesota-lynx/">Minnesota Lynx</a></td><td class="tla">MIN</td><td><a class="tl" href="/#stats-team-totals?team=MIN">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/phoenix-mercury/">Phoenix Mercury</a></td><td class="tla">PHX</td><td><a class="tl" href="/#stats-team-totals?team=PHX">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/portland-fire/">Portland Fire</a></td><td class="tla">PDX</td><td><a class="tl" href="/#stats-team-totals?team=PDX">Team totals &rarr;</a></td></tr><tr><td><a class="tl" href="/teams/seattle-storm/">Seattle Storm</a></td><td class="tla">SEA</td><td><a class="tl" href="/#stats-team-totals?team=SEA">Team totals &rarr;</a></td></tr></table></div>
 <div class="site-footer">
   feedback → <a href="mailto:hello@statsataglance.com">hello@statsataglance.com</a><br>
   an independent, non-commercial fan project

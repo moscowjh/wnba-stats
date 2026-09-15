@@ -43,6 +43,9 @@ PLAYOFF_SPOTS = 8  # teams that make the WNBA playoffs
 ET = ZoneInfo("America/New_York")
 
 
+_SAG_TODAY_ANNOUNCED = False
+
+
 def today_et():
     """ET calendar date of 'today'. SAG_TODAY (YYYY-MM-DD) overrides it so the
     golden harness can re-render a pinned snapshot byte-for-byte on any later
@@ -50,6 +53,19 @@ def today_et():
     'last night' gate both key off this date."""
     ov = os.environ.get('SAG_TODAY')
     if ov:
+        # Say so, once, loudly (2026-09-15). A pinned date silently changes
+        # date-gated output — on this build it resurrected the World Cup
+        # banner, which is removed by `today > WWC_LAST_DAY` and nothing else,
+        # and the preview then looked like a regression that production never
+        # had. The harness needs this override; a human previewing the site
+        # almost never does, and had no way to tell it was in effect.
+        # Printing cannot move any byte of the page.
+        global _SAG_TODAY_ANNOUNCED
+        if not _SAG_TODAY_ANNOUNCED:
+            print(f"  NOTE: SAG_TODAY={ov} — building against a PINNED date, "
+                  f"not today. Date-gated output (the Games tab's "
+                  f"today/yesterday split, any dated banner) reflects {ov}.")
+            _SAG_TODAY_ANNOUNCED = True
         return datetime.strptime(ov, '%Y-%m-%d').date()
     return datetime.now(ET).date()
 
@@ -971,7 +987,7 @@ def build_standings_section(standings_df):
 
 def build_team_efficiency_section(ff_df, team_options):
     return (
-        '<div id="teameff" class="section">\n'
+        '<div id="teameff" class="statview active">\n'
         '<h2>Team Efficiency</h2>\n'
         '<div class="matchup-bar">\n'
         '  <label>Matchup &nbsp;</label>\n'
@@ -991,7 +1007,7 @@ def build_team_efficiency_section(ff_df, team_options):
 
 def build_team_totals_section(team_stats_df, team_options):
     return (
-        '<div id="teamtotals" class="section">\n'
+        '<div id="teamtotals" class="statview">\n'
         '<h2>Team Totals \u2014 Per Game</h2>\n'
         '<div class="matchup-bar">\n'
         '  <label>Matchup &nbsp;</label>\n'
@@ -1099,7 +1115,7 @@ def build_players_section(p_team, p_season, team_abbrevs):
     )
 
     return (
-        '<div id="players" class="section">\n'
+        '<div id="players" class="statview">\n'
         '<h2>Players \u2014 Season Stats</h2>\n'
         '<span id="backToLeaders" class="back-link" style="display:none"'
         ' onclick="backToLeaders()">\u2190 Back to Leaders</span>\n'
@@ -1790,7 +1806,29 @@ PAGE_CSS = (
         color:var(--muted);background:var(--surface);font-family:inherit;
         font-size:12px;letter-spacing:.3px;font-weight:500}
   .tab.active{border-color:var(--accent);color:var(--accent)}
+  /* Teams and Players are real links, not buttons — they leave the page.
+     They must be visually indistinguishable from the buttons beside them,
+     so the strip reads as one row of peers rather than as tabs-plus-links. */
+  a.tab{text-decoration:none;display:inline-block}
   .section{display:none}.section.active{display:block}
+  /* The Stats switch (2026-09-15). Three views behind one tab: Efficiency,
+     Team Totals, Player Totals. `.statview` is a SECOND, independent
+     show/hide layer nested inside `#stats` — it cannot reuse `.section`,
+     because showTab() toggles every `.section` on the page and would fight
+     this one. Ids are unchanged (`teameff`, `teamtotals`, `players`), which
+     is what makes the old deep links alias for free in openTabFromHash. */
+  .statview{display:none}.statview.active{display:block}
+  /* Deliberately NOT a second strip of boxed tabs — it has to read as
+     subordinate to the tab strip above it, or the page appears to have two
+     navigations. Text only, on a rule, active marked by an accent underline
+     and full --text weight against --muted siblings. */
+  .swrap{display:flex;gap:18px;flex-wrap:wrap;
+        border-bottom:1px solid var(--border);margin:0 0 14px}
+  .sw{cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;
+        color:var(--muted);font-family:inherit;font-size:12.5px;
+        letter-spacing:.3px;font-weight:500;padding:6px 0 7px;margin-bottom:-1px}
+  .sw:hover{color:var(--text)}
+  .sw.active{color:var(--text);border-bottom-color:var(--accent)}
 """
     + chrome.SCROLL_FADE_CSS
     + """\
@@ -1902,7 +1940,21 @@ function showTab(id, btn) {
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
   document.querySelectorAll('#'+id+' .table-wrap').forEach(updateScrollFades);
-  track('tab', id);
+  /* Write the tab into the URL (2026-09-15). Before this the hash never
+     moved, so Leaders -> a player page -> Back landed on Games: the browser
+     restored `/` and `/` has always meant Games. Harmless while the site was
+     one page; a daily annoyance now that the strip sends people to real
+     pages. replaceState rather than pushState so a tab switch does not add a
+     history entry, and it does NOT fire hashchange, so there is no loop with
+     openTabFromHash. */
+  if (window.history && history.replaceState) {
+    history.replaceState(null, '', '#' + (id === 'stats' ? statHash() : id));
+  }
+  track('tab', id === 'stats' ? statHash() : id);
+  /* NOTE for whoever reads the usage data: on a deep link the hash is
+     rewritten a second time by showStat a moment later, so the address bar
+     ends up correct even though this line ran first against the previous
+     view. Only the URL is written twice; the count is not (see `silent`). */
   /* The back-to-leaders link is only relevant right after a leader click;
      hide it on any manual tab switch. goToPlayer re-shows it afterward. */
   const bl = document.getElementById('backToLeaders');
@@ -2006,9 +2058,11 @@ function goToPlayer(name) {
   document.getElementById('pB').value = '';
   document.getElementById('pmin').value = '0';
   document.getElementById('psearch').value = name;
-  /* Switch to players tab (showTab hides the back link; we re-show it below) */
-  const btn = document.querySelector('[data-tab="players"]');
-  showTab('players', btn);
+  /* Players is a VIEW inside Stats since 2026-09-15, not a tab of its own.
+     Switch the tab first, then the view — showTab hides the back link, and
+     we re-show it below. */
+  showTab('stats', document.querySelector('.tab[data-tab="stats"]'));
+  showStat('players', document.querySelector('.sw[data-sv="players"]'), true);
   filterPlayers();
   /* Reveal the contextual back link and bring the result into view */
   document.getElementById('backToLeaders').style.display = '';
@@ -2096,12 +2150,94 @@ function backToGames() {
    of the selector. An absent or unrecognised hash leaves Games active, which
    is the pre-existing behaviour. Also bound to hashchange so a link followed
    while already on the page works the same as one followed on arrival. */
+/* The Stats views. A second show/hide layer inside #stats — see the
+   `.statview` note in the CSS for why it cannot reuse `.section`. */
+function showStat(view, btn, silent) {
+  document.querySelectorAll('.statview').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.sw').forEach(b => b.classList.remove('active'));
+  var v = document.getElementById(view);
+  if (!v) return;
+  v.classList.add('active');
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('#' + view + ' .table-wrap').forEach(updateScrollFades);
+  if (window.history && history.replaceState) {
+    history.replaceState(null, '', '#' + statHash());
+  }
+  /* Analytics continuity (2026-09-15): usage_report.py groups tab events by
+     id, and `teameff` / `teamtotals` / `players` stop existing as tabs today.
+     Sending the VIEW rather than a bare `stats` keeps the three separately
+     countable, so the series has a rename in it, not a cliff. Cutover date is
+     in the Decisions Log.
+
+     `silent` exists because showTab() has already counted the arrival whenever
+     it is about to hand off to us — a deep link and a leader click both run
+     showTab then showStat, and counting in both would inflate Stats against
+     every other tab. Only a real click on the switch counts here. */
+  if (!silent) track('tab', statHash());
+}
+
+/* Which Stats view is showing, as its URL fragment. Efficiency is the default
+   and gets the bare `#stats` so the tab has a clean canonical link. */
+function statHash() {
+  var v = document.querySelector('.statview.active');
+  var id = v ? v.id : 'teameff';
+  return id === 'teameff' ? 'stats'
+       : id === 'teamtotals' ? 'stats-team-totals'
+       : id === 'players' ? 'stats-player-totals' : 'stats';
+}
+
+/* Fragment -> Stats view. The first three are today's links; the last three
+   are the OLD tab ids, kept because the team pages linked to them and people
+   may have bookmarks. A dead deep link is the same class of defect as a
+   link to a 404 — see the note on openTabFromHash. */
+var STAT_HASHES = {
+  'stats': 'teameff',
+  'stats-team-totals': 'teamtotals',
+  'stats-player-totals': 'players',
+  'teameff': 'teameff',
+  'teamtotals': 'teamtotals',
+  'players': 'players'
+};
+
+/* `#stats-team-totals?team=MIN` opens Team Totals with the Lynx preselected in
+   the matchup filter, which already renders that team plus the highlighted
+   league-average row. The TLA is matched against `data-tla` on the options
+   themselves, so there is no second lookup table to fall out of sync — see
+   `team_options` in main(). `tla` is pattern-tested by the caller before it
+   reaches this selector. */
+function preselectTeamTotals(tla) {
+  var sel = document.getElementById('ts_team1');
+  if (!sel) return;
+  var opt = sel.querySelector('option[data-tla="' + tla + '"]');
+  if (!opt) return;
+  sel.value = opt.value;
+  filterTeamStats();
+}
+
 function openTabFromHash() {
-  var id = (location.hash || '').replace(/^#/, '');
-  if (!/^[a-z][a-z0-9-]*$/.test(id)) return;
-  var sec = document.getElementById(id);
-  var btn = document.querySelector('.tab[data-tab="' + id + '"]');
-  if (sec && btn && sec.classList.contains('section')) showTab(id, btn);
+  var raw = (location.hash || '').replace(/^#/, '');
+  /* Split the optional query BEFORE validating, so the id pattern stays as
+     strict as it was. */
+  var q = '', qi = raw.indexOf('?');
+  if (qi >= 0) { q = raw.slice(qi + 1); raw = raw.slice(0, qi); }
+  if (!/^[a-z][a-z0-9-]*$/.test(raw)) return;
+
+  var view = STAT_HASHES[raw];
+  if (view) {
+    var tb = document.querySelector('.tab[data-tab="stats"]');
+    if (!tb) return;
+    showTab('stats', tb);
+    showStat(view, document.querySelector('.sw[data-sv="' + view + '"]'), true);
+    /* Only Team Totals has a team filter to preselect. The pattern test is
+       what keeps an attacker-supplied fragment out of the selector above. */
+    var m = /^team=([A-Za-z]{2,4})$/.exec(q);
+    if (m && view === 'teamtotals') preselectTeamTotals(m[1].toUpperCase());
+    return;
+  }
+
+  var sec = document.getElementById(raw);
+  var btn = document.querySelector('.tab[data-tab="' + raw + '"]');
+  if (sec && btn && sec.classList.contains('section')) showTab(raw, btn);
 }
 window.addEventListener('DOMContentLoaded', openTabFromHash);
 window.addEventListener('hashchange', openTabFromHash);"""
@@ -2122,20 +2258,52 @@ def assemble_page(display_date, data_through_iso,
     site's whole navigation.
     """
     series_section = series_html or ''
+    # The strip, rebuilt 2026-09-15 (handoff wnba-nav-build-handoff-2026-09-14).
+    # Two changes of substance, and they had to ship together:
+    #
+    #   1. Teams and Players become real LINKS to /teams/ and /players/. Those
+    #      index pages had ZERO inbound links from the site (Decisions Log
+    #      2026-09-09) — the entity pages existed and nothing pointed at them.
+    #   2. Efficiency + Team Totals + Players collapse into one Stats tab, so
+    #      the strip has room for Teams and Players without growing. An
+    #      in-page Players tab and a /players/ link cannot coexist in one
+    #      strip, which is why this is one merge and not three.
+    #
+    # `href` distinguishes a link from a button; both render as `.tab`.
     tabs = [
-        ('games', 'Games'),
-        *([('series', 'Series')] if series_html else []),
-        ('standings', 'Standings'),
-        ('leaders', 'Leaders'),
-        ('teameff', 'Efficiency'),
-        ('teamtotals', 'Team Totals'),
-        ('players', 'Players'),
-        ('abbreviations', 'Key'),
+        ('games', 'Games', None),
+        *([('series', 'Series', None)] if series_html else []),
+        ('standings', 'Standings', None),
+        ('leaders', 'Leaders', None),
+        ('teams', 'Teams', '/teams/'),
+        ('players-page', 'Players', '/players/'),
+        ('stats', 'Stats', None),
+        ('abbreviations', 'Key', None),
     ]
-    tab_buttons = '\n'.join(
-        f'  <button class="tab{" active" if i == 0 else ""}" '
-        f'data-tab="{tid}" onclick="showTab(\'{tid}\',this)">{name}</button>'
-        for i, (tid, name) in enumerate(tabs)
+
+    def _tab(i, tid, name, href):
+        active = ' active' if i == 0 else ''
+        if href:
+            return f'  <a class="tab" href="{href}">{name}</a>'
+        return (f'  <button class="tab{active}" data-tab="{tid}" '
+                f'onclick="showTab(\'{tid}\',this)">{name}</button>')
+
+    tab_buttons = '\n'.join(_tab(i, *t) for i, t in enumerate(tabs))
+
+    # The Stats section wraps the three view bodies, which are `.statview`
+    # rather than `.section` so showTab() does not fight the inner switch.
+    stats_section = (
+        '<div id="stats" class="section">\n'
+        '<div class="swrap">\n'
+        '  <button class="sw active" data-sv="teameff" '
+        'onclick="showStat(\'teameff\',this)">Efficiency</button>\n'
+        '  <button class="sw" data-sv="teamtotals" '
+        'onclick="showStat(\'teamtotals\',this)">Team Totals</button>\n'
+        '  <button class="sw" data-sv="players" '
+        'onclick="showStat(\'players\',this)">Player Totals</button>\n'
+        '</div>\n'
+        f'{team_eff_html}{team_totals_html}{players_html}'
+        '</div>\n'
     )
 
     return (
@@ -2172,9 +2340,7 @@ def assemble_page(display_date, data_through_iso,
         f'{games_html}{series_section}\n'
         f'{standings_html}\n'
         f'{leaders_html}\n'
-        f'{team_eff_html}\n'
-        f'{team_totals_html}\n'
-        f'{players_html}\n'
+        f'{stats_section}\n'
         f'{abbreviations_html}\n'
         + chrome.SITE_FOOTER_HTML
         + f'<script>\n{PAGE_JS}\n</script>\n'
@@ -2213,9 +2379,23 @@ def main():
     # Team abbreviations for player/leader filters
     team_abbrevs = sorted(p_base['team_abbreviation'].dropna().unique())
 
-    # Full team name options for efficiency and totals matchup bars
+    # Full team name options for efficiency and totals matchup bars.
+    #
+    # Each option carries `data-tla` as of 2026-09-15, so `/#stats-team-totals
+    # ?team=MIN` can preselect a team without a second TLA->name table to keep
+    # in sync. The pairing is read straight out of the box score, which carries
+    # `team_display_name` and `team_abbreviation` on the same row — the DOM
+    # becomes the mapping, and it cannot drift from the data that built it.
+    _tla = (team_raw[['team_display_name', 'team_abbreviation']]
+            .dropna().drop_duplicates()
+            .set_index('team_display_name')['team_abbreviation'].to_dict())
+    # A name with no TLA would silently produce an option the team pages can
+    # never preselect, so say so rather than emit a dud link target.
+    _missing = [t for t in team_list if t not in _tla]
+    assert not _missing, f"no TLA for team(s): {_missing}"
     team_options = '\n'.join(
-        f'<option value="{esc(t)}">{esc(t)}</option>' for t in sorted(team_list)
+        f'<option value="{esc(t)}" data-tla="{esc(_tla[t])}">{esc(t)}</option>'
+        for t in sorted(team_list)
     )
 
     # Build each section

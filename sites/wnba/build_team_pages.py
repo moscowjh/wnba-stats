@@ -55,7 +55,8 @@ from sag.render import chrome
 
 import build_box_pages as bbp
 import build_stats_page as bsp
-from config import WNBA
+from config import (WNBA, SUBPAGE_TABS, ACTIVE_TEAMS, ACTIVE_PLAYERS,
+                    ACTIVE_GAMES, CONFERENCE)
 
 OUT_DIR = WNBA.public_dir / "teams"
 COACHES_CSV = WNBA.site_dir / "reference" / f"wnba_coaches_{WNBA.season}.csv"
@@ -269,6 +270,26 @@ table.s td:not(:first-child){{font-family:{bsp.MONO}}}
 table.s td a{{color:var(--text);text-decoration:underline;
   text-decoration-color:rgba(136,136,136,0.45);text-underline-offset:2px}}
 table.s td a:hover{{color:var(--accent)}}
+/* The /teams/ index (2026-09-15). Its job is different from every other table
+   on the site: it is a list of ROUTES, not of data, so the links have to be
+   unmistakably links rather than the site's usual quietly-underlined text.
+   Accent colour, a visible underline, and a 3px offset so the descenders in
+   team names clear it. This is the fix for the finding that /teams/ and
+   /players/ had zero inbound links and entity pages were reachable only
+   through names in table cells that gave no sign of being tappable. */
+.tp .tl{{color:var(--accent);text-decoration:underline;
+  text-decoration-color:rgba(245,166,35,.55);text-underline-offset:3px}}
+.tp .tl:hover{{text-decoration-color:var(--accent)}}
+/* Muted, NOT accented, and that is Jason's call: conferences are nearly
+   vestigial in this league and exist here only to halve the list someone is
+   scanning. Accenting them would make the furniture compete with the links. */
+.conf{{color:var(--muted);font-size:10px;letter-spacing:.7px;
+  text-transform:uppercase;margin:14px 0 4px;font-weight:600}}
+.conf:first-child{{margin-top:2px}}
+/* The index's rows are names and routes, not numbers — the site-wide rule
+   that monospaces every column after the first is wrong here. */
+.tp table.s td:not(:first-child){{font-family:inherit}}
+.tp .tla{{color:var(--muted);font-family:{bsp.MONO}}}
 .w{{color:#7ec27e}}.l{{color:var(--muted)}}
 .also{{color:var(--muted);font-size:11px;line-height:1.7;margin-top:7px}}
 .also a{{color:var(--muted);text-decoration:underline;
@@ -308,6 +329,7 @@ PAGE_CSS = (
     + "*{box-sizing:border-box;margin:0;padding:0}\n"
     + _TEAM_CSS
     + chrome.SUBPAGE_HEADER_CSS
+    + chrome.SUBPAGE_TABS_CSS
     + chrome.SITE_FOOTER_CSS
 )
 
@@ -477,10 +499,16 @@ def render_page(row, place, abbr, slug, coach, roster, appeared_by_id,
         # abbreviations) AND the openTabFromHash() handler added alongside
         # these links — every tab is display:none until something activates
         # it, so a fragment alone used to land on a hidden div.
+        # Retargeted 2026-09-15 for the Stats consolidation. Team totals now
+        # carries this team's TLA, so the link lands on the table already
+        # filtered to them plus the highlighted league-average row instead of
+        # on fifteen rows they have to find themselves. The old `/#teamtotals`
+        # / `/#teameff` / `/#players` fragments still work — openTabFromHash
+        # aliases them — but nothing on the site emits them any more.
         '<div class="links">'
-        f'<a href="/#teamtotals">Team totals &rarr;</a><br>'
-        f'<a href="/#teameff">Four factors &amp; efficiency &rarr;</a><br>'
-        f'<a href="/#players">All players &rarr;</a></div>',
+        f'<a href="/#stats-team-totals?team={esc(abbr)}">Team totals &rarr;</a><br>'
+        f'<a href="/#stats">Four factors &amp; efficiency &rarr;</a><br>'
+        f'<a href="/players/">All players &rarr;</a></div>',
         '<details class="exp"><summary><span>See full schedule &amp; results'
         "</span></summary>" + results_table(results) + "</details>",
     ]
@@ -493,8 +521,11 @@ def render_page(row, place, abbr, slug, coach, roster, appeared_by_id,
         f"morning.")
     jsonld = seo.person_jsonld(name, seo.canonical_url(WNBA, path), name)
 
+    # The "← all teams" crumb is gone (2026-09-15): the strip below carries a
+    # Teams entry on every page, so the crumb was a second, weaker route to the
+    # same place.
     masthead = chrome.subpage_header_html(
-        esc(SITE_TITLE), "/", crumb_html='<a href="/teams/">← all teams</a>')
+        esc(SITE_TITLE), "/", tabs=SUBPAGE_TABS, active=ACTIVE_TEAMS)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -511,27 +542,57 @@ def render_page(row, place, abbr, slug, coach, roster, appeared_by_id,
 
 
 def render_index(entries, data_through):
-    rows = "".join(
-        f'<tr><td><a href="/teams/{e["slug"]}/">{esc(e["name"])}</a></td>'
-        f'<td>{esc(e["abbr"])}</td><td>{e["record"]}</td>'
-        f'<td>{e["pythag"]}</td></tr>'
-        for e in entries)
+    """The /teams/ index, rebuilt 2026-09-15 to Jason's spec.
+
+    **Deliberately distinct from Standings: no records, no Pythagorean.** It
+    used to be a four-column table of Team / TLA / Record / Pythagorean, which
+    is Standings with fewer columns — two pages answering the same question,
+    and neither of them answering "where is my team's page?".
+
+    Grouped East then West, alphabetical within each. **The conference
+    headings are muted, not accented** (Jason): conferences are nearly
+    vestigial in this league and are here only to help someone find their
+    team in a shorter list. The links carry the page, so the links get the
+    colour.
+    """
+    by_conf = {"East": [], "West": []}
+    for e in entries:
+        conf = CONFERENCE.get(e["abbr"])
+        # A new or renamed team with no conference would silently vanish from
+        # this page, so fail the build instead. The map is hand-maintained in
+        # config.py and this is the only thing guarding it.
+        assert conf, f"no conference for {e['abbr']} ({e['name']}) — see CONFERENCE in config.py"
+        by_conf[conf].append(e)
+
+    blocks = []
+    for conf in ("East", "West"):
+        group = sorted(by_conf[conf], key=lambda e: e["name"])
+        rows = "".join(
+            f'<tr><td><a class="tl" href="/teams/{e["slug"]}/">{esc(e["name"])}</a></td>'
+            f'<td class="tla">{esc(e["abbr"])}</td>'
+            f'<td><a class="tl" href="/#stats-team-totals?team={esc(e["abbr"])}">'
+            f'Team totals &rarr;</a></td></tr>'
+            for e in group)
+        blocks.append(
+            f'<div class="conf">{conf}ern Conference</div>'
+            f'<table class="s">{rows}</table>')
+    rows = "".join(blocks)
     title = f"{WNBA.display_name} {WNBA.season} team pages — At a Glance"
     description = (
         f"One page per {WNBA.display_name} team: {WNBA.season} record, "
         "roster, results and Pythagorean record. Updated every morning.")
+    # The index keeps its count line — it says something the strip does not.
     masthead = chrome.subpage_header_html(
         esc(SITE_TITLE), "/",
-        crumb_html=f"{len(entries)} teams · stats through {data_through}")
+        crumb_html=f"{len(entries)} teams · tap a name for roster, schedule & coach",
+        tabs=SUBPAGE_TABS, active=ACTIVE_TEAMS)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 {head_html(title, "/teams/", description)}
 </head>
 <body>
-{masthead}<div class="tp"><table class="s">
-<tr><th>Team</th><th>TLA</th><th>Record</th><th>Pythagorean</th></tr>
-{rows}</table></div>
+{masthead}<div class="tp">{rows}</div>
 {chrome.SITE_FOOTER_HTML}<script>{page_js(INDEX_ANALYTICS_KEY)}</script>
 {chrome.cf_beacon_html(WNBA.cf_analytics_token)}</body>
 </html>

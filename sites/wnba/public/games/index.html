@@ -99,6 +99,12 @@
   .masthead .crumb{color:var(--muted);font-size:11px}
   .masthead .crumb a{color:var(--muted)}
   .masthead .crumb a:hover{color:var(--accent)}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+  .tab{cursor:pointer;padding:5px 12px;border:1px solid var(--border);
+        color:var(--muted);background:var(--surface);font-family:inherit;
+        font-size:12px;letter-spacing:.3px;font-weight:500}
+  a.tab{text-decoration:none;display:inline-block}
+  .tab.active{border-color:var(--accent);color:var(--accent)}
   .site-footer{margin-top:34px;padding-top:12px;border-top:1px solid var(--border);
       color:var(--muted);font-size:11px;line-height:1.8}
   .site-footer a{color:var(--muted);text-decoration:underline}
@@ -108,6 +114,7 @@
 </head>
 <body>
 <div class="masthead"><a class="site-name" href="/">WNBA 2026 — At a Glance</a></div>
+<div class="tabs"><a class="tab active" href="/#games">Games</a><a class="tab" href="/#standings">Standings</a><a class="tab" href="/#leaders">Leaders</a><a class="tab" href="/teams/">Teams</a><a class="tab" href="/players/">Players</a><a class="tab" href="/#stats">Stats</a><a class="tab" href="/#abbreviations">Key</a></div>
 <h1>Playoff box scores</h1><div class="rnd">The playoffs have not started yet. Box scores for every playoff game will appear here.</div>
 <div class="data-note">Stats through games of August 30, 2026</div>
 <div class="site-footer">

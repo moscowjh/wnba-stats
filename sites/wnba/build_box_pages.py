@@ -42,7 +42,8 @@ from sag import seo
 from sag.render import chrome
 
 import build_stats_page as bsp
-from config import WNBA
+from config import (WNBA, SUBPAGE_TABS, ACTIVE_TEAMS, ACTIVE_PLAYERS,
+                    ACTIVE_GAMES)
 
 OUT_DIR = WNBA.public_dir / "games"
 SITE_TITLE = f"{WNBA.display_name} {WNBA.season} — At a Glance"
@@ -73,6 +74,7 @@ PAGE_CSS = (
     # source of truth — see build_stats_page.GAMES_CSS.
     + bsp.GAMES_CSS
     + chrome.SUBPAGE_HEADER_CSS
+    + chrome.SUBPAGE_TABS_CSS
     + chrome.SITE_FOOTER_CSS
 )
 
@@ -151,8 +153,11 @@ def render_page(player_all, team_all, linescores, gid, date_iso, slug,
         *seo.social_tags(WNBA, path, title, description, card="summary"),
         f"<style>{PAGE_CSS}</style>",
     ]
+    # The "← all box scores" crumb stays: it points at /games/, which is NOT
+    # in the strip. Step 2 relabels the first entry Playoffs.
     masthead = chrome.subpage_header_html(
-        esc(SITE_TITLE), "/", crumb_html='<a href="/games/">← all box scores</a>')
+        esc(SITE_TITLE), "/", crumb_html='<a href="/games/">← all box scores</a>',
+        tabs=SUBPAGE_TABS, active=ACTIVE_GAMES)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -204,7 +209,8 @@ def render_index(entries, data_through):
         "text-decoration-color:rgba(136,136,136,.45);text-underline-offset:2px}"
         "table.s td a:hover{color:var(--accent)}</style>",
     ]
-    masthead = chrome.subpage_header_html(esc(SITE_TITLE), "/")
+    masthead = chrome.subpage_header_html(
+        esc(SITE_TITLE), "/", tabs=SUBPAGE_TABS, active=ACTIVE_GAMES)
     body = (f"<h1>Playoff box scores</h1>"
             f'<div class="rnd">{len(entries)} game'
             f'{"" if len(entries)==1 else "s"}</div>'
