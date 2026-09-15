@@ -33,8 +33,14 @@ anything above it. These are the source of truth for anything product-level;
 reach them by path from the home directory (`~/projects/...` — expand `~` when a
 tool needs a fully absolute path):
 
-- **Backlog — single source of truth** (priorities, Decisions Log, Completed / Shipped Log):
+- **⭐ What's next — READ THIS FIRST** (~1k tokens, hard-capped at 7 items):
+  `~/projects/statsataglance-docs/statsataglance-NEXT.md`
+  **Do not read the backlog to find out what to work on.** That cost ~100k tokens to answer a
+  five-line question, which is why the split happened on 2026-09-15.
+- **Backlog — live items, `###` headed entries** (~39k tokens; open for a NAMED item):
   `~/projects/statsataglance-docs/statsataglance-backlog.md`
+- **Archive — Decisions Log + Completed / Shipped Log** (~61k tokens; **grep it, don't load it**):
+  `~/projects/statsataglance-docs/statsataglance-backlog-archive.md`
   **Record cross-cutting product/backlog items there even when the work happens
   here** — don't let backlog items live only in commit messages.
 - **Strategy (canonical):** `statsataglance-docs/PRODUCT-BRIEF.md` (a manually-synced mirror of a Google Doc).
@@ -177,10 +183,16 @@ the dead host produced a false negative that day. See `docs/data-sources.md`.
 Keep it light — this is the only channel by which work here flows back to the
 Cowork backlog/memory:
 
-1. **Update the backlog** in the docs repo: move finished items to the
-   **Completed / Shipped Log** (dated), and add a one-line **Decisions Log**
-   entry for any non-obvious choice or trade-off.
-2. **Write a clear, dated commit message** — the commit history is the backup
+1. **Re-curate `statsataglance-NEXT.md`** if priorities moved. This is the step
+   that keeps the cheap path honest, and it is the one most easily skipped —
+   **a stale NEXT.md is worse than none.** Respect the cap of 7: if something
+   new belongs, something old has to leave. Finished items leave entirely, to
+   the archive's Completed log; they do not linger as a ✅.
+2. **Update the backlog** in the docs repo: move finished items to the
+   **Completed / Shipped Log** and add a one-line **Decisions Log** entry for
+   any non-obvious choice or trade-off. Both logs now live in
+   `statsataglance-backlog-archive.md`, not in the backlog itself.
+3. **Write a clear, dated commit message** — the commit history is the backup
    record; a Cowork sync later cross-checks `git log` against the Completed log.
 
 No separate write-up needed — the Completed log *is* the changelog. Log material
