@@ -724,16 +724,26 @@ export default {
       });
     }
     return new Response(
-      "wnba-stats-cron is alive. Drives TWO sites.\n" +
-      "\nWNBA (build.yml -> wnba.statsataglance.com)\n" +
+      // ⚠️ THIS TEXT IS THE ONLY DESCRIPTION OF THIS WORKER ANYONE READS AT
+      // RUNTIME. It survived the 2026-09-15 WWC retirement by one commit,
+      // still announcing a 22:00 dispatch that no longer existed — the code
+      // and the crons were right and the page lied. Someone checking "is the
+      // cron still live?" in six months checks HERE. Change it in the same
+      // commit as any schedule change.
+      "wnba-stats-cron is alive.\n" +
+      "\nWNBA (build.yml -> wnba.statsataglance.com) — 4 cron triggers\n" +
       "11:17 UTC — dispatches the daily build (7:17am ET).\n" +
       "11:45 UTC — health check; auto-rebuilds on a fixable problem, else emails.\n" +
       "13:15 UTC — health check, pass 2 (same behaviour).\n" +
       "14:45 UTC — health check, FINAL pass; emails anything still broken.\n" +
-      "\nWWC (wwc.yml -> wwc.statsataglance.com)\n" +
-      "22:00 UTC — dispatches the build, after the last Berlin game.\n" +
-      "11:17 UTC — catch-up dispatch, riding the WNBA trigger (no free cron slot).\n" +
-      "14:45 UTC — report-only check; emails if the newest run failed or is >26h old.\n" +
+      "\nWWC (wwc.yml -> wwc.statsataglance.com) — NO SCHEDULE\n" +
+      "Retired 2026-09-15: the World Cup ended, the site is an archive, and\n" +
+      "its data is tracked in git, so every scheduled rebuild was a no-op.\n" +
+      "The 22:00 dispatch, the 11:17 catch-up and the 14:45 staleness check\n" +
+      "were removed together — a staleness alarm on a deliberately retired\n" +
+      "cron is correct every day and useful on none of them.\n" +
+      "It still rebuilds on any push to sites/wwc/** or core/** (wwc.yml),\n" +
+      "and on demand below.\n" +
       "\nManual: ?key=YOUR_CRON_KEY&action=<name>\n" +
       "        build [&post=false] | check [&repair=1] | wwc | wwccheck | testemail\n" +
       "        An action is REQUIRED; an unrecognised one does nothing.\n",
