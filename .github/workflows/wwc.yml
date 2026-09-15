@@ -37,9 +37,14 @@ on:
   workflow_dispatch:
     inputs:
       fetch:
-        description: "Pull results + box scores from fiba.basketball"
+        # Default flipped to FALSE 2026-09-15, when the tournament ended and
+        # sites/wwc/data/ became tracked source rather than a build artifact.
+        # There is nothing left upstream to pull; ticking this is now an
+        # explicit "re-pull a finished tournament from FIBA", which is a thing
+        # you might want once and never by default.
+        description: "Pull results + box scores from fiba.basketball (finished event — normally leave OFF)"
         type: boolean
-        default: true
+        default: false
       force_fetch:
         description: "Re-fetch box scores already on disk"
         type: boolean
@@ -91,23 +96,23 @@ jobs:
       - name: Install dependencies
         run: pip install -e core/
 
-      # Results and box scores accumulate across runs, exactly as the WNBA
-      # CSVs do, so the fetch stays incremental (a daily run costs two or
-      # three page fetches, not thirty-six). The key names the league's data
-      # DIRECTORY rather than a file list (D12), so a data file added later
-      # is cached without anyone remembering to update this.
-      # ALWAYS restored, never conditional. `inputs.*` is empty on a push
-      # trigger, so gating this on inputs.fetch would mean a content edit
-      # during the tournament rebuilt with an empty data/ and republished the
-      # whole site in its pre-tournament state — every score gone, and it
-      # would look like a data outage rather than a workflow bug.
-      - name: Restore fetched-data cache
-        uses: actions/cache@v4
-        with:
-          path: sites/wwc/data
-          key: wwc-data-v1-${{ github.run_id }}
-          restore-keys: |
-            wwc-data-v1-
+      # ⚠️ THE ACTIONS CACHE STEP THAT USED TO BE HERE IS GONE (2026-09-15),
+      # and it is important to understand why, because re-adding it would be
+      # actively harmful now.
+      #
+      # During the tournament, sites/wwc/data/ was gitignored and carried
+      # between runs by actions/cache. That was right while the data was
+      # regenerable. It stopped being right the moment the tournament ended:
+      # GitHub evicts a cache unused for 7 days, so the first `core/` change
+      # months from now would have restored NOTHING, and the build would have
+      # rendered the archive from an empty data/ — every score gone — against
+      # a FIBA endpoint that outlives the event by nobody's promise.
+      #
+      # The data is now TRACKED (see .gitignore's `!sites/wwc/data/`), so the
+      # checkout above already has all 37 files and the cache has nothing left
+      # to contribute. Worse, restoring one over the checkout would let a
+      # stale cache overwrite committed source, and the commit step below
+      # would push the regression. Do not bring it back.
 
       # Deliberately continue-on-error, which is the OPPOSITE of the WNBA
       # fetch's fail-loud stance, and the difference is the point.
@@ -123,11 +128,19 @@ jobs:
       # skipped per-game and retried next run, and `results.json` is only
       # rewritten at the end, so a mid-run failure leaves yesterday's results
       # intact rather than truncating them.
-      # Runs by default. The condition reads "unless a manual run explicitly
-      # unticked it" — `inputs.fetch` is empty on push and schedule triggers,
-      # which must still fetch.
+      #
+      # ⚠️ THE CONDITION WAS INVERTED 2026-09-15. It used to read "fetch unless
+      # a manual run explicitly unticked it", so push and schedule triggers
+      # always fetched. It now reads "fetch ONLY when a human explicitly ticks
+      # the box", and the reason is the same one that made the data source:
+      # the tournament is over, so a fetch can no longer ADD anything, and
+      # `results.json` is rewritten wholesale from FIBA's live page every run.
+      # A FIBA page that has been retired, reshaped or partially served would
+      # therefore overwrite 36 good results with fewer — and the commit step
+      # below would push that over the tracked file without anyone looking.
+      # An archive has nothing to gain from fetching and everything to lose.
       - name: Fetch results and box scores
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.fetch }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.fetch }}
         continue-on-error: true
         run: |
           python sites/wwc/fetch_data.py ${{ inputs.force_fetch && '--force' || '' }}
