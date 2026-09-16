@@ -1,12 +1,12 @@
 {
-  "run_at_utc": "2026-09-15T23:28:21+00:00",
+  "run_at_utc": "2026-09-16T11:17:49+00:00",
   "data_through": "2026-08-30",
   "cutoff": null,
-  "broadcast_category": "FT%",
+  "broadcast_category": "TS%",
   "gate_mode": true,
   "categories": [
     {
-      "category": "FT%",
+      "category": "TS%",
       "status": "SKIPPED",
       "checks": [
         {
