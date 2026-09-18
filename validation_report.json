@@ -1,27 +1,27 @@
 {
-  "run_at_utc": "2026-09-17T11:18:39+00:00",
-  "data_through": "2026-08-30",
+  "run_at_utc": "2026-09-18T11:18:34+00:00",
+  "data_through": "2026-09-17",
   "cutoff": null,
-  "broadcast_category": "Rebounds",
+  "broadcast_category": "Off Reb",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Rebounds",
+      "category": "Off Reb",
       "status": "SKIPPED",
       "checks": [
         {
           "check": "alignment",
           "status": "SKIPPED",
-          "detail": "source not caught up: PHX 39<40"
+          "detail": "source not caught up: PHX 40<41"
         }
       ]
     }
   ],
   "alignment": {
-    "ours_total": 600,
-    "theirs_total": 599,
+    "ours_total": 610,
+    "theirs_total": 609,
     "source_behind": [
-      "PHX 39<40"
+      "PHX 40<41"
     ],
     "we_are_behind": []
   },
