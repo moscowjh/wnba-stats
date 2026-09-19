@@ -1,12 +1,12 @@
 {
-  "run_at_utc": "2026-09-18T11:18:34+00:00",
-  "data_through": "2026-09-17",
+  "run_at_utc": "2026-09-19T11:18:32+00:00",
+  "data_through": "2026-09-18",
   "cutoff": null,
-  "broadcast_category": "Off Reb",
+  "broadcast_category": "Blocks",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Off Reb",
+      "category": "Blocks",
       "status": "SKIPPED",
       "checks": [
         {
@@ -18,8 +18,8 @@
     }
   ],
   "alignment": {
-    "ours_total": 610,
-    "theirs_total": 609,
+    "ours_total": 616,
+    "theirs_total": 615,
     "source_behind": [
       "PHX 40<41"
     ],
