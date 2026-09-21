@@ -1,26 +1,27 @@
 {
-  "run_at_utc": "2026-09-20T11:18:35+00:00",
-  "data_through": "2026-09-19",
+  "run_at_utc": "2026-09-21T11:18:37+00:00",
+  "data_through": "2026-09-20",
   "cutoff": null,
-  "broadcast_category": "Steals",
+  "broadcast_category": "Scoring",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Steals",
+      "category": "Scoring",
       "status": "SKIPPED",
       "checks": [
         {
           "check": "alignment",
           "status": "SKIPPED",
-          "detail": "source not caught up: PHX 41<42"
+          "detail": "source not caught up: LAS 41<42, PHX 41<42"
         }
       ]
     }
   ],
   "alignment": {
-    "ours_total": 622,
-    "theirs_total": 621,
+    "ours_total": 632,
+    "theirs_total": 630,
     "source_behind": [
+      "LAS 41<42",
       "PHX 41<42"
     ],
     "we_are_behind": []
