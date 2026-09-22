@@ -1,28 +1,28 @@
 {
-  "run_at_utc": "2026-09-21T11:18:37+00:00",
-  "data_through": "2026-09-20",
+  "run_at_utc": "2026-09-22T11:18:36+00:00",
+  "data_through": "2026-09-21",
   "cutoff": null,
-  "broadcast_category": "Scoring",
+  "broadcast_category": "3PT%",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Scoring",
+      "category": "3PT%",
       "status": "SKIPPED",
       "checks": [
         {
           "check": "alignment",
           "status": "SKIPPED",
-          "detail": "source not caught up: LAS 41<42, PHX 41<42"
+          "detail": "source not caught up: LAS 41<42, PHX 42<43"
         }
       ]
     }
   ],
   "alignment": {
-    "ours_total": 632,
-    "theirs_total": 630,
+    "ours_total": 636,
+    "theirs_total": 634,
     "source_behind": [
       "LAS 41<42",
-      "PHX 41<42"
+      "PHX 42<43"
     ],
     "we_are_behind": []
   },
