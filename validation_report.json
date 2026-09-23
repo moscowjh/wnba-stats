@@ -1,27 +1,27 @@
 {
-  "run_at_utc": "2026-09-22T11:18:36+00:00",
-  "data_through": "2026-09-21",
+  "run_at_utc": "2026-09-23T11:18:36+00:00",
+  "data_through": "2026-09-22",
   "cutoff": null,
-  "broadcast_category": "3PT%",
+  "broadcast_category": "eFG%",
   "gate_mode": true,
   "categories": [
     {
-      "category": "3PT%",
+      "category": "eFG%",
       "status": "SKIPPED",
       "checks": [
         {
           "check": "alignment",
           "status": "SKIPPED",
-          "detail": "source not caught up: LAS 41<42, PHX 42<43"
+          "detail": "source not caught up: LAS 42<43, PHX 42<43"
         }
       ]
     }
   ],
   "alignment": {
-    "ours_total": 636,
-    "theirs_total": 634,
+    "ours_total": 646,
+    "theirs_total": 644,
     "source_behind": [
-      "LAS 41<42",
+      "LAS 42<43",
       "PHX 42<43"
     ],
     "we_are_behind": []
