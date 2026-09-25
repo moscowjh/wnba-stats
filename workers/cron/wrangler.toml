@@ -27,8 +27,14 @@ compatibility_date = "2025-06-01"
 # Retiring the WWC dispatch put this list back to **4 of 5**, so there is one
 # slot free — the first headroom this account has had since 2026-08-30. A
 # sixth trigger anywhere on the account will fail to deploy.
+#
+# 05:07 UTC = 1:07 AM EDT — the PLAYOFF late-night build (added 2026-09-25),
+# NIGHT_CRON in worker.js. Dispatches only after a night with playoff games,
+# always with post=false. This is the 5th slot: the account is now at **5 of
+# 5**. REMOVE it after the Finals, together with NIGHT_CRON and its branch in
+# scheduled(), to free the slot.
 [triggers]
-crons = ["17 11 * * *", "45 11 * * *", "15 13 * * *", "45 14 * * *"]
+crons = ["17 11 * * *", "45 11 * * *", "15 13 * * *", "45 14 * * *", "7 5 * * *"]
 
 # Failure alerts via Cloudflare Email Routing on statsataglance.com.
 # Requires: Email Routing enabled on the zone, and the destination address

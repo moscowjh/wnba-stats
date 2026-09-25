@@ -42,8 +42,7 @@ from sag import seo
 from sag.render import chrome
 
 import build_stats_page as bsp
-from config import (WNBA, SUBPAGE_TABS, ACTIVE_TEAMS, ACTIVE_PLAYERS,
-                    ACTIVE_GAMES)
+from config import WNBA, ACTIVE_PLAYOFFS, subpage_tabs
 
 OUT_DIR = WNBA.public_dir / "games"
 SITE_TITLE = f"{WNBA.display_name} {WNBA.season} — At a Glance"
@@ -65,6 +64,8 @@ PAGE_CSS = (
       margin-bottom:2px}}
   .rnd{{color:var(--muted);font-size:11.5px;margin-bottom:10px}}
   .ser{{color:var(--accent);font-size:12px;margin-top:2px}}
+  .nxt{{color:var(--muted);font-size:12px;margin:2px 0 8px}}
+  .nxt a{{color:var(--accent);text-decoration:none}}
   .data-note{{color:var(--muted);font-size:10px;margin-top:14px}}
   .backl{{display:inline-block;color:var(--accent);font-size:12px;
       padding:6px 0 12px;text-decoration:none}}
@@ -80,7 +81,7 @@ PAGE_CSS = (
 
 
 #: The URL is formed in exactly one place — build_stats_page.game_slug —
-#: so the Series tab that LINKS to these pages and this module that WRITES
+#: so the Playoffs tab that LINKS to these pages and this module that WRITES
 #: them cannot disagree. Re-exported here for readability at call sites.
 game_slug = bsp.game_slug
 
@@ -106,28 +107,74 @@ def series_by_game(path=None):
     return {int(r["game_id"]): r for r in d.get("games", [])}
 
 
+def _game_label(series_row, model_game):
+    """"First Round · Game 1" from ESPN's headline, which is display-only
+    (its capitalisation drifts within a series, so it is never matched on)."""
+    headline = (series_row or {}).get("headline") or ""
+    rnd = bsp._round_of(headline)
+    no = (model_game or {}).get("no")
+    if rnd and no:
+        return f"{rnd} · Game {no}"
+    return headline.replace(" - ", " · ")
+
+
+def _next_in_series(series, gid):
+    """The game after `gid` in its series, as a short HTML fragment, or "".
+    A played one links to its page (only if that page exists); a scheduled
+    one shows its date, tip and venue; an unscheduled one is left out — the
+    handoff asks for the next game only "if it's scheduled"."""
+    if not series:
+        return ""
+    games = series["games"]
+    idx = next((i for i, g in enumerate(games) if g["id"] == gid), None)
+    if idx is None or idx + 1 >= len(games):
+        return ""
+    g = games[idx + 1]
+    if g.get("final"):
+        if g.get("linked") and g.get("slug"):
+            return (f'<a href="/games/{g["slug"]}/">Game {g["no"]} box score '
+                    f'&rarr;</a>')
+        return ""
+    if g.get("tbd") or not g.get("tip"):
+        return ""
+    return (f'Game {g["no"]} &middot; {esc(bsp._dow(g["date"]))}, {esc(g["tip"])} ET '
+            f'at {esc(g["home"])}')
+
+
 def render_page(player_all, team_all, linescores, gid, date_iso, slug,
-                series_row, data_through):
-    """One box-score page, rendered from build_stats_page's own components."""
+                series_row, data_through, seeds=None, series=None,
+                model_game=None):
+    """One box-score page, rendered from build_stats_page's own components.
+
+    `player_all`/`team_all` must be the ALL-GAMES frames (the game itself is
+    a playoff game); the W-L beside each team comes from `sides` computed by
+    the caller against the REGULAR-SEASON team frame, so a page never prints
+    a record with playoff wins folded into it.
+    """
     g = player_all[player_all["game_id"] == gid]
-    away, home = bsp._game_sides(player_all, team_all, gid, date_iso)
+    away, home = bsp._game_sides(player_all, team_all if _REG_TEAM is None else _REG_TEAM,
+                                    gid, date_iso)
+    seeds = seeds or {}
 
     # Score orientation: this heading names BOTH teams, so it takes fixture
     # order (away first) rather than either team's own order.
     matchup = f"{away['name']} at {home['name']}"
     headline = (series_row or {}).get("headline") or ""
     summary = (series_row or {}).get("summary") or ""
+    label = _game_label(series_row, model_game)
+    nxt = _next_in_series(series, gid)
 
     body = (
-        f'<a class="backl" href="/#games">&larr; Back to Games</a>'
+        f'<a class="backl" href="/#playoffs">&larr; Back to Playoffs</a>'
         f"<h1>{esc(matchup)}</h1>"
-        f'<div class="rnd">{esc(bsp._dow(pd.Timestamp(date_iso).date()))}'
-        + (f" &middot; {esc(headline)}" if headline else "")
-        + "</div>"
+        f'<div class="rnd">'
+        + (f"{esc(label)} &middot; " if label else "")
+        + f'{esc(bsp._dow(pd.Timestamp(date_iso).date()))}</div>'
         + (f'<div class="ser">{esc(summary)}</div>' if summary else "")
+        + (f'<div class="nxt">Next: {nxt}</div>' if nxt else "")
         + '<div class="gm-hd">'
-        + _side(away, away, home) + '<div class="gm-fin">Final</div>'
-        + _side(home, away, home) + "</div>"
+        + _side(away, away, home, seeds) + '<div class="gm-fin">Final</div>'
+        + _side(home, away, home, seeds) + "</div>"
         + bsp._line_score(linescores, gid, away, home)
         + '<h2 class="gm-h2">Team Stats</h2>'
         + bsp._team_stats_block(g, away, home)
@@ -154,10 +201,11 @@ def render_page(player_all, team_all, linescores, gid, date_iso, slug,
         f"<style>{PAGE_CSS}</style>",
     ]
     # The "← all box scores" crumb stays: it points at /games/, which is NOT
-    # in the strip. Step 2 relabels the first entry Playoffs.
+    # in the strip. Box pages exist only in the postseason, so the strip's
+    # first entry always reads Playoffs here.
     masthead = chrome.subpage_header_html(
         esc(SITE_TITLE), "/", crumb_html='<a href="/games/">← all box scores</a>',
-        tabs=SUBPAGE_TABS, active=ACTIVE_GAMES)
+        tabs=subpage_tabs(True), active=ACTIVE_PLAYOFFS)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -175,11 +223,20 @@ def render_page(player_all, team_all, linescores, gid, date_iso, slug,
 """
 
 
-def _side(m, away, home):
-    """One team's line in the page header. Mirrors _box_section's `hd`."""
+#: The regular-season team frame, set by main(). _game_sides() reads its team
+#: frame ONLY for the W-L beside each team, and that record should be the
+#: regular season's — with the all-games frame a playoff win leaks into it.
+_REG_TEAM = None
+
+
+def _side(m, away, home, seeds=None):
+    """One team's line in the page header. Mirrors _box_section's `hd`, with
+    the seed beside the abbreviation when the frozen seeds file has one."""
     winner = home if home["score"] > away["score"] else away
     cls = " gm-win" if m is winner else ""
-    return (f'<div><div><span class="gm-tm{cls}">{esc(m["abbr"])}</span> '
+    sd = (seeds or {}).get(m["abbr"])
+    seed = f' <span class="gm-rec">({sd})</span>' if sd else ""
+    return (f'<div><div><span class="gm-tm{cls}">{esc(m["abbr"])}</span>{seed} '
             f'<span class="gm-rec">{m["w"]}-{m["l"]}</span></div>'
             f'<div class="gm-sc{cls}">{m["score"]}</div></div>')
 
@@ -210,7 +267,7 @@ def render_index(entries, data_through):
         "table.s td a:hover{color:var(--accent)}</style>",
     ]
     masthead = chrome.subpage_header_html(
-        esc(SITE_TITLE), "/", tabs=SUBPAGE_TABS, active=ACTIVE_GAMES)
+        esc(SITE_TITLE), "/", tabs=subpage_tabs(True), active=ACTIVE_PLAYOFFS)
     body = (f"<h1>Playoff box scores</h1>"
             f'<div class="rnd">{len(entries)} game'
             f'{"" if len(entries)==1 else "s"}</div>'
@@ -235,20 +292,6 @@ def render_index(entries, data_through):
 """
 
 
-def playoff_games(player_all, team_all):
-    """[(game_id, date_iso)] for postseason games, oldest first.
-
-    Gated on season_type == 3 in the box-score data — the same gate
-    parse_series() uses, and for the same reason: the presence of a series
-    object is not a reliable postseason signal.
-    """
-    if "season_type" not in team_all.columns:
-        return []
-    post = team_all[team_all["season_type"] == 3]
-    return sorted({(int(r["game_id"]), str(r["game_date"]))
-                   for _, r in post.iterrows()}, key=lambda t: (t[1], t[0]))
-
-
 def team_name_map(team_all):
     return (team_all.drop_duplicates("team_abbreviation")
             .set_index("team_abbreviation")["team_display_name"].to_dict())
@@ -258,18 +301,12 @@ def page_paths(player_all, team_all):
     """Every /games/ URL this module would write, WITHOUT writing anything.
 
     Exists so build_team_pages can put these in the sitemap without importing
-    side effects, and so the sitemap, the Series tab and the emitter all form
+    side effects, and so the sitemap, the Playoffs tab and the emitter all form
     the URL through the single bsp.game_slug().
     """
     names = team_name_map(team_all)
-    out = []
-    for gid, date_iso in playoff_games(player_all, team_all):
-        try:
-            away, home = bsp._game_sides(player_all, team_all, gid, date_iso)
-        except (IndexError, KeyError):
-            continue
-        out.append(f"/games/{game_slug(date_iso, away['abbr'], home['abbr'], names)}/")
-    return out
+    return [f"/games/{game_slug(d, a['abbr'], h['abbr'], names)}/"
+            for _, d, a, h in bsp.playoff_box_games(player_all, team_all)]
 
 
 def main():
@@ -292,17 +329,30 @@ def main():
         except Exception:
             linescores = {}
     series = series_by_game()
+    global _REG_TEAM
+    _REG_TEAM = (team_all[team_all["season_type"] == 2]
+                 if "season_type" in team_all.columns else team_all)
 
-    games = playoff_games(player_all, team_all)
+    # Exactly the list the Playoffs tab links from — see bsp.playoff_box_games.
+    games = bsp.playoff_box_games(player_all, team_all)
+    seeds_by_id, seeds_by_abbr, _ = bsp.load_seeds()
+    _, upcoming = bsp.load_upcoming()
+    model = bsp.build_playoff_model(
+        list(series.values()), upcoming, player_all, team_all, seeds_by_id,
+        {gid for gid, *_ in games})
+    series_of = {g["id"]: s for s in model for g in s["games"]}
+    game_of = {g["id"]: g for s in model for g in s["games"]}
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     entries = []
-    for gid, date_iso in games:
-        away, home = bsp._game_sides(player_all, team_all, gid, date_iso)
+    for gid, date_iso, away, home in games:
         slug = game_slug(date_iso, away["abbr"], home["abbr"], team_names)
         key = analytics_key(gid)
         assert len(key) <= ANALYTICS_KEY_MAX, f"analytics key too long: {key}"
         html = render_page(player_all, team_all, linescores, gid, date_iso,
-                           slug, series.get(gid), data_through)
+                           slug, series.get(gid), data_through,
+                           seeds=seeds_by_abbr, series=series_of.get(gid),
+                           model_game=game_of.get(gid))
         d = OUT_DIR / slug
         d.mkdir(parents=True, exist_ok=True)
         (d / "index.html").write_text(html)

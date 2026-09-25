@@ -41,8 +41,7 @@ from sag.render import chrome
 
 import build_stats_page as bsp
 import fetch_data as fd
-from config import (WNBA, SUBPAGE_TABS, ACTIVE_TEAMS, ACTIVE_PLAYERS,
-                    ACTIVE_GAMES)
+from config import WNBA, ACTIVE_TEAMS, ACTIVE_PLAYERS
 
 BIOS_PATH = WNBA.data_dir / f"player_bios_{WNBA.season}.json"
 HOOKS_PATH = WNBA.site_dir / "reference" / "hooks.json"
@@ -644,7 +643,7 @@ def render_page(row, bio, ranks, lg_ts, games, game_meta,
 
     # "← all players" removed 2026-09-15 — the strip carries Players now.
     masthead = chrome.subpage_header_html(
-        esc(SITE_TITLE), "/", tabs=SUBPAGE_TABS, active=ACTIVE_PLAYERS)
+        esc(SITE_TITLE), "/", tabs=bsp.nav_tabs(), active=ACTIVE_PLAYERS)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -685,7 +684,7 @@ def render_index(entries, data_through):
     masthead = chrome.subpage_header_html(
         esc(SITE_TITLE), "/",
         crumb_html=f'{len(entries)} players · stats through {data_through}',
-        tabs=SUBPAGE_TABS, active=ACTIVE_PLAYERS)
+        tabs=bsp.nav_tabs(), active=ACTIVE_PLAYERS)
 
     return f"""<!DOCTYPE html>
 <html lang="en">

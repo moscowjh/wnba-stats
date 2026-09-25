@@ -24,6 +24,7 @@ sys.path, which is how `from config import WNBA` resolves). Requires `pip instal
 
 import json
 import os
+import re
 import pandas as pd
 import numpy as np
 from datetime import date, datetime, timedelta
@@ -34,7 +35,7 @@ from zoneinfo import ZoneInfo
 from sag import seo
 from sag.render import chrome
 
-from config import WNBA
+from config import WNBA, SEEDS, subpage_tabs
 
 OUTPUT = WNBA.page_output
 
@@ -386,6 +387,70 @@ def _compute_last10(team_raw, team_name):
     return f'{w}-{l}'
 
 
+def seed_order(team_raw, std):
+    """Team display names in ESPN's frozen seed order, or None to keep the
+    table's own `WPct, Diff` sort.
+
+    Used only when the seeds file exists AND every team's W-L in our own
+    data equals the W-L the file was frozen with. That second condition is
+    what makes this safe to leave on all year: the seeds describe ONE table,
+    the final regular-season one, and applying them to any other (a
+    mid-season snapshot, the golden harness's August data) would publish an
+    order the league never ranked. It also doubles as a check that our box
+    scores and ESPN's standings agree on every result.
+
+    Why it exists: the league breaks ties on head-to-head, and our sort broke
+    them on point differential. WSH won the 2026 season series with IND 2-1,
+    ESPN seeds WSH 5 and IND 6, and the site had them the other way round.
+    """
+    _, _, teams = load_seeds()
+    if not teams:
+        return None
+    tla = (team_raw[['team_display_name', 'team_abbreviation']].drop_duplicates()
+           .set_index('team_abbreviation')['team_display_name'].to_dict())
+    rec = std.set_index('team_display_name')[['W', 'L']]
+    order = []
+    for t in sorted(teams, key=lambda t: t['seed']):
+        name = tla.get(t['abbr'])
+        if name is None or name not in rec.index:
+            return None
+        if (int(rec.at[name, 'W']), int(rec.at[name, 'L'])) != (t['wins'], t['losses']):
+            return None
+        order.append(name)
+    if len(order) != len(rec):
+        return None
+    check_seed_tiebreaks(team_raw, teams)
+    return order
+
+
+def check_seed_tiebreaks(team_raw, teams):
+    """For every TWO-team tie ESPN resolved, confirm our own box scores give
+    the head-to-head to the team ESPN seeded higher. Prints a WARNING on
+    disagreement and never fails the build — ESPN's order still stands, but
+    a disagreement means one of us has a game wrong. Three-way ties go
+    through the league's multi-team steps and are not checked here."""
+    by_rec = {}
+    for t in teams:
+        by_rec.setdefault((t['wins'], t['losses']), []).append(t)
+    for tied in by_rec.values():
+        if len(tied) != 2:
+            continue
+        hi, lo = sorted(tied, key=lambda t: t['seed'])
+        g = team_raw[team_raw['team_abbreviation'] == hi['abbr']]
+        opp = team_raw[team_raw['team_abbreviation'] == lo['abbr']]
+        games = set(g['game_id']) & set(opp['game_id'])
+        won = int(g[g['game_id'].isin(games)]['team_winner'].sum())
+        lost = len(games) - won
+        if won > lost:
+            print(f"Seeds: {hi['abbr']} ({hi['seed']}) over {lo['abbr']} "
+                  f"({lo['seed']}) on head-to-head {won}-{lost} — agrees with ESPN")
+        else:
+            print(f"WARNING: ESPN seeds {hi['abbr']} {hi['seed']} over "
+                  f"{lo['abbr']} {lo['seed']}, but our box scores give the "
+                  f"season series {won}-{lost}. ESPN's order is kept; check "
+                  "for a missing or mis-scored game.")
+
+
 def compute_standings(team_raw):
     """Win-loss standings with Pythagorean expected record, streak, last 10."""
     std = team_raw.groupby('team_display_name').agg(
@@ -411,6 +476,9 @@ def compute_standings(team_raw):
     std['XL']   = (std['GP'] - std['XW']).round(1)
 
     std = std.sort_values(['WPct', 'Diff'], ascending=[False, False])
+    order = seed_order(team_raw, std)
+    if order is not None:
+        std = std.set_index('team_display_name').loc[order].reset_index()
     df = std[['team_display_name','W','L','Win%','Strk','L10','PF','PA','Diff','XW','XL']].copy()
     df.columns = ['Team','W','L','Win%','Strk','L10','PF','PA','+/-','XW','XL']
     return df
@@ -961,8 +1029,11 @@ def _color_cell(col, val):
     return f'<td>{val}</td>'
 
 
-def build_standings_section(standings_df):
-    """Standings with an orange dashed playoff cutoff line after 8th place."""
+def build_standings_section(standings_df, final=False):
+    """Standings with an orange dashed playoff cutoff line after 8th place.
+
+    `final` (the postseason) adds the "final regular season" subtitle. No seed
+    column and no clinch marks — the dashed cutoff already says who is in."""
     cols = list(standings_df.columns)
     headers = ''.join(
         f'<th onclick="sortTable(\'tbl_standings\',{i})">{h}</th>'
@@ -975,7 +1046,8 @@ def build_standings_section(standings_df):
         rows += f'<tr class="{cutoff}">{cells}</tr>\n'
     return (
         '<div id="standings" class="section">\n'
-        '<h2>Standings</h2>\n'
+        + ('<h2>Standings <span class="sub">\u2014 final regular season</span></h2>\n'
+           if final else '<h2>Standings</h2>\n') +
         '<p class="tab-note"><em>Dashed line = playoff cutoff (top 8)&ensp;|'
         '&ensp;XW/XL = Pythagorean expected record</em></p>\n'
         '<div class="table-scroll"><div class="table-wrap">'
@@ -1127,8 +1199,157 @@ def build_players_section(p_team, p_season, team_abbrevs):
     )
 
 
-def build_leaders_section(leaders, team_abbrevs):
-    """Leader cards with team/player filter and click-to-player links."""
+#: The playoff boards (Jason, 2026-09-25): counting stats only, no
+#: percentages. (column, board title, total header, average header).
+PLAYOFF_BOARDS = [
+    ('points', 'Points', 'PTS', 'PPG'),
+    ('rebounds', 'Rebounds', 'REB', 'RPG'),
+    ('assists', 'Assists', 'AST', 'APG'),
+    ('steals', 'Steals', 'STL', 'SPG'),
+    ('blocks', 'Blocks', 'BLK', 'BPG'),
+    ('three_point_field_goals_made', 'Made 3s', '3PM', '3PG'),
+]
+PLAYOFF_TOP_N = 10
+
+
+def check_playoff_points(player_all, team_all):
+    """For every playoff game, both teams' player points must sum to the team
+    score. Returns a list of mismatch strings, empty when clean.
+
+    Jason's pick for the one cheap check on the Playoffs boards: the Layer-2
+    leaders gate validates the Season boards only, and this catches the
+    failure that matters most for a counting board — a player row missing or
+    doubled."""
+    bad = []
+    if 'season_type' not in team_all.columns:
+        return bad
+    post_t = team_all[team_all['season_type'] == 3]
+    post_p = player_all[player_all['season_type'] == 3]
+    sums = post_p.groupby(['game_id', 'team_abbreviation'])['points'].sum()
+    for _, r in post_t.iterrows():
+        key = (r['game_id'], r['team_abbreviation'])
+        got = int(sums.get(key, 0))
+        if got != int(r['team_score']):
+            bad.append(f"game {r['game_id']} {r['team_abbreviation']}: "
+                       f"players sum to {got}, team scored {int(r['team_score'])}")
+    return bad
+
+
+def compute_playoff_leaders(player_all, team_all):
+    """The Playoffs view of Leaders, or None when it must not be shown.
+
+    WWC's `compute_leaders()` rule, applied a second time as
+    docs/data-sources.md asked ("one decision, applied twice"): ranked on the
+    UNROUNDED per-game average, displayed to a tenth, with GP and the total on
+    every row, and NO minimum games — the GP column makes the small sample
+    visible instead of hiding it behind a threshold we would have to defend.
+
+    Two deliberate differences from WWC:
+      * Ties are the WNBA's tie-safe ranking (the 2026-08-25 incident): tied
+        players share a place, printed T4, and a tie AT the cut keeps everyone
+        in it rather than truncating at ten.
+      * Aggregated on athlete_id from season_type == 3 rows only.
+
+    A null stat is not a zero (WWC's rule): a player with a missing value in a
+    category is held off that board rather than ranked on a partial sum.
+
+    None before the first final playoff box score (Season only, no switch),
+    and None when check_playoff_points() finds a mismatch — the site still has
+    to publish on game day, so that hides the view and warns, never fails.
+    """
+    if 'season_type' not in player_all.columns:
+        return None
+    post = player_all[player_all['season_type'] == 3].copy()
+    if post.empty:
+        return None
+    bad = check_playoff_points(player_all, team_all)
+    if bad:
+        print(f"WARNING: playoff points check failed for {len(bad)} team-game(s) "
+              "— Playoffs leaders view HIDDEN this build:")
+        for b in bad[:10]:
+            print(f"  {b}")
+        return None
+
+    post['athlete_id'] = post['athlete_id'].astype(str)
+    latest = post.sort_values('game_date').groupby('athlete_id').tail(1).set_index('athlete_id')
+    gp = post.groupby('athlete_id')['game_id'].nunique()
+    boards = []
+    for col, title, tot_h, avg_h in PLAYOFF_BOARDS:
+        nulls = post[col].isna().groupby(post['athlete_id']).any()
+        tot = post.groupby('athlete_id')[col].sum()
+        rows = [{'id': a, 'name': latest.at[a, 'athlete_display_name'],
+                 'team': latest.at[a, 'team_abbreviation'], 'gp': int(gp[a]),
+                 'total': int(tot[a]), 'avg': float(tot[a]) / int(gp[a])}
+                for a in tot.index if not nulls[a] and tot[a] > 0]
+        rows.sort(key=lambda x: (-x['avg'], -x['total'], x['name']))
+        places = _competition_ranks([x['avg'] for x in rows])
+        counts = {}
+        for p in places:
+            counts[p] = counts.get(p, 0) + 1
+        top = []
+        for place, x in zip(places, rows):
+            if place > PLAYOFF_TOP_N:
+                break
+            x['place'] = f'T{place}' if counts[place] > 1 else str(place)
+            x['first'] = place == 1
+            top.append(x)
+        boards.append((title, tot_h, avg_h, top))
+    return {'games': int(post['game_id'].nunique()), 'boards': boards}
+
+
+def playoff_gp_caption(lb):
+    """WWC's gp_caption(), ported: what the order means, always, and — only
+    once the field has actually spread — why GP varies. Triggered by the
+    measured spread among ranked players, not by a date; here it fires after
+    the first round, when losers stop at 2 or 3 games and survivors play on."""
+    gps = [r['gp'] for _, _, _, rows in lb['boards'] for r in rows]
+    spread = ('' if not gps or max(gps) - min(gps) < 2 else
+              ' A team’s run ends when it is eliminated, so a player can '
+              'lead on fewer games than someone still playing.')
+    return ('<p class="tab-note"><em>Ranked on the per-game average, with no '
+            'minimum games. Games played (GP) and the total are shown for '
+            f'every player.{spread}</em></p>')
+
+
+def _playoff_leaders_html(lb):
+    cards = ''
+    for title, tot_h, avg_h, rows in lb['boards']:
+        body = ''
+        for x in rows:
+            cls = ' rank-1' if x['first'] else ''
+            body += (
+                f'<tr class="ldr-row{cls}" data-team="{esc(x["team"])}">'
+                f'<td>{esc(x["place"])}</td>'
+                f'<td><span class="ldr-name" data-player="{esc(x["name"])}" '
+                f'onclick="goToPlayer(this.dataset.player)">{esc(short_name(x["name"]))}'
+                f'</span> <span class="tm">{esc(x["team"])}</span></td>'
+                f'<td>{x["gp"]}</td><td>{x["total"]}</td>'
+                f'<td class="po-v">{x["avg"]:.1f}</td></tr>\n')
+        if not body:
+            body = '<tr><td colspan="5" class="po-mu">No one yet.</td></tr>'
+        cards += (
+            f'<div class="leader-card po-lc"><h3>{esc(title)}</h3>'
+            f'<table><thead><tr><th>#</th><th>Player</th><th>GP</th>'
+            f'<th>{esc(tot_h)}</th><th>{esc(avg_h)}</th></tr></thead>'
+            f'<tbody>{body}</tbody></table></div>\n')
+    n = lb['games']
+    return (
+        '<div id="ldr-po" class="ldrview active">\n'
+        '<h2>Playoff Leaders <span class="sub">— per game — through '
+        f'{n} game{"" if n == 1 else "s"}</span></h2>\n'
+        f'{playoff_gp_caption(lb)}'
+        f'<div class="leaders-grid">{cards}</div>\n'
+        '</div>\n')
+
+
+def build_leaders_section(leaders, team_abbrevs, playoff=None):
+    """Leader cards with team/player filter and click-to-player links.
+
+    `playoff` is compute_playoff_leaders()'s result. When it is None the
+    section is exactly the Season boards, with no switch — the WWC rule that a
+    view is shown only once it has something on it. Otherwise the same
+    `.swrap`/`.sw` switch as Stats appears, Playoffs first and the default.
+    """
     team_opts = ('<option value="">All teams</option>' +
                  ''.join(f'<option value="{esc(t)}">{esc(t)}</option>'
                          for t in sorted(team_abbrevs)))
@@ -1165,11 +1386,26 @@ def build_leaders_section(leaders, team_abbrevs):
             f'<table id="{safe_id}"><tbody>{rows}</tbody></table></div>\n'
         )
 
-    return (
-        '<div id="leaders" class="section">\n'
+    season = (
         '<h2>Category Leaders <span class="sub">\u2014 per game \u2014 qualified</span></h2>\n'
         f'{controls}'
         f'<div class="leaders-grid">{cards}</div>\n'
+    )
+    if playoff is None:
+        return '<div id="leaders" class="section">\n' + season + '</div>\n'
+    # `.ldrview`, not `.statview`: showStat() owns every `.statview` on the
+    # page, and the two switches must not fight. Same reason `.statview`
+    # could not reuse `.section`.
+    return (
+        '<div id="leaders" class="section">\n'
+        '<div class="swrap">\n'
+        '  <button class="sw active" data-lv="ldr-po" '
+        'onclick="showLeaders(\'ldr-po\',this)">Playoffs</button>\n'
+        '  <button class="sw" data-lv="ldr-rs" '
+        'onclick="showLeaders(\'ldr-rs\',this)">Season</button>\n'
+        '</div>\n'
+        f'{_playoff_leaders_html(playoff)}'
+        f'<div id="ldr-rs" class="ldrview">\n{season}</div>\n'
         '</div>\n'
     )
 
@@ -1483,7 +1719,7 @@ def _sched_row(away, home, tip_et):
 def game_slug(date_iso, away_abbr, home_abbr, team_names):
     """/games/YYYY-MM-DD-<away>-<home>/ — the ONE place this URL is formed.
 
-    Lives here rather than in build_box_pages so the Series Tab (which links
+    Lives here rather than in build_box_pages so the Playoffs tab (which links
     to these pages) and the emitter (which writes them) cannot disagree — the
     same guarantee team_href() gives for team pages. Fixture order, away
     first, per the score-orientation rule: naming BOTH teams takes fixture
@@ -1506,93 +1742,411 @@ def load_series():
     try:
         return json.loads(WNBA.series.read_text()).get('games', [])
     except Exception as e:
-        print(f"WARNING: {WNBA.series.name} unreadable ({e}) — Series tab omitted.")
+        print(f"WARNING: {WNBA.series.name} unreadable ({e}) — series state omitted.")
         return []
 
 
-def build_series_section(series_rows, player_all, team_all):
-    """The Series tab: one block per playoff series, newest first.
+def load_upcoming():
+    """(status, games) from schedule_upcoming.json. Status "ok" means the
+    window is complete; anything else means we do not know the whole schedule
+    and must not say "nothing scheduled" (the 2026-08-05 rule)."""
+    p = WNBA.schedule_upcoming
+    if not p.exists():
+        return 'unavailable', []
+    try:
+        d = json.loads(p.read_text())
+        return d.get('status', 'unavailable'), d.get('games', [])
+    except Exception:
+        return 'unavailable', []
 
-    Returns None when there are no playoff games, and the caller then omits
-    the tab entirely rather than shipping an empty one — the same posture WWC
-    took with Leaders, which had no pre-tournament value and so was not
-    published until it did.
 
-    Grouping is on the UNORDERED PAIR OF TEAM IDS, because ESPN's series
-    object carries no series id. `wins` is the state as of each game, so the
-    series' current standing is its most recent row.
+def load_seeds():
+    """{team_id: seed} and {TLA: seed} from the frozen seeds file, or two
+    empty dicts. Correct-or-blank: no file, no `(n)` anywhere — never a seed
+    worked out from our own standings."""
+    if not SEEDS.exists():
+        return {}, {}, []
+    try:
+        teams = json.loads(SEEDS.read_text()).get('teams', [])
+    except Exception as e:
+        print(f"WARNING: {SEEDS.name} unreadable ({e}) — no seeds shown.")
+        return {}, {}, []
+    return ({int(t['team_id']): int(t['seed']) for t in teams},
+            {t['abbr']: int(t['seed']) for t in teams}, teams)
+
+
+def playoffs_active(upcoming_games=None, series_rows=None):
+    """Is it the postseason, as far as the DATA says?
+
+    True as soon as any season-type-3 event is in the schedule window — not
+    when the first one is final, or the site would still say "Games" on the
+    morning of the biggest day of the year — or once any playoff game has
+    been played. Never read from the clock. It goes back to False when the
+    season rolls over, because every file this reads is season-keyed.
     """
-    if not series_rows or team_all.empty:
-        return None
+    if upcoming_games is None:
+        _, upcoming_games = load_upcoming()
+    if series_rows is None:
+        series_rows = load_series()
+    return bool(series_rows) or any(
+        g.get('season_type') == 3 for g in upcoming_games)
 
+
+_NAV = None
+
+
+def nav_tabs():
+    """The subpage strip for this build — Playoffs or Games first — read once
+    and reused by every player, team and index page the build writes."""
+    global _NAV
+    if _NAV is None:
+        _NAV = subpage_tabs(playoffs_active())
+    return _NAV
+
+
+#: ESPN's network names -> what we print. Blank when ESPN gives none.
+TV_DISPLAY = {'USA Net': 'USA'}
+
+#: Which games the higher seed hosts, by series length. Games 1 and 3 in a
+#: best of 3; 1, 2, 5 in a best of 5; 1, 2, 5, 7 in a best of 7.
+HOSTS = {3: 'Games 1 and 3', 5: 'Games 1, 2 and 5', 7: 'Games 1, 2, 5 and 7'}
+
+_GAME_NO = re.compile(r'\bgame\s+(\d+)', re.I)
+
+
+def _tv(names):
+    return ' / '.join(TV_DISPLAY.get(n, n) for n in names or [])
+
+
+def _tip(g):
+    """Tip time without the " ET" suffix — the format note says every time
+    is US Eastern once, so the rows need not repeat it."""
+    return (g.get('tip_et') or '').replace(' ET', '')
+
+
+def _round_of(headline):
+    """"First Round - Game 3 If Necessary" -> "First Round". Display only:
+    ESPN's capitalisation drifts within a series ("WNBA FINALS - Game 3"),
+    so this is never matched on."""
+    return (headline or '').split(' - ')[0].strip()
+
+
+def playoff_box_games(player_all, team_all):
+    """[(game_id, date, away, home)] for every playoff game whose box-score
+    page build_box_pages WILL write, oldest first.
+
+    The one list both sides read: build_box_pages writes a page for exactly
+    these, and the Playoffs tab links a score only when its id is in here.
+    That is WWC's `box_ids` rule — a final score must never point at a 404,
+    and a result and its box score can arrive from different places.
+    Gated on season_type == 3 in the box data, never on a `series` object.
+    """
+    if 'season_type' not in team_all.columns:
+        return []
+    post = team_all[team_all['season_type'] == 3]
+    out = []
+    for gid, date_iso in sorted({(int(r['game_id']), str(r['game_date']))
+                                 for _, r in post.iterrows()},
+                                key=lambda t: (t[1], t[0])):
+        try:
+            away, home = _game_sides(player_all, team_all, gid, date_iso)
+        except (IndexError, KeyError):
+            continue  # correct-or-blank: no orientation, no page, no link
+        out.append((gid, date_iso, away, home))
+    return out
+
+
+def _real_team(team_id, abbr):
+    """False for ESPN's to-be-determined placeholders (id <= 0, "TBD")."""
+    try:
+        if team_id is None or int(team_id) <= 0:
+            return False
+    except (TypeError, ValueError):
+        return False
+    return bool(abbr) and abbr.upper() != 'TBD'
+
+
+def build_playoff_model(series_rows, upcoming_games, player_all, team_all,
+                        seeds_by_id, box_ids):
+    """Every playoff series, from the SCHEDULE plus the RESULTS.
+
+    Unplayed games come from schedule_upcoming.json, played ones from our box
+    scores and series_2026.json; the two are joined on the ESPN event id and
+    never on a date or a time. A series is the unordered pair of team ids —
+    ESPN's series object carries no id of its own.
+
+    Returns a list of series dicts, each with its games sorted by game number.
+    Semifinals and Finals appear only when ESPN publishes those events: there
+    is no bracket derivation and no "winner of" row (WWC scope rule,
+    2026-09-03).
+    """
     names = (team_all.drop_duplicates('team_abbreviation')
              .set_index('team_abbreviation')['team_display_name'].to_dict())
     abbr_by_id = {int(r['team_id']): r['team_abbreviation']
                   for _, r in team_all.drop_duplicates('team_id').iterrows()}
-    # Orientation MUST come from _game_sides — the same function
-    # build_box_pages uses to name the page it writes. The team frame's two
-    # rows are in arbitrary order, and using that order here produced slugs
-    # in the wrong order (…-atlanta-dream-indiana-fever against a page written
-    # as …-indiana-fever-atlanta-dream), i.e. every link a 404, plus scores
-    # printed home-first. Home/away lives on the PLAYER frame.
-    sides = {}
+
+    games = {}
+    for u in upcoming_games:
+        if u.get('season_type') != 3 or not u.get('event_id'):
+            continue
+        # A postponed or cancelled game is not a game to list.
+        if any(x in (u.get('status') or '') for x in ('CANCEL', 'POSTPONE')):
+            continue
+        # ESPN publishes later rounds before their teams are known: on
+        # 2026-09-25 all ten semifinal games were already on the scoreboard
+        # as "TBD @ TBD" with placeholder team ids -1 and -2. Listing them —
+        # or grouping them, which made a fifth "series" out of two
+        # placeholders — is bracket derivation by another name. A game
+        # appears once ESPN names both teams, and not before.
+        if (not _real_team(u.get('away_id'), u.get('away'))
+                or not _real_team(u.get('home_id'), u.get('home'))):
+            continue
+        for side in ('away', 'home'):
+            if u.get(f'{side}_id') is not None:
+                abbr_by_id.setdefault(int(u[f'{side}_id']), u[side])
+        games[int(u['event_id'])] = {
+            'id': int(u['event_id']), 'date': u.get('date', ''),
+            'away': u.get('away', ''), 'home': u.get('home', ''),
+            'ids': frozenset(int(u[k]) for k in ('away_id', 'home_id')
+                             if u.get(k) is not None),
+            'tip': _tip(u), 'tbd': bool(u.get('tbd')), 'tv': _tv(u.get('broadcasts')),
+            'state': u.get('state', 'pre'), 'headline': u.get('headline', ''),
+            'summary': u.get('series_summary', ''), 'total': u.get('series_total'),
+            'score': None, 'linked': False, 'final': u.get('state') == 'post',
+        }
+
     for r in series_rows:
         gid = int(r['game_id'])
-        try:
-            sides[gid] = _game_sides(player_all, team_all, gid, r['game_date'])
-        except (IndexError, KeyError):
-            pass  # correct-or-blank: no orientation, no link
+        g = games.setdefault(gid, {
+            'id': gid, 'date': r['game_date'], 'away': '', 'home': '',
+            'tip': '', 'tbd': False, 'tv': '', 'state': 'post', 'score': None,
+            'linked': False})
+        g.update(final=True, state='post', date=r['game_date'],
+                 ids=frozenset(int(c['team_id']) for c in r['competitors']),
+                 headline=r.get('headline') or g.get('headline', ''),
+                 summary=r.get('summary', ''), total=r.get('total_competitions'),
+                 completed=bool(r.get('completed')))
+
+    for gid, date_iso, away, home in playoff_box_games(player_all, team_all):
+        g = games.get(gid)
+        if g is None:
+            continue  # a box score with no series row or schedule entry
+        g.update(away=away['abbr'], home=home['abbr'], date=date_iso,
+                 score=(away['score'], home['score']), final=True, state='post',
+                 linked=gid in box_ids,
+                 slug=game_slug(date_iso, away['abbr'], home['abbr'], names))
 
     groups = {}
-    for r in series_rows:
-        key = tuple(sorted(c['team_id'] for c in r['competitors']))
-        groups.setdefault(key, []).append(r)
+    for g in games.values():
+        if len(g.get('ids') or ()) == 2:
+            groups.setdefault(g['ids'], []).append(g)
 
-    blocks = []
-    for key, rows in sorted(groups.items(),
-                            key=lambda kv: kv[1][0]['game_date'], reverse=True):
-        rows.sort(key=lambda r: (r['game_date'], r['game_id']))
-        first, last = rows[0], rows[-1]
-        # Round name from the FIRST game: ESPN's capitalisation drifts within a
-        # series ("WNBA Finals - Game 3" and "WNBA FINALS - Game 3" both occur
-        # in 2025), and game 1 is reliably normal case. Display only.
-        round_name = (first.get('headline') or '').split(' - ')[0]
-        best_of = last.get('total_competitions')
-        teams = ' vs '.join(
-            esc(names.get(abbr_by_id.get(t, ''), abbr_by_id.get(t, str(t))))
-            for t in key)
+    series = []
+    for ids, gs in groups.items():
+        for i, g in enumerate(sorted(gs, key=lambda g: (g['date'], g['id']))):
+            m = _GAME_NO.search(g.get('headline') or '')
+            g['no'] = int(m.group(1)) if m else i + 1
+            g['if_necessary'] = 'if necessary' in (g.get('headline') or '').lower()
+            # Orientation unknown: a final whose box score has not arrived
+            # and that is outside the schedule window. Name both teams without
+            # claiming who was home.
+            if not g['away'] or not g['home']:
+                g['away'], g['home'] = sorted(abbr_by_id.get(i, str(i)) for i in ids)
+                g['vs'] = True
+        gs.sort(key=lambda g: (g['no'], g['date']))
+        played = [g for g in gs if g.get('final') and 'completed' in g]
+        last = played[-1] if played else None
+        completed = bool(last and last['completed'])
+        # A finished series keeps only the games that were played: ESPN
+        # deletes an unneeded "if necessary" game (2025's MIN-GS Game 3
+        # simply vanished), and a stale copy must not linger here.
+        if completed:
+            gs = [g for g in gs if g.get('final')]
+        # State as of the most recent game played; before any, the schedule's
+        # own wording ("Series starts 9/27").
+        summary = (last or {}).get('summary') or next(
+            (g['summary'] for g in gs if g.get('summary')), '')
+        total = next((g['total'] for g in reversed(gs) if g.get('total')), None)
+        tlas = {i: abbr_by_id.get(i, str(i)) for i in ids}
+        # Higher seed first. With no seeds file, the Game 1 host leads — an
+        # ORDER only; no number is printed, so nothing is claimed.
+        if seeds_by_id and all(i in seeds_by_id for i in ids):
+            order = sorted(ids, key=lambda i: seeds_by_id[i])
+            best = seeds_by_id[order[0]]
+        else:
+            host = next((g['home'] for g in gs if not g.get('vs')), None)
+            order = sorted(ids, key=lambda i: tlas[i] != host)
+            best = None
+        series.append({
+            'ids': ids, 'order': order, 'tlas': tlas,
+            'names': {i: names.get(tlas[i], tlas[i]) for i in ids},
+            'seeds': {i: seeds_by_id.get(i) for i in ids} if best else {},
+            'best_seed': best, 'round': _round_of(gs[0].get('headline')),
+            'start': min(g['date'] for g in gs), 'games': gs,
+            'summary': summary, 'total': total, 'completed': completed,
+        })
+    return series
 
-        game_rows = ''
-        for r in rows:
-            gid = int(r['game_id'])
-            pair = sides.get(gid)
-            label = (r.get('headline') or '').split(' - ')[-1] or r['game_date']
-            if pair:
-                away, home = pair
-                slug = game_slug(r['game_date'], away['abbr'], home['abbr'], names)
-                # Names both teams, so fixture order: away first.
-                score = (f"{esc(away['abbr'])} {away['score']}"
-                         f"&ndash;{esc(home['abbr'])} {home['score']}")
-                cell = (f'<a class="pl" href="/games/{slug}/">{score}</a>')
-            else:
-                cell = '&mdash;'
-            game_rows += (f'<tr><td>{esc(label)}</td>'
-                          f'<td>{esc(r["game_date"])}</td><td>{cell}</td></tr>')
 
-        meta = ' &middot; '.join(x for x in (
-            f'best of {best_of}' if best_of else '',
-            'final' if last.get('completed') else 'in progress') if x)
-        blocks.append(
-            f'<div class="ser-blk"><h3 class="ser-h">{esc(round_name)}</h3>'
-            f'<div class="ser-t">{teams}</div>'
-            f'<div class="ser-s">{esc(last.get("summary", ""))}'
-            + (f' <span class="ser-m">&middot; {meta}</span>' if meta else '')
-            + '</div>'
-            f'<table class="ser-g">{game_rows}</table></div>')
+def _rounds(series):
+    """[(round name, [series])], newest round first, series in seed order
+    (1v8, 2v7, 3v6, 4v5 — keyed on the higher seed), else by first game."""
+    by_round = {}
+    for s in series:
+        by_round.setdefault(s['round'], []).append(s)
+    out = []
+    for name, ss in by_round.items():
+        ss.sort(key=lambda s: (s['best_seed'] if s['best_seed'] is not None
+                               else 99, s['start'], min(s['ids'])))
+        out.append((name, ss))
+    out.sort(key=lambda kv: min(s['start'] for s in kv[1]), reverse=True)
+    return out
 
-    return ('<div id="series" class="section">\n<h2>Playoff Series</h2>\n'
-            '<p class="tab-note"><em>Tap a score for the full box score'
-            '</em></p>\n' + ''.join(blocks) + '\n</div>\n')
+
+def _score_html(g):
+    """`NYL 80 – MIN 85`, fixture order (it names both teams), winner bold."""
+    a, h = g['score']
+    aw = ' po-w' if a > h else ''
+    hw = ' po-w' if h > a else ''
+    return (f'<span class="po-sc{aw}">{esc(g["away"])} {a}</span>'
+            f'<span class="po-dash"> &ndash; </span>'
+            f'<span class="po-sc{hw}">{esc(g["home"])} {h}</span>')
+
+
+def _linked(g, inner):
+    if g.get('linked') and g.get('slug'):
+        return (f'<a class="po-a" href="/games/{g["slug"]}/">{inner} '
+                f'<span class="po-arr">&rarr;</span></a>')
+    return inner
+
+
+def _matchup(g):
+    """`NYL @ MIN` in fixture order, or `MIN vs NYL` when home is unknown."""
+    sep = ' vs ' if g.get('vs') else ' @ '
+    return f'{esc(g["away"])}{sep}{esc(g["home"])}'
+
+
+def _series_game_row(g):
+    """One game inside a series: played, scheduled, live or unscheduled."""
+    day = _dow(g['date']) if g.get('date') else ''
+    if g.get('final'):
+        what = (_linked(g, _score_html(g)) if g.get('score')
+                else _matchup(g))
+        right = '<span class="po-mu">Final</span>'
+    elif g.get('state') == 'in':
+        what = _matchup(g)
+        right = '<span class="po-mu">In progress</span>'
+    elif g.get('tbd'):
+        what = (_matchup(g)
+                + (' &middot; if necessary' if g.get('if_necessary') else ''))
+        right = '<span class="po-mu">TBD</span>'
+        return (f'<div class="po-gr po-ifn"><span class="po-no">Gm {g["no"]}</span>'
+                f'<span class="po-what">{esc(day)} &middot; {what}</span>'
+                f'<span class="po-when">{right}</span></div>')
+    else:
+        what = (_matchup(g)
+                + (' &middot; if necessary' if g.get('if_necessary') else ''))
+        right = esc(g.get('tip') or '')
+    return (f'<div class="po-gr"><span class="po-no">Gm {g["no"]}</span>'
+            f'<span class="po-what">{esc(day)} &middot; {what}</span>'
+            f'<span class="po-when">{right}</span></div>')
+
+
+def _series_block(s, newest_first):
+    def team(i):
+        sd = s['seeds'].get(i)
+        return (esc(s['names'][i])
+                + (f' <span class="po-sd">({sd})</span>' if sd else ''))
+    head = ' vs '.join(team(i) for i in s['order'])
+    meta = f' <span class="po-mu">&middot; best of {s["total"]}</span>' if s['total'] else ''
+    games = list(reversed(s['games'])) if newest_first else s['games']
+    return (f'<div class="po-ser"><div class="po-t">{head}</div>'
+            f'<div class="po-s">{esc(s["summary"])}{meta}</div>'
+            + ''.join(_series_game_row(g) for g in games) + '</div>')
+
+
+def build_playoffs_section(series, upcoming_status):
+    """The first tab during the postseason, top to bottom (Jason, 2026-09-25):
+    format note, next games, latest results, then every series.
+
+    Same section id as Games (`games`), so every existing `/#games` link and
+    the box pages' back link keep working; `#playoffs` is an alias.
+    """
+    all_games = [g for s in series for g in s['games']]
+    unplayed = [g for s in series if not s['completed'] for g in s['games']
+                if not g.get('final')]
+    finished = bool(series) and not unplayed and all(s['completed'] for s in series)
+    rounds = _rounds(series)
+    out = []
+
+    # 1. Format note, for the round being played now. Says nothing about
+    #    reseeding or bracket paths: the build does not need to know, and
+    #    Jason is not sure the W uses a fixed bracket.
+    if not finished and rounds:
+        live = next((ss for _, ss in rounds
+                     if any(not s['completed'] for s in ss)), rounds[0][1])
+        n = next((s['total'] for s in live if s['total']), None)
+        bits = ['Eight teams, seeded 1&ndash;8.']
+        if n:
+            bits.append(f'This round is best of {n}'
+                        + (f'; the higher seed hosts {HOSTS[n]}.' if n in HOSTS else '.'))
+        bits.append('Times are US Eastern.')
+        out.append(f'<p class="tab-note"><em>{" ".join(bits)}</em></p>')
+
+    # 2. Next games — the earliest date still holding an unplayed game, from
+    #    the data, never the clock (WWC's next_games_day()).
+    nxt = min((g['date'] for g in unplayed if g.get('date')), default=None)
+    if nxt:
+        rows = ''
+        for g in sorted((g for g in unplayed if g['date'] == nxt),
+                        key=lambda g: (g.get('tbd', False), _tip_minutes(g), g['id'])):
+            when = ('TBD' if g.get('tbd') else
+                    'In progress' if g.get('state') == 'in' else esc(g.get('tip') or ''))
+            tv = f'<span class="po-tv">{esc(g["tv"])}</span>' if g.get('tv') else ''
+            ifn = ' &middot; if necessary' if g.get('if_necessary') else ''
+            rows += (f'<div class="gm-row po-row"><span class="gm-match">'
+                     f'{_matchup(g)} '
+                     f'<span class="po-mu">&middot; Gm {g["no"]}{ifn}</span></span>'
+                     f'<span class="po-when">{when}{tv}</span></div>')
+        out.append(f'<div class="gm-daybar">Next games &middot; {esc(_dow(nxt))}</div>{rows}')
+    elif upcoming_status != 'ok' and not finished:
+        out.append('<div class="gm-daybar">Next games</div>'
+                   '<div class="gm-empty">The upcoming schedule is unavailable.</div>')
+
+    # 3. Latest results — the most recent day with finals. Hidden before one.
+    played = [g for g in all_games if g.get('final') and g.get('score')]
+    if played:
+        last = max(g['date'] for g in played)
+        rows = ''.join(
+            f'<div class="gm-row po-row"><span class="gm-match">'
+            f'{_linked(g, _score_html(g))}</span>'
+            f'<span class="po-when po-mu">Final</span></div>'
+            for g in sorted((g for g in played if g['date'] == last),
+                            key=lambda g: g['id']))
+        hint = ('<div class="gm-hint">Tap a score for the full box score.</div>'
+                if any(g.get('linked') for g in played) else '')
+        out.append(f'<div class="gm-daybar">Latest results &middot; '
+                   f'{esc(_dow(last))}</div>{rows}{hint}')
+
+    # 4. Every series. Newest round first, so the round being played leads;
+    #    once the Finals are over the games flip newest-first too, so the page
+    #    opens on the Finals result (WWC archive order).
+    for name, ss in rounds:
+        out.append(f'<h2>{esc(name) or "Playoffs"}</h2>'
+                   + ''.join(_series_block(s, finished) for s in ss))
+
+    return ('<div id="games" class="section active">\n'
+            '<section id="games-view">' + ''.join(out) + '</section>'
+            '</div>\n')
+
+
+def _tip_minutes(g):
+    t = g.get('tip') or ''
+    try:
+        d = datetime.strptime(t, '%I:%M %p')
+        return d.hour * 60 + d.minute
+    except ValueError:
+        return 0
 
 
 def build_games_section(player_raw, team_raw):
@@ -1911,19 +2465,33 @@ PAGE_CSS = (
   thead tr:first-child th:first-child{position:sticky;left:0;z-index:4;background:var(--surface)}
 """
     + f"""\
-  /* ── Series tab (playoffs only) ── */
-  .ser-blk{{margin-bottom:22px}}
-  .ser-h{{color:var(--accent);font-size:11px;letter-spacing:.9px;
-    text-transform:uppercase;font-weight:700;margin-bottom:3px}}
-  .ser-t{{font-size:15px;font-weight:600;margin-bottom:2px}}
-  .ser-s{{color:var(--text);font-size:12.5px;margin-bottom:7px}}
-  .ser-m{{color:var(--muted)}}
-  .ser-g{{border-collapse:collapse;width:100%;font-size:12px}}
-  .ser-g td{{padding:6px 8px 6px 0;border-bottom:1px solid var(--border);
-    white-space:nowrap}}
-  .ser-g td:first-child{{color:var(--muted);width:5.5em}}
-  .ser-g td:nth-child(2){{color:var(--muted);font-family:{MONO};width:7em}}
-  .ser-g td:last-child{{font-family:{MONO};text-align:right}}
+  /* ── Playoffs tab (postseason only; replaces the Series tab) ── */
+  .po-row .gm-match{{font-size:14px}}
+  .po-when{{color:var(--muted);font-size:12px;text-align:right;white-space:nowrap}}
+  .po-tv{{display:block;font-size:10.5px}}
+  .po-mu{{color:var(--muted)}}
+  .po-a{{color:var(--text);text-decoration:none}}
+  .po-arr{{color:var(--accent)}}
+  .po-sc{{color:var(--muted);font-family:{MONO};font-variant-numeric:tabular-nums}}
+  .po-sc.po-w{{color:var(--text);font-weight:700}}
+  .po-dash{{color:var(--muted)}}
+  .po-ser{{padding:12px 0 8px;border-bottom:1px solid var(--border)}}
+  .po-t{{font-size:14px;font-weight:600}}
+  .po-sd{{color:var(--muted);font-weight:400}}
+  .po-s{{color:var(--accent);font-size:12px;margin:2px 0 6px}}
+  .po-gr{{display:grid;grid-template-columns:3.2em 1fr auto;gap:8px;font-size:12px;
+    padding:5px 0;border-top:1px solid #161618}}
+  .po-no{{color:var(--muted)}}
+  .po-ifn .po-what{{color:var(--muted);font-style:italic}}
+  .po-lc th{{color:var(--muted);font-weight:400;text-align:right;
+    border-bottom:1px solid var(--border);padding:3px 7px}}
+  .po-lc th:nth-child(-n+2){{text-align:left}}
+  .po-lc td:nth-child(n+3){{text-align:right}}
+  .po-lc td.po-v{{color:var(--accent);font-weight:600}}
+  .po-lc td:first-child{{color:var(--muted);width:2.4em}}
+  .po-lc tbody td:nth-child(2){{font-family:{SANS}}}
+  /* The Leaders switch: a second, independent view layer, like .statview. */
+  .ldrview{{display:none}}.ldrview.active{{display:block}}
 """
     + GAMES_CSS
 )
@@ -1948,7 +2516,7 @@ function showTab(id, btn) {
      history entry, and it does NOT fire hashchange, so there is no loop with
      openTabFromHash. */
   if (window.history && history.replaceState) {
-    history.replaceState(null, '', '#' + (id === 'stats' ? statHash() : id));
+    history.replaceState(null, '', '#' + tabHash(id, btn));
   }
   track('tab', id === 'stats' ? statHash() : id);
   /* NOTE for whoever reads the usage data: on a deep link the hash is
@@ -2153,8 +2721,10 @@ function backToGames() {
 /* The Stats views. A second show/hide layer inside #stats — see the
    `.statview` note in the CSS for why it cannot reuse `.section`. */
 function showStat(view, btn, silent) {
-  document.querySelectorAll('.statview').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.sw').forEach(b => b.classList.remove('active'));
+  /* Scoped to #stats: Leaders has a `.sw` switch of its own since the
+     playoffs (2026-09-25), and an unscoped selector would clear it. */
+  document.querySelectorAll('#stats .statview').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('#stats .sw').forEach(b => b.classList.remove('active'));
   var v = document.getElementById(view);
   if (!v) return;
   v.classList.add('active');
@@ -2179,12 +2749,45 @@ function showStat(view, btn, silent) {
 /* Which Stats view is showing, as its URL fragment. Efficiency is the default
    and gets the bare `#stats` so the tab has a clean canonical link. */
 function statHash() {
-  var v = document.querySelector('.statview.active');
+  var v = document.querySelector('#stats .statview.active');
   var id = v ? v.id : 'teameff';
   return id === 'teameff' ? 'stats'
        : id === 'teamtotals' ? 'stats-team-totals'
        : id === 'players' ? 'stats-player-totals' : 'stats';
 }
+
+/* The URL fragment for a tab. Stats and Leaders carry their view; the first
+   tab says #playoffs during the postseason (its button carries data-hash),
+   while its section id stays `games` so every old /#games link still works. */
+function tabHash(id, btn) {
+  if (id === 'stats') return statHash();
+  if (id === 'leaders') return ldrHash();
+  return (btn && btn.dataset && btn.dataset.hash) || id;
+}
+
+/* The Leaders switch (playoffs only): Playoffs · Season. Same pattern as
+   showStat, scoped to #leaders so the two switches never touch each other.
+   `silent` as in showStat: showTab has already counted the arrival. */
+function showLeaders(view, btn, silent) {
+  var v = document.getElementById(view);
+  if (!v) return;
+  document.querySelectorAll('#leaders .ldrview').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('#leaders .sw').forEach(b => b.classList.remove('active'));
+  v.classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (window.history && history.replaceState) {
+    history.replaceState(null, '', '#' + ldrHash());
+  }
+  if (!silent) track('tab', ldrHash());
+}
+function ldrHash() {
+  var v = document.querySelector('#leaders .ldrview.active');
+  if (!v) return 'leaders';
+  return v.id === 'ldr-po' ? 'leaders-playoffs' : 'leaders-season';
+}
+var LDR_HASHES = {'leaders-playoffs': 'ldr-po', 'leaders-season': 'ldr-rs'};
+/* Section aliases. `playoffs` is the first tab's name in the postseason. */
+var TAB_ALIASES = {'playoffs': 'games'};
 
 /* Fragment -> Stats view. The first three are today's links; the last three
    are the OLD tab ids, kept because the team pages linked to them and people
@@ -2235,6 +2838,17 @@ function openTabFromHash() {
     return;
   }
 
+  var lv = LDR_HASHES[raw];
+  if (lv) {
+    var lb = document.querySelector('.tab[data-tab="leaders"]');
+    if (!lb) return;
+    showTab('leaders', lb);
+    /* Absent before the playoffs: the Season boards are then the whole tab. */
+    showLeaders(lv, document.querySelector('#leaders .sw[data-lv="' + lv + '"]'), true);
+    return;
+  }
+  if (TAB_ALIASES[raw]) raw = TAB_ALIASES[raw];
+
   var sec = document.getElementById(raw);
   var btn = document.querySelector('.tab[data-tab="' + raw + '"]');
   if (sec && btn && sec.classList.contains('section')) showTab(raw, btn);
@@ -2250,14 +2864,14 @@ def assemble_page(display_date, data_through_iso,
                   games_html,
                   standings_html, leaders_html, team_eff_html,
                   team_totals_html, players_html, abbreviations_html,
-                  series_html=None):
+                  playoffs=False):
     """Combine all sections into the final HTML string.
 
-    `series_html` is None outside the playoffs and the Series tab is then
-    omitted entirely — an empty tab is a dead end, and the tab strip is the
-    site's whole navigation.
+    `playoffs` relabels the first tab Playoffs. Its section id stays `games`
+    so `/#games` links keep working, and its button carries
+    `data-hash="playoffs"` so the address bar reads `/#playoffs`. The separate
+    Series tab of 2026-09-08 is gone: the series live inside this one.
     """
-    series_section = series_html or ''
     # The strip, rebuilt 2026-09-15 (handoff wnba-nav-build-handoff-2026-09-14).
     # Two changes of substance, and they had to ship together:
     #
@@ -2271,8 +2885,7 @@ def assemble_page(display_date, data_through_iso,
     #
     # `href` distinguishes a link from a button; both render as `.tab`.
     tabs = [
-        ('games', 'Games', None),
-        *([('series', 'Series', None)] if series_html else []),
+        ('games', 'Playoffs' if playoffs else 'Games', None),
         ('standings', 'Standings', None),
         ('leaders', 'Leaders', None),
         ('teams', 'Teams', '/teams/'),
@@ -2285,7 +2898,8 @@ def assemble_page(display_date, data_through_iso,
         active = ' active' if i == 0 else ''
         if href:
             return f'  <a class="tab" href="{href}">{name}</a>'
-        return (f'  <button class="tab{active}" data-tab="{tid}" '
+        hash_attr = ' data-hash="playoffs"' if (playoffs and tid == 'games') else ''
+        return (f'  <button class="tab{active}" data-tab="{tid}"{hash_attr} '
                 f'onclick="showTab(\'{tid}\',this)">{name}</button>')
 
     tab_buttons = '\n'.join(_tab(i, *t) for i, t in enumerate(tabs))
@@ -2337,7 +2951,7 @@ def assemble_page(display_date, data_through_iso,
         f'<div class="meta">Fast, ad-free — updated through games of {display_date}</div>\n'
         f'{wwc_promo_html(today_et())}\n'
         f'<div class="tabs">\n{tab_buttons}\n</div>\n\n'
-        f'{games_html}{series_section}\n'
+        f'{games_html}\n'
         f'{standings_html}\n'
         f'{leaders_html}\n'
         f'{stats_section}\n'
@@ -2363,6 +2977,16 @@ def main():
     through_dt   = pd.to_datetime(player_raw['game_date'].max())
     display_date = f"{through_dt.strftime('%B')} {through_dt.day}"
     data_through_iso = through_dt.strftime('%Y-%m-%d')
+    # The PAGE is dated from every game, playoffs included. The regular-season
+    # date above stops moving on the last day of the season, and the cron
+    # Worker's health check compares the page's `data-through` meta with
+    # yesterday on every game day — dated from player_raw, it would have
+    # reported a stale site (and auto-rebuilt, then emailed) after every
+    # playoff game. The social payload keeps the regular-season date: its
+    # numbers are regular-season numbers.
+    page_dt = pd.to_datetime(player_all['game_date'].max())
+    page_display_date = f"{page_dt.strftime('%B')} {page_dt.day}"
+    page_through_iso = page_dt.strftime('%Y-%m-%d')
 
     standings_df    = compute_standings(team_raw)
     # Two player frames: per-(athlete, team) for the Players table's split
@@ -2398,22 +3022,36 @@ def main():
         for t in sorted(team_list)
     )
 
+    # Postseason, as far as the data says: a playoff event in the schedule
+    # window, or a playoff game played. Never the clock.
+    series_rows = load_series()
+    upcoming_status, upcoming_games = load_upcoming()
+    playoffs = playoffs_active(upcoming_games, series_rows)
+
     # Build each section
-    games_html         = build_games_section(player_all, team_all)
-    # None outside the playoffs; assemble_page then omits the tab entirely.
-    series_html        = build_series_section(load_series(), player_all, team_all)
-    standings_html     = build_standings_section(standings_df)
-    leaders_html       = build_leaders_section(leaders, team_abbrevs)
+    if playoffs:
+        seeds_by_id, _, _ = load_seeds()
+        box_ids = {gid for gid, *_ in playoff_box_games(player_all, team_all)}
+        model = build_playoff_model(series_rows, upcoming_games, player_all,
+                                    team_all, seeds_by_id, box_ids)
+        games_html = build_playoffs_section(model, upcoming_status)
+        print(f"Playoffs: {len(model)} series, {len(box_ids)} box-score link(s), "
+              f"schedule window {upcoming_status}")
+    else:
+        games_html = build_games_section(player_all, team_all)
+    standings_html     = build_standings_section(standings_df, final=playoffs)
+    leaders_html       = build_leaders_section(
+        leaders, team_abbrevs, compute_playoff_leaders(player_all, team_all))
     team_eff_html      = build_team_efficiency_section(ff_df, team_options)
     team_totals_html   = build_team_totals_section(team_stats_df, team_options)
     players_html       = build_players_section(p_base, p_season, team_abbrevs)
     abbreviations_html = build_abbreviations_section()
 
-    html = assemble_page(display_date, data_through_iso,
+    html = assemble_page(page_display_date, page_through_iso,
                          games_html,
                          standings_html, leaders_html, team_eff_html,
                          team_totals_html, players_html, abbreviations_html,
-                         series_html)
+                         playoffs)
 
     OUTPUT.write_text(html)
     print(f"Written -> {OUTPUT}")

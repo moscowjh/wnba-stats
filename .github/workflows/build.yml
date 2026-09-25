@@ -15,10 +15,17 @@ name: Daily WNBA stats build
 on:
   workflow_dispatch:
     inputs:
+      # PAUSED until the 2027 regular season (Jason, 2026-09-25): the daily
+      # leaders post is a regular-season feature, and the Friday 9/25 post was
+      # the last one. Flipping the DEFAULT is what pauses it everywhere at once
+      # — the cron Worker's bare {ref} dispatch, its auto-retries and the
+      # playoff late-night build all inherit it. A human can still tick the
+      # box on a manual run. **Flip back to `true` before the 2027 opener**
+      # (tracked in statsataglance-NEXT.md). post_to_bluesky.py is untouched.
       post:
         description: "Post the daily leaders to Bluesky"
         type: boolean
-        default: true
+        default: false
       allow_partial:
         description: "Publish even if the ESPN fetch came back incomplete"
         type: boolean
@@ -206,6 +213,10 @@ jobs:
           git add sites/wnba/public/sitemap_lastmod.json
           git add validation_report.json player_id_crosswalk.json
           git add usage_history.jsonl
+          # The frozen playoff seeds (fetch_data.fetch_seeds). Written once at
+          # season end, then never changed, so this is a no-op on every other
+          # run. The directory, not the file, so next season's name needs no edit.
+          git add sites/wnba/reference
           # Only commit if something actually changed (e.g. skip on an off-day).
           if git diff --staged --quiet; then
             echo "No changes to publish today."

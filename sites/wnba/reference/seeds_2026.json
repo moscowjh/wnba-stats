@@ -1,0 +1,128 @@
+{
+  "season": 2026,
+  "source": "https://site.web.api.espn.com/apis/v2/sports/basketball/wnba/standings?season=2026&level=1",
+  "frozen": "2026-09-25",
+  "note": "Written once at season end by fetch_data.fetch_seeds(); never overwritten. Delete only to re-freeze deliberately.",
+  "teams": [
+    {
+      "seed": 1,
+      "team_id": 8,
+      "abbr": "MIN",
+      "name": "Minnesota Lynx",
+      "wins": 33,
+      "losses": 11
+    },
+    {
+      "seed": 2,
+      "team_id": 129689,
+      "abbr": "GSV",
+      "name": "Golden State Valkyries",
+      "wins": 32,
+      "losses": 12
+    },
+    {
+      "seed": 3,
+      "team_id": 17,
+      "abbr": "LVA",
+      "name": "Las Vegas Aces",
+      "wins": 31,
+      "losses": 13
+    },
+    {
+      "seed": 4,
+      "team_id": 20,
+      "abbr": "ATL",
+      "name": "Atlanta Dream",
+      "wins": 30,
+      "losses": 14
+    },
+    {
+      "seed": 5,
+      "team_id": 16,
+      "abbr": "WAS",
+      "name": "Washington Mystics",
+      "wins": 28,
+      "losses": 16
+    },
+    {
+      "seed": 6,
+      "team_id": 5,
+      "abbr": "IND",
+      "name": "Indiana Fever",
+      "wins": 28,
+      "losses": 16
+    },
+    {
+      "seed": 7,
+      "team_id": 3,
+      "abbr": "DAL",
+      "name": "Dallas Wings",
+      "wins": 27,
+      "losses": 17
+    },
+    {
+      "seed": 8,
+      "team_id": 9,
+      "abbr": "NYL",
+      "name": "New York Liberty",
+      "wins": 26,
+      "losses": 18
+    },
+    {
+      "seed": 9,
+      "team_id": 132052,
+      "abbr": "PDX",
+      "name": "Portland Fire",
+      "wins": 17,
+      "losses": 27
+    },
+    {
+      "seed": 10,
+      "team_id": 11,
+      "abbr": "PHX",
+      "name": "Phoenix Mercury",
+      "wins": 16,
+      "losses": 28
+    },
+    {
+      "seed": 11,
+      "team_id": 19,
+      "abbr": "CHI",
+      "name": "Chicago Sky",
+      "wins": 16,
+      "losses": 28
+    },
+    {
+      "seed": 12,
+      "team_id": 6,
+      "abbr": "LAS",
+      "name": "Los Angeles Sparks",
+      "wins": 16,
+      "losses": 28
+    },
+    {
+      "seed": 13,
+      "team_id": 131935,
+      "abbr": "TOR",
+      "name": "Toronto Tempo",
+      "wins": 11,
+      "losses": 33
+    },
+    {
+      "seed": 14,
+      "team_id": 18,
+      "abbr": "CON",
+      "name": "Connecticut Sun",
+      "wins": 11,
+      "losses": 33
+    },
+    {
+      "seed": 15,
+      "team_id": 14,
+      "abbr": "SEA",
+      "name": "Seattle Storm",
+      "wins": 8,
+      "losses": 36
+    }
+  ]
+}

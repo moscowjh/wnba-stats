@@ -21,7 +21,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import requests
 
-from config import WNBA
+from config import WNBA, SEEDS, REGULAR_SEASON_GAMES
 
 SEASON = 2026
 SEASON_START = "2026-05-08"
@@ -62,6 +62,7 @@ SCHEDULE_JSON = CFG.schedule_today
 UPCOMING_JSON = CFG.schedule_upcoming
 ROSTER_JSON = CFG.rosters
 SERIES_JSON = CFG.series
+SEEDS_JSON = SEEDS
 #: Audit trail for athlete_id merges — this mutates history, so it is written
 #: down rather than left as folklore.
 MERGES_JSON = CFG.data_dir / f"athlete_id_merges_{CFG.season}.json"
@@ -90,6 +91,7 @@ MERGES_JSON = CFG.data_dir / f"athlete_id_merges_{CFG.season}.json"
 ESPN_ORIGIN = os.environ.get("ESPN_ORIGIN", "https://site.web.api.espn.com").rstrip("/")
 ESPN_SCOREBOARD = f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba/scoreboard"
 ESPN_SUMMARY = f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba/summary"
+ESPN_STANDINGS = f"{ESPN_ORIGIN}/apis/v2/sports/basketball/wnba/standings"
 ESPN_TEAM_ROSTER = (f"{ESPN_ORIGIN}/apis/site/v2/sports/basketball/wnba"
                     "/teams/{tid}/roster")
 ET = ZoneInfo("America/New_York")
@@ -376,7 +378,7 @@ def parse_series(event: dict, game_id: int, iso_date: str,
         "game_id": game_id,
         "game_date": iso_date,
         "headline": headline,
-        "summary": series.get("summary", ""),
+        "summary": _summary_tla(series.get("summary", "")),
         "completed": bool(series.get("completed", False)),
         "total_competitions": series.get("totalCompetitions"),
         "competitors": [
@@ -996,82 +998,235 @@ def canonicalize_athlete_ids(player_df: pd.DataFrame) -> tuple[pd.DataFrame, lis
     return df, merges
 
 
+def _summary_tla(summary: str) -> str:
+    """ESPN's series summary with its team code in the site's language:
+    "NY leads series 1-0" -> "NYL leads series 1-0". Only the leading token
+    is a team code ("Series tied 1-1" and "Series starts 9/27" pass through).
+    Applied at fetch time, like every other TLA (see WNBA_TLA)."""
+    head, sep, rest = (summary or "").partition(" ")
+    return f"{_tla(head)}{sep}{rest}" if sep else summary or ""
+
+
+def _is_tbd(event: dict) -> bool:
+    """True when ESPN has a game on the calendar but no tip time for it.
+
+    An unscheduled "if necessary" game carries a placeholder `date` of
+    ``…T04:00Z`` (midnight Eastern) and a status detail like ``"10/1 - TBD"``.
+    The detail is the signal; the placeholder must never be printed as a time.
+    This is the WWC midnight-placeholder problem again.
+    """
+    detail = str(event.get("status", {}).get("type", {}).get("detail", ""))
+    return "TBD" in detail.upper()
+
+
+def parse_schedule_event(event: dict) -> dict | None:
+    """One scoreboard event -> the record schedule_upcoming.json carries.
+
+    Everything the Playoffs tab needs to draw a game that has not been played
+    yet, joined later to results on `event_id` — never on date or time.
+    `tip_et` is blank for an unscheduled game, and `date` then comes from the
+    placeholder's UTC calendar day, which is the day ESPN means (the 04:00Z
+    stamp would read as the day before once Eastern drops to UTC-5).
+    """
+    competition = (event.get("competitions") or [{}])[0]
+    competitors = competition.get("competitors", [])
+    if len(competitors) != 2:
+        return None
+    teams, ids = {}, {}
+    for comp in competitors:
+        ha = comp.get("homeAway", "")
+        teams[ha] = _tla(comp.get("team", {}).get("abbreviation", ""))
+        try:
+            ids[ha] = int(comp.get("team", {}).get("id") or comp.get("id"))
+        except (TypeError, ValueError):
+            ids[ha] = None
+
+    status = event.get("status", {}).get("type", {})
+    tbd = _is_tbd(event)
+    utc_str = event.get("date", "")
+    game_date, tip_et = "", ""
+    if utc_str:
+        try:
+            utc_dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
+            if tbd:
+                game_date = utc_dt.strftime("%Y-%m-%d")
+            else:
+                et_dt = utc_dt.astimezone(ET)
+                game_date = et_dt.strftime("%Y-%m-%d")
+                tip_et = et_dt.strftime("%-I:%M %p ET")
+        except Exception:
+            pass
+
+    notes = competition.get("notes") or []
+    series = competition.get("series") or {}
+    return {
+        "event_id": int(event["id"]),
+        "date": game_date,
+        "away": teams.get("away", ""),
+        "home": teams.get("home", ""),
+        "away_id": ids.get("away"),
+        "home_id": ids.get("home"),
+        "tip_et": tip_et,
+        "tbd": tbd,
+        "state": status.get("state", "pre"),
+        "status": status.get("name", ""),
+        "season_type": event.get("season", {}).get("type"),
+        # Every network, in ESPN's order. The DISPLAY name ("USA Net" -> "USA")
+        # is the renderer's business; this file keeps what ESPN said.
+        "broadcasts": [n for b in competition.get("broadcasts", [])
+                       for n in (b.get("names") or []) if n],
+        "headline": (notes[0].get("headline") if notes else "") or "",
+        "series_summary": _summary_tla(series.get("summary", "")),
+        "series_total": series.get("totalCompetitions"),
+        "series_completed": bool(series.get("completed", False)),
+    }
+
+
+def _schedule_order(g: dict) -> tuple:
+    """Date, then tip time as a real clock (a string sort puts 10:00 PM
+    before 2:00 PM), unscheduled games last within their day."""
+    minutes = 0
+    if g.get("tip_et"):
+        t = datetime.strptime(g["tip_et"], "%I:%M %p ET")
+        minutes = t.hour * 60 + t.minute
+    return (g.get("date", ""), bool(g.get("tbd")), minutes, g.get("event_id", 0))
+
+
 def fetch_schedule_window(days: int = 21) -> bool:
-    """Fetch the next `days` days of not-yet-played games → schedule_upcoming.json.
+    """Fetch every game from yesterday through `days` days ahead ->
+    schedule_upcoming.json.
 
-    Feeds "next game" on team pages. Written to its OWN file rather than
-    widening schedule_today.json, because that file is what the Games tab
-    reads and what golden_check pins — a forward window must not be able to
-    move the landing page's bytes.
+    Feeds "next game" on team pages and the whole pre-game half of the
+    Playoffs tab. Written to its OWN file rather than widening
+    schedule_today.json, because that file is what golden_check pins — a
+    forward window must not be able to move a regular-season landing page's
+    bytes.
 
-    ESPN's scoreboard accepts a `YYYYMMDD-YYYYMMDD` range in one call
-    (verified 2026-09-08: 20260909-20260930 returned 30 events across nine
-    dates), so this is one request, not one per day.
+    **One request per day.** ESPN's scoreboard stopped accepting a
+    `YYYYMMDD-YYYYMMDD` range: every range request returned
+    400 "Failed to get events endpoint." on both hosts, regular season and
+    postseason alike (tested 2026-09-25), while a single date returns 200.
+    The one-call range this function used from 2026-09-08 had been failing
+    silently into status "unavailable" since mid-September. ~23 small calls.
+
+    Every state is kept (pre, in, post) and each game carries its `state`;
+    consumers filter. The window opens at YESTERDAY so a game still in
+    progress when a late-night build runs is not lost between "yesterday's
+    finals" and "upcoming".
 
     Carries the same `status` contract as fetch_schedule() and for the same
     reason: "ok" with an empty list means ESPN says there is nothing
-    scheduled, "unavailable" means we never got an answer. A team page must
-    be able to tell "no game scheduled" from "we don't know" — the 2026-08-05
-    failure published the former while meaning the latter.
+    scheduled, "unavailable" means we never got a full answer. ANY failed
+    day makes the window "unavailable" — a missing day cannot be told apart
+    from a day with no games, which is exactly the 2026-08-05 lesson. The
+    games that did arrive are still written, each one a fact in its own
+    right, with the failed dates listed beside them.
 
-    Fails SOFT. A missing forward window costs one line on a team page; it
-    must never fail the daily build that publishes the whole site.
+    Fails SOFT. A missing forward window costs one line on a team page and
+    the "Next games" block on the Playoffs tab; it must never fail the daily
+    build that publishes the whole site.
     """
     today_et = datetime.now(ET).date()
+    start = today_et - timedelta(days=1)
     end = today_et + timedelta(days=days)
-    span = f"{today_et.strftime('%Y%m%d')}-{end.strftime('%Y%m%d')}"
 
+    games: list[dict] = []
+    failed: list[str] = []
+    seen: set[int] = set()
+    d = start
+    while d <= end:
+        try:
+            data = espn_get(ESPN_SCOREBOARD, {"dates": d.strftime("%Y%m%d")})
+        except Exception as e:
+            print(f"WARNING: upcoming-schedule fetch failed for {d} ({e})")
+            failed.append(d.isoformat())
+            d += timedelta(days=1)
+            continue
+        for event in data.get("events", []):
+            g = parse_schedule_event(event)
+            # ESPN can list a late game under two adjacent dates; one row each.
+            if g and g["event_id"] not in seen:
+                seen.add(g["event_id"])
+                games.append(g)
+        d += timedelta(days=1)
+        time.sleep(FETCH_DELAY)
+
+    games.sort(key=_schedule_order)
+    status = "unavailable" if failed else "ok"
+    out = {"from": str(today_et), "through": str(end), "status": status,
+           "games": games}
+    if failed:
+        out["failed_dates"] = failed
+    UPCOMING_JSON.write_text(json.dumps(out, indent=2))
+    print(f"Schedule window {start}..{end}: {len(games)} game(s), "
+          f"status {status} -> {UPCOMING_JSON.name}")
+    return not failed
+
+
+def fetch_seeds(team_df: pd.DataFrame) -> None:
+    """Freeze ESPN's playoff seeds into SEEDS_JSON, ONCE, at season end.
+
+    Written the first build after the regular season is complete — every team
+    at REGULAR_SEASON_GAMES regular-season games, or any postseason game in
+    hand — and never overwritten afterwards. The file is committed data, not
+    a cache: seeds are a fact about a finished season, and a standings table
+    that re-sorted itself because an upstream feed changed its mind in
+    October would be worse than one that never had seeds at all.
+
+    Why ESPN's seeds rather than our own sort: the league breaks ties on
+    head-to-head, and the standings table broke them on point differential.
+    Washington won the 2026 season series with Indiana 2-1, ESPN seeds WSH 5
+    and IND 6, and the site had them the other way round.
+
+    `level=1` is REQUIRED on the standings URL. Without it the response is
+    split by conference and looked stale when probed on 2026-09-25; with it,
+    `playoffSeed` 1-15 matched site.api exactly. Fails SOFT: no file means no
+    seeds anywhere (correct-or-blank), never a guessed one.
+    """
+    if SEEDS_JSON.exists():
+        return
+    reg = team_df[team_df["season_type"] == 2] if "season_type" in team_df else team_df
+    gp = reg.groupby("team_abbreviation")["game_id"].nunique()
+    complete = len(gp) > 0 and bool((gp >= REGULAR_SEASON_GAMES).all())
+    postseason = ("season_type" in team_df
+                  and bool((team_df["season_type"] == 3).any()))
+    if not (complete or postseason):
+        return
     try:
-        data = espn_get(ESPN_SCOREBOARD, {"dates": span})
+        data = espn_get(ESPN_STANDINGS, {"season": str(SEASON), "level": "1"})
     except Exception as e:
-        print(f"WARNING: upcoming-schedule fetch failed ({e}) — marking unavailable.")
-        UPCOMING_JSON.write_text(json.dumps(
-            {"from": str(today_et), "through": str(end), "status": "unavailable",
-             "error": str(e)[:200], "games": []}, indent=2))
-        return False
-
-    games = []
-    for event in data.get("events", []):
-        competition = event.get("competitions", [{}])[0]
-        competitors = competition.get("competitors", [])
-        if len(competitors) != 2:
+        print(f"WARNING: seeds fetch failed ({e}) — will retry next build")
+        return
+    teams = []
+    for e in (data.get("standings") or {}).get("entries", []):
+        stats = {st.get("name"): st.get("value") for st in e.get("stats", [])}
+        seed = stats.get("playoffSeed")
+        if seed is None:
             continue
-        state = event.get("status", {}).get("type", {}).get("state", "pre")
-        # Only games that have not been played. The window starts today, and
-        # today's games are already handled by schedule_today.json.
-        if state != "pre":
-            continue
-
-        teams = {}
-        for comp in competitors:
-            teams[comp.get("homeAway", "")] = _tla(
-                comp.get("team", {}).get("abbreviation", ""))
-
-        utc_str = event.get("date", "")
-        game_date, tip_et = "", ""
-        if utc_str:
-            try:
-                et_dt = datetime.fromisoformat(
-                    utc_str.replace("Z", "+00:00")).astimezone(ET)
-                game_date = et_dt.strftime("%Y-%m-%d")
-                tip_et = et_dt.strftime("%-I:%M %p ET")
-            except Exception:
-                pass
-
-        games.append({
-            "date": game_date,
-            "away": teams.get("away", ""),
-            "home": teams.get("home", ""),
-            "tip_et": tip_et,
-            "season_type": event.get("season", {}).get("type"),
+        t = e.get("team", {})
+        teams.append({
+            "seed": int(seed),
+            "team_id": int(t["id"]),
+            "abbr": _tla(t.get("abbreviation", "")),
+            "name": t.get("displayName", ""),
+            "wins": int(stats.get("wins") or 0),
+            "losses": int(stats.get("losses") or 0),
         })
-
-    games.sort(key=lambda g: (g["date"], g["tip_et"]))
-    UPCOMING_JSON.write_text(json.dumps(
-        {"from": str(today_et), "through": str(end), "status": "ok",
-         "games": games}, indent=2))
-    print(f"Upcoming through {end}: {len(games)} game(s) → {UPCOMING_JSON.name}")
-    return True
+    seeds = sorted(t["seed"] for t in teams)
+    if not teams or seeds != list(range(1, len(teams) + 1)):
+        print(f"WARNING: ESPN seeds incomplete or malformed ({seeds}) — not "
+              "freezing; will retry next build")
+        return
+    SEEDS_JSON.parent.mkdir(parents=True, exist_ok=True)
+    SEEDS_JSON.write_text(json.dumps({
+        "season": SEASON,
+        "source": f"{ESPN_STANDINGS}?season={SEASON}&level=1",
+        "frozen": str(datetime.now(ET).date()),
+        "note": "Written once at season end by fetch_data.fetch_seeds(); "
+                "never overwritten. Delete only to re-freeze deliberately.",
+        "teams": sorted(teams, key=lambda t: t["seed"]),
+    }, indent=2) + "\n")
+    print(f"Seeds frozen: {len(teams)} teams → {SEEDS_JSON}")
 
 
 def fetch_rosters(team_ids: dict[int, str]) -> bool:
@@ -1269,15 +1424,36 @@ def main() -> None:
     # `problems` list below: a missing forward window costs one line on a team
     # page and a missing roster is rendered as unknown, but neither is a reason
     # to withhold the whole site. The landing page does not read either file.
-    # Playoff series state. Rewritten in full each run rather than appended:
+    # Playoff series state, MERGED by game_id into what the file already holds.
     # `wins` is the state as of each game, so a re-fetch of the same game must
-    # replace its row, never sit beside a stale one. Empty until the playoffs
-    # begin, which is the correct content for a regular-season day.
+    # replace its row, never sit beside a stale one — hence keyed, not appended.
+    #
+    # It must never be REWRITTEN from this run's rows alone, which is what it
+    # did until 2026-09-25: the scan above is incremental (it starts the day
+    # before the newest game we hold), so a run after Game 2 would have
+    # written a file with no Game 1 in it, and every series would have lost
+    # its history. The 2025 preview never showed it because that data was
+    # built from one full scan. Empty until the playoffs begin, which is the
+    # correct content for a regular-season day.
     if series_rows:
+        merged: dict[int, dict] = {}
+        if SERIES_JSON.exists():
+            try:
+                for r in json.loads(SERIES_JSON.read_text()).get("games", []):
+                    merged[int(r["game_id"])] = r
+            except Exception as e:
+                print(f"WARNING: could not read {SERIES_JSON.name} ({e}) — "
+                      "rebuilding it from this run's games only")
+        for r in series_rows:
+            merged[int(r["game_id"])] = r
+        rows = sorted(merged.values(), key=lambda r: (r["game_date"], r["game_id"]))
         SERIES_JSON.write_text(json.dumps(
-            {"fetched": str(datetime.now(ET).date()), "games": series_rows},
+            {"fetched": str(datetime.now(ET).date()), "games": rows},
             indent=2))
-        print(f"Series: {len(series_rows)} playoff game(s) → {SERIES_JSON.name}")
+        print(f"Series: {len(series_rows)} game(s) this run, {len(rows)} total "
+              f"→ {SERIES_JSON.name}")
+
+    fetch_seeds(team_df)
 
     fetch_schedule_window()
     # ESPN team_id -> TLA, taken from the box scores we already have rather

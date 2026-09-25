@@ -103,6 +103,18 @@ Top 10 per category with **WNBA qualifying minimums** prorated by `max_gp / 44`:
 
 Player names are **clickable links** that navigate to the Players tab with that player's name pre-filled in the search. Leaders support **team filter** and **player search**.
 
+### Playoffs (postseason only — added 2026-09-25)
+Spec: `statsataglance-docs/wnba-playoffs-build-handoff-2026-09-25.md`. Everything below is driven by the data, never the clock.
+
+- **When.** `playoffs_active()` is true once any season-type-3 event is in `schedule_upcoming.json` or any playoff game is in `series_2026.json` — i.e. before a ball is bounced. The first tab then reads **Playoffs** (section id stays `games`; `#playoffs` is an alias), the subpage strip follows (`config.subpage_tabs()`), and Standings gets "final regular season".
+- **Schedule window.** `fetch_schedule_window()` makes **one scoreboard request per day**, yesterday through +21 days: ESPN 400s on every `dates=A-B` range since mid-September 2026. Every state is kept; consumers filter. Any failed day ⇒ `status: "unavailable"`.
+- **The model.** `build_playoff_model()` joins schedule and results **on the ESPN event id**, groups by the unordered team-id pair, and drops: events whose teams are ESPN's `TBD` placeholders (ids ≤ 0 — later rounds are published before their teams are known), and unplayed games of a finished series. A time is never printed for a `TBD` status (the `…T04:00Z` placeholder).
+- **Links.** `playoff_box_games()` is the single list `build_box_pages.py` writes and the tab links from, so a score never points at a 404.
+- **Seeds.** `fetch_seeds()` freezes ESPN's `playoffSeed` (standings URL **needs `level=1`**) into `sites/wnba/reference/seeds_2026.json` once, at season end; committed, never overwritten. Standings sort on it only when every team's W-L equals the frozen W-L (so it can't reorder any other table, e.g. the golden snapshot); `check_seed_tiebreaks()` warns if our head-to-head disagrees on a two-team tie. Seeds print only on matchups.
+- **Leaders · Playoffs.** Six counting boards (PTS/REB/AST/STL/BLK/3PM), ranked on the unrounded per-game average, no minimum games, GP and total on every row, tie-safe `T4` ranks with everyone tied at 10th kept. Shown only once a playoff box score exists **and** `check_playoff_points()` passes (player points sum to team points for every team-game); a mismatch hides the view with a WARNING and never fails the build. The switch is `.ldrview` (not `.statview`); `showStat()` is scoped to `#stats` so the two switches don't clear each other.
+- **Dating.** The page's `data-through` meta and header are dated from **all** games. The cron Worker's freshness check reads that meta; dated from the regular season it would have stuck at 09-24 and alarmed every playoff morning.
+- **`series_2026.json` is merged by game id**, never rewritten from one run's (incremental) scan.
+
 ### Efficiency (Four Factors)
 Computed via a **self-join** on `sites/wnba/data/team_box_2026.csv`: each team's game row is joined to its opponent's game row using `game_id` + `opponent_team_id = team_id`. This provides opponent box-score stats needed for defensive factors.
 

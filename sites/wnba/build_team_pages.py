@@ -55,8 +55,7 @@ from sag.render import chrome
 
 import build_box_pages as bbp
 import build_stats_page as bsp
-from config import (WNBA, SUBPAGE_TABS, ACTIVE_TEAMS, ACTIVE_PLAYERS,
-                    ACTIVE_GAMES, CONFERENCE)
+from config import WNBA, ACTIVE_TEAMS, ACTIVE_PLAYERS, CONFERENCE
 
 OUT_DIR = WNBA.public_dir / "teams"
 COACHES_CSV = WNBA.site_dir / "reference" / f"wnba_coaches_{WNBA.season}.csv"
@@ -213,10 +212,19 @@ def team_results(team_raw, abbr):
     return out
 
 
-def next_game(abbr, status, games):
-    """The next scheduled game for one team, or None. Callers must handle the
-    `status` separately — None means "none scheduled" only when status is ok."""
+def next_game(abbr, status, games, today=None):
+    """The next unplayed game for one team, or None. Callers must handle the
+    `status` separately — None means "none scheduled" only when status is ok.
+
+    The window carries every state since 2026-09-25 (it opens at yesterday so
+    the Playoffs tab can see a game still in progress), so this filters to
+    `pre` games from today on. Files written before then carry no `state`
+    and hold only unplayed games, so a missing state counts as `pre`."""
     for g in games:
+        if g.get("state", "pre") != "pre":
+            continue
+        if today and g.get("date") and g["date"] < today:
+            continue
         if abbr in (g.get("home"), g.get("away")):
             return g
     return None
@@ -451,12 +459,17 @@ def next_game_html(abbr, status, games):
     """Above the fold. Distinguishes "nothing scheduled" from "we don't know"."""
     if status != "ok":
         return '<div class="nextg mu">Next game: schedule unavailable.</div>'
-    g = next_game(abbr, status, games)
+    g = next_game(abbr, status, games, str(bsp.today_et()))
     if not g:
         return '<div class="nextg mu">No upcoming games scheduled.</div>'
     opp = g["home"] if g["away"] == abbr else g["away"]
     where = "at" if g["away"] == abbr else "vs"
-    when = " · ".join(x for x in (g.get("date"), g.get("tip_et")) if x)
+    # An unscheduled "if necessary" game has a placeholder time that must
+    # never be printed; say TBD instead.
+    tip = "TBD" if g.get("tbd") else g.get("tip_et")
+    when = " · ".join(x for x in (g.get("date"), tip) if x)
+    if g.get("tbd") and "if necessary" in (g.get("headline") or "").lower():
+        when += " · if necessary"
     return (f'<div class="nextg">Next: <span class="ac">{esc(where)} '
             f'{esc(opp)}</span> <span class="mu">{esc(when)}</span></div>')
 
@@ -525,7 +538,7 @@ def render_page(row, place, abbr, slug, coach, roster, appeared_by_id,
     # Teams entry on every page, so the crumb was a second, weaker route to the
     # same place.
     masthead = chrome.subpage_header_html(
-        esc(SITE_TITLE), "/", tabs=SUBPAGE_TABS, active=ACTIVE_TEAMS)
+        esc(SITE_TITLE), "/", tabs=bsp.nav_tabs(), active=ACTIVE_TEAMS)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -585,7 +598,7 @@ def render_index(entries, data_through):
     masthead = chrome.subpage_header_html(
         esc(SITE_TITLE), "/",
         crumb_html=f"{len(entries)} teams · tap a name for roster, schedule & coach",
-        tabs=SUBPAGE_TABS, active=ACTIVE_TEAMS)
+        tabs=bsp.nav_tabs(), active=ACTIVE_TEAMS)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>

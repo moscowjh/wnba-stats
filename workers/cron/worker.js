@@ -71,6 +71,34 @@ const RETRY_CRON = "15 13 * * *";
 const FINAL_CRON = "45 14 * * *";
 const CHECK_CRONS = [CHECK_CRON, RETRY_CRON, FINAL_CRON];
 
+// ── Playoff late-night build (added 2026-09-25; REMOVE after the Finals) ──
+// 05:07 UTC = 1:07 AM EDT. Playoff games end as late as ~12:15 AM ET, and the
+// morning build would otherwise leave last night's box scores off the site
+// until 7:17 AM. Dispatches ONLY if playoff games were played that ET
+// evening, and always with post=false.
+//
+// It uses the account's 5th and last cron slot (see wrangler.toml). Revert
+// after the Finals: delete this constant, its branch in scheduled() and its
+// wrangler.toml entry TOGETHER, which frees the slot (tracked in
+// statsataglance-NEXT.md).
+//
+// Interaction with the health checks, checked 2026-09-25:
+//   * todaysRun() takes the NEWEST run started today (UTC). At 11:45 that is
+//     the 11:17 morning run, not this one — the runs API lists newest first.
+//     If the 11:17 dispatch ever failed to fire, the check would find THIS
+//     run instead and pass on its result; the site would still be current
+//     (this run published the night's games), so that is not a false pass.
+//   * publishedToday() scans every commit since 00:00 UTC for
+//     "Daily stats update: <UTC date>". This run commits at ~05:10 UTC, and
+//     build.yml stamps the message with `date -u`, so on a game night it
+//     carries the same date the 11:45 check expects (05:07 UTC and 1:07 AM
+//     EDT are the same calendar day).
+//   * The freshness check compares the page's data-through meta with
+//     yesterday (UTC). Both builds date the page from ALL games since the
+//     2026-09-25 playoff build — dated from the regular season it would have
+//     stuck at 09-24 and failed every playoff morning.
+const NIGHT_CRON = "7 5 * * *";
+
 // ── WWC 2026 (added 2026-08-30) ────────────────────────────────────────────
 // The second site this Worker drives. It is a SEPARATE workflow on purpose
 // (statsataglance/CLAUDE.md: neither site may block the other), so everything
@@ -396,6 +424,43 @@ async function gamesPlayedOn(iso) {
   }
 }
 
+// Were PLAYOFF games (season type 3) played on `iso`? true | false | null.
+// Separate from gamesPlayedOn() on purpose: that one answers "was it a game
+// day" for the freshness check, this one decides whether a 1 AM build is
+// worth running. Null (ESPN unreachable) is treated as "don't dispatch" —
+// the 11:17 morning build still runs, so the cost is a few hours' lag.
+async function playoffGamesOn(iso) {
+  try {
+    const res = await fetch(`${ESPN_SCOREBOARD}?dates=${iso.replaceAll("-", "")}`, {
+      headers: { "User-Agent": "wnba-stats-cron" },
+    });
+    if (!res.ok) {
+      console.log(`night build: ESPN scoreboard ${res.status}`);
+      return null;
+    }
+    const data = await res.json();
+    return (data.events || []).some((e) => e.season?.type === 3);
+  } catch (e) {
+    console.log(`night build: ESPN scoreboard error: ${e.message}`);
+    return null;
+  }
+}
+
+// The 05:07 UTC run. "That ET evening" is the previous UTC calendar day at
+// this hour (01:07 EDT on day D+1 is 05:07 UTC on D+1; the games were on D).
+async function nightBuild(env) {
+  const evening = yesterdayIso();
+  const played = await playoffGamesOn(evening);
+  if (played !== true) {
+    console.log(`night build: no playoff games on ${evening} ` +
+      `(${played === null ? "ESPN unreachable" : "none scheduled"}) — not dispatching`);
+    return { dispatched: false, evening, played };
+  }
+  const r = await dispatch(env, false); // never posts
+  console.log(`night build for ${evening}: ${r.detail}`);
+  return { dispatched: r.ok, evening, played, detail: r.detail };
+}
+
 // ── Health check ───────────────────────────────────────────────────────────
 
 // `final` marks the last pass of the day: stop repairing, start escalating.
@@ -641,6 +706,8 @@ export default {
       // on a schedule now.
     } else if (event.cron === DISPATCH_CRON) {
       ctx.waitUntil(dispatch(env));
+    } else if (event.cron === NIGHT_CRON) {
+      ctx.waitUntil(nightBuild(env));
     } else {
       console.log(
         `unrecognised cron "${event.cron}" — NO ACTION TAKEN. ` +
@@ -702,6 +769,13 @@ export default {
           "This is a test alert from wnba-stats-cron. If you can read this, " +
           "failure notifications will reach you.\n");
         r = { ok: true, detail: "test email attempted — check inbox and logs" };
+      } else if (action === "night") {
+        // The 05:07 UTC playoff late-night logic, on demand: dispatches a
+        // post=false build only if playoff games were played yesterday (UTC
+        // date). Safe to run any time; it never posts.
+        const n = await nightBuild(env);
+        r = { ok: true, detail: n.dispatched ? `dispatched (${n.detail})`
+          : `not dispatched — playoff games on ${n.evening}: ${n.played}`, ...n };
       } else if (action === "build") {
         // The WNBA build. Now requires naming itself, because it is the only
         // action here that can post to Bluesky.
@@ -713,7 +787,7 @@ export default {
           ok: false,
           detail:
             `unknown action ${action ? `"${action}"` : "(none given)"} — ` +
-            `NO ACTION TAKEN. Valid: build, check, wwc, wwccheck, testemail. ` +
+            `NO ACTION TAKEN. Valid: build, check, night, wwc, wwccheck, testemail. ` +
             `A build must be asked for by name: &action=build.`,
         };
       }
@@ -731,7 +805,10 @@ export default {
       // cron still live?" in six months checks HERE. Change it in the same
       // commit as any schedule change.
       "wnba-stats-cron is alive.\n" +
-      "\nWNBA (build.yml -> wnba.statsataglance.com) — 4 cron triggers\n" +
+      "\nWNBA (build.yml -> wnba.statsataglance.com) — 5 cron triggers\n" +
+      "05:07 UTC — PLAYOFFS ONLY (added 2026-09-25, remove after the Finals):\n" +
+      "            dispatches a build (never posts) if playoff games were\n" +
+      "            played the evening before (1:07am ET).\n" +
       "11:17 UTC — dispatches the daily build (7:17am ET).\n" +
       "11:45 UTC — health check; auto-rebuilds on a fixable problem, else emails.\n" +
       "13:15 UTC — health check, pass 2 (same behaviour).\n" +
@@ -745,7 +822,7 @@ export default {
       "It still rebuilds on any push to sites/wwc/** or core/** (wwc.yml),\n" +
       "and on demand below.\n" +
       "\nManual: ?key=YOUR_CRON_KEY&action=<name>\n" +
-      "        build [&post=false] | check [&repair=1] | wwc | wwccheck | testemail\n" +
+      "        build [&post=false] | check [&repair=1] | night | wwc | wwccheck | testemail\n" +
       "        An action is REQUIRED; an unrecognised one does nothing.\n",
       { headers: { "content-type": "text/plain; charset=utf-8" } }
     );
