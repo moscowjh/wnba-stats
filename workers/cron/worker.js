@@ -248,12 +248,27 @@ async function wwcCheck(env) {
 // firing" about a cron we retired on purpose. ?action=wwccheck still reports
 // the same information on demand, and deliberately does not email.
 
+// What the most recent todaysRun() query actually saw. Added 2026-09-29 after
+// a false "No run today" alert (the run existed at 11:17 UTC and the site was
+// fine): with Workers Logs off there was no record of what GitHub returned to
+// the Worker. The alert email now quotes this.
+let lastRunsQuery = "runs query not made";
+
 async function todaysRun(env) {
   const url = `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=5&event=workflow_dispatch`;
   const res = await fetch(url, { headers: ghHeaders(env) });
-  if (!res.ok) throw new Error(`GitHub runs API ${res.status}`);
+  if (!res.ok) {
+    lastRunsQuery = `HTTP ${res.status}`;
+    throw new Error(`GitHub runs API ${res.status}`);
+  }
   const { workflow_runs = [] } = await res.json();
   const today = isoDate(Date.now());
+  const seen = workflow_runs
+    .map((r) => `${r.id}@${r.run_started_at || r.created_at}(${r.status})`)
+    .join(", ") || "empty list";
+  lastRunsQuery = `HTTP ${res.status}; looking for start date ${today}; ` +
+    `GitHub returned ${workflow_runs.length} run(s): ${seen}`;
+  console.log(`todaysRun: ${lastRunsQuery}`);
   return workflow_runs.find((r) => r.run_started_at?.startsWith(today)) || null;
 }
 
@@ -493,7 +508,8 @@ async function healthCheck(env, { final = false, label = "check" } = {}) {
     fail(
       `No "Daily WNBA stats build" run today (${today}). The 11:17 UTC dispatch ` +
       `likely didn't fire. Fix: trigger manually via the Actions "Run workflow" ` +
-      `button, or this Worker's ?key= test URL; then check Cloudflare cron logs.`,
+      `button, or this Worker's ?key= test URL; then check Cloudflare cron logs.\n` +
+      `  Worker saw: ${lastRunsQuery}`,
       true
     );
   } else if (run && run.status !== "completed") {

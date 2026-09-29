@@ -36,6 +36,11 @@ compatibility_date = "2025-06-01"
 [triggers]
 crons = ["17 11 * * *", "45 11 * * *", "15 13 * * *", "45 14 * * *", "7 5 * * *"]
 
+# Keep logs (added 2026-09-29): with this off, a false "No run today" alert
+# left no record of what the Worker saw. Free plan retention is short but enough.
+[observability]
+enabled = true
+
 # Failure alerts via Cloudflare Email Routing on statsataglance.com.
 # Requires: Email Routing enabled on the zone, and the destination address
 # verified there (it gets a one-time confirmation email).
