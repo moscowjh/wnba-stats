@@ -198,6 +198,7 @@ def render_page(player_all, team_all, linescores, gid, date_iso, slug,
         f'<meta name="description" content="{esc(description)}">',
         f'<link rel="canonical" href="{esc(seo.canonical_url(WNBA, path))}">',
         *seo.social_tags(WNBA, path, title, description, card="summary"),
+        *seo.icon_tags(WNBA),
         f"<style>{PAGE_CSS}</style>",
     ]
     # The "← all box scores" crumb stays: it points at /games/, which is NOT
@@ -256,6 +257,7 @@ def render_index(entries, data_through):
         f'<meta name="description" content="{esc(description)}">',
         f'<link rel="canonical" href="{esc(seo.canonical_url(WNBA, "/games/"))}">',
         *seo.social_tags(WNBA, "/games/", title, description),
+        *seo.icon_tags(WNBA),
         f"<style>{PAGE_CSS}</style>",
         "<style>table.s{border-collapse:collapse;width:100%;font-size:12px}"
         "table.s th{color:var(--muted);text-align:left;padding:5px;"

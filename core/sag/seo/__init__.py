@@ -94,6 +94,36 @@ def social_tags(cfg, path, title, description, *, og_type="website",
     return tags
 
 
+# (file in public_dir, the tag that points at it). Order is the emitted order.
+ICON_FILES = (
+    ("favicon.ico", '<link rel="icon" href="/favicon.ico" sizes="48x48">'),
+    ("favicon-32.png",
+     '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">'),
+    ("apple-touch-icon.png",
+     '<link rel="apple-touch-icon" href="/apple-touch-icon.png">'),
+)
+
+
+def icon_tags(cfg):
+    """Favicon + home-screen icon + theme-color for one page.
+
+    THE icon function — one helper so the five WNBA heads cannot drift the way
+    the social tags did before `social_tags` existed. Deliberately NOT folded
+    into `social_tags`, which the WWC emitter also calls.
+
+    Same correct-or-blank posture as the og:image block: each tag is emitted
+    only when its file is actually in `cfg.public_dir`, so a site with no icon
+    files (WWC, today) emits nothing and its bytes do not move. A site gains
+    icons the moment the files land, with no code change. `theme-color` rides
+    along only when at least one icon does — it is part of the same set, and a
+    site without icons has not chosen one.
+    """
+    tags = [tag for name, tag in ICON_FILES if (cfg.public_dir / name).exists()]
+    if tags:
+        tags.append('<meta name="theme-color" content="#0f0f0f">')
+    return tags
+
+
 def _page_file(cfg, path):
     """The emitted file behind a sitemap path. Every page this repo publishes
     is a directory index ('/players/foo/' -> public/players/foo/index.html),

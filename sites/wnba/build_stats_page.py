@@ -2945,6 +2945,9 @@ def assemble_page(display_date, data_through_iso,
             twitter_description="Fast, ad-free WNBA stats \u2014 leaders, "
                                 "standings, four factors, updated every morning.",
         )) + "\n"
+        # Favicon set, from `sag.seo.icon_tags` — the same helper as every
+        # other WNBA head, so the five cannot drift.
+        + "".join(t + "\n" for t in seo.icon_tags(WNBA))
         + f'<style>\n{PAGE_CSS}\n</style>\n'
         '</head>\n<body>\n\n'
         '<h1>WNBA 2026 \u2014 At a Glance</h1>\n'

@@ -470,6 +470,7 @@ def head_html(title, path, description, jsonld=None):
         # had since Phase 1. That is the drift this refactor existed to end.
         *seo.social_tags(WNBA, path, title, description,
                          og_type="profile", card="summary"),
+        *seo.icon_tags(WNBA),
     ]
     if jsonld:
         parts.append(f'<script type="application/ld+json">{jsonld}</script>')

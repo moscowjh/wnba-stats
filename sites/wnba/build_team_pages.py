@@ -355,6 +355,7 @@ def head_html(title, path, description, jsonld=None):
         f'<link rel="canonical" href="{esc(seo.canonical_url(WNBA, path))}">',
         *seo.social_tags(WNBA, path, title, description,
                          og_type="profile", card="summary"),
+        *seo.icon_tags(WNBA),
     ]
     if jsonld:
         parts.append(f'<script type="application/ld+json">{jsonld}</script>')

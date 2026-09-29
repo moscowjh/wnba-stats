@@ -81,10 +81,14 @@ def _build(out_site_dir, sag_today):
     # (twitter:card=summary) while production renders the card — and the
     # golden would faithfully freeze a page that production never emits.
     # Exactly why SNAP_DATA exists: the harness supplies inputs, it does not
-    # fake them.
-    if WNBA.og_image.exists():
-        cfg.public_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(WNBA.og_image, cfg.og_image)
+    # fake them. The favicon set (2026-09-29) is gated the same way by
+    # `seo.icon_tags`, so it rides along for the same reason.
+    from sag import seo
+    for src in [WNBA.og_image] + [WNBA.public_dir / name
+                                  for name, _ in seo.ICON_FILES]:
+        if src.exists():
+            cfg.public_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, cfg.public_dir / src.name)
 
     bsp.main()
     return cfg.page_output, cfg.social_payload
