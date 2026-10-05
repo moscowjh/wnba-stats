@@ -254,9 +254,21 @@ async function wwcCheck(env) {
 // the Worker. The alert email now quotes this.
 let lastRunsQuery = "runs query not made";
 
+//
+// 2026-10-05: NO `event=` FILTER on the query, deliberately. On 10-05 all three
+// passes (11:45, 13:15, 14:45) got a filtered list whose newest run was
+// 2026-09-11 — three weeks stale, dozens of runs missing — while three runs
+// had in fact succeeded that day (05:07, 11:17, 13:16). The same filtered query
+// made by hand minutes later returned the correct list. Leading suspect is
+// GitHub serving the event-filtered listing from a lagging index; NOT proven
+// (the hand check was unauthenticated, the Worker's is not). So: ask for the
+// plain list, newest first, and filter on `event` here. The `cache: "no-store"`
+// rules out a Cloudflare subrequest cache as a second suspect. If the alert
+// recurs, the "Worker saw" line will say whether the unfiltered list is stale
+// too — and healthCheck() now falls back to the commits API either way.
 async function todaysRun(env) {
-  const url = `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=5&event=workflow_dispatch`;
-  const res = await fetch(url, { headers: ghHeaders(env) });
+  const url = `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=10`;
+  const res = await fetch(url, { headers: ghHeaders(env), cache: "no-store" });
   if (!res.ok) {
     lastRunsQuery = `HTTP ${res.status}`;
     throw new Error(`GitHub runs API ${res.status}`);
@@ -264,12 +276,14 @@ async function todaysRun(env) {
   const { workflow_runs = [] } = await res.json();
   const today = isoDate(Date.now());
   const seen = workflow_runs
-    .map((r) => `${r.id}@${r.run_started_at || r.created_at}(${r.status})`)
+    .map((r) => `${r.id}@${r.run_started_at || r.created_at}(${r.event},${r.status})`)
     .join(", ") || "empty list";
-  lastRunsQuery = `HTTP ${res.status}; looking for start date ${today}; ` +
+  lastRunsQuery = `HTTP ${res.status} (unfiltered); looking for start date ${today}; ` +
     `GitHub returned ${workflow_runs.length} run(s): ${seen}`;
   console.log(`todaysRun: ${lastRunsQuery}`);
-  return workflow_runs.find((r) => r.run_started_at?.startsWith(today)) || null;
+  return workflow_runs.find((r) =>
+    r.event === "workflow_dispatch" && r.run_started_at?.startsWith(today)
+  ) || null;
 }
 
 // Did the bot publish today? Scans ALL of today's commits, not just the
@@ -502,6 +516,36 @@ async function healthCheck(env, { final = false, label = "check" } = {}) {
     // We can't see the build at all, so we can't reason about it — and a fresh
     // dispatch would go through the same API. Not retryable.
     fail(`Could not query GitHub Actions API: ${e.message}`);
+  }
+
+  // Backstop (2026-10-05): the runs API has twice (09-29, 10-05) reported no
+  // run today when the build had run and the site was current. If the runs
+  // list shows nothing but today's "Daily stats update" commit exists, the bot
+  // DID publish today — so don't alarm on the runs API's say-so. Stand in a
+  // synthetic successful run so the freshness (2) and validation (3) checks
+  // still run and still catch a site that is actually stale. Same reasoning
+  // as the NIGHT_CRON note above: the commit may be the 05:07 night build's,
+  // and that build publishes the night's games, so freshness still holds.
+  if (run === null && problems.length === 0) {
+    let committed = false;
+    try {
+      committed = await publishedToday(env, today);
+    } catch (e) {
+      notes.push(`runs API showed no run today, and the commits fallback failed: ${e.message}`);
+    }
+    if (committed) {
+      notes.push(
+        `runs API showed no run today, but today's "Daily stats update" commit ` +
+        `exists — treating the build as having run (runs API likely stale). ` +
+        `Worker saw: ${lastRunsQuery}`
+      );
+      run = {
+        id: "unseen",
+        status: "completed",
+        conclusion: "success",
+        html_url: `https://github.com/${REPO}/actions/workflows/${WORKFLOW}`,
+      };
+    }
   }
 
   if (run === null && problems.length === 0) {
