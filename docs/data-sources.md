@@ -2,7 +2,7 @@
 
 _Created 2026-08-05. What each league's data source can and cannot supply, against one normalized model._
 
-**Why this exists.** The sequencing plan (`statsataglance-docs/statsataglance-sequencing-plan.md` — a separate repo, so not a link) commits to a single repo with a shared `core/` and per-league adapters. That only pays off if there is one place recording where each source *diverges* from the shared contract. Before this file, those facts were scattered across three documents and two spike reports, and were being rediscovered rather than looked up.
+**Why this exists.** The sequencing plan (`statsataglance-docs/product-archive/statsataglance-sequencing-plan.md`, retired 2026-09-29 — a separate repo, so not a link) commits to a single repo with a shared `core/` and per-league adapters. That only pays off if there is one place recording where each source *diverges* from the shared contract. Before this file, those facts were scattered across three documents and two spike reports, and were being rediscovered rather than looked up.
 
 **The framing that matters:** a missing field is not a fact about a league, it's a **contract gap** — the model defines a field, a source can't supply it, and something downstream has to decide what to render instead. Treat every ✗ below as a design decision already made, not a surprise waiting in a future phase.
 
@@ -81,7 +81,7 @@ Rows are the normalized model. ✓ = supplied directly · ~ = derivable · ✗ =
 
 ### NCAAW has no plus-minus
 
-**Impact:** the player-page layout — sequencing plan §6, in `statsataglance-docs/` — uses four context cards — PPG, RPG, TS%, +/−. NCAAW can render only three of them.
+**Impact:** the player-page layout — sequencing plan §6, now in `statsataglance-docs/product-archive/` — uses four context cards — PPG, RPG, TS%, +/−. NCAAW can render only three of them.
 
 **Not a breakage.** `fetch_data.py` reads it as `_stat("+/-", "")` and `_parse_plus_minus("")` returns NaN, so the adapter degrades gracefully today without modification.
 

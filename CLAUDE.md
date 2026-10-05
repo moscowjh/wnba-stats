@@ -20,7 +20,7 @@ text, never as a link.
 | Repo | Visibility | Holds |
 |---|---|---|
 | `statsataglance/` (here) | **public** | Everything that deploys, plus the engineering docs that govern it |
-| `statsataglance-docs/` | private | Brief, backlog, sequencing plan, growth, copy, licensing, incidents, brand art |
+| `statsataglance-docs/` | private | Brief, backlog, NEXT, NCAAW scope, growth, copy, licensing, incidents, brand art |
 | `wbb-lab/` | private | Exploratory analysis: FIBA parser, NCAAW spike, Unrivaled data, retired prototypes |
 
 **The lab imports production. Production never imports the lab.** When the lab
@@ -44,7 +44,7 @@ tool needs a fully absolute path):
   **Record cross-cutting product/backlog items there even when the work happens
   here** — don't let backlog items live only in commit messages.
 - **Strategy (canonical):** `statsataglance-docs/PRODUCT-BRIEF.md` (a manually-synced mirror of a Google Doc).
-- **Sequencing/ordering:** `statsataglance-docs/statsataglance-sequencing-plan.md`.
+- **Sequencing/ordering:** `statsataglance-docs/statsataglance-NEXT.md` (the Aug 2026 sequencing plan was retired into `statsataglance-docs/product-archive/`).
 - **Workspace layout + git boundaries:** `statsataglance-docs/workspace-architecture.md`.
 - **Workspace overview + candidate products:** `~/projects/CLAUDE.md`.
 
