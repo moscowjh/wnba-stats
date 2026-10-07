@@ -41,6 +41,11 @@ crons = ["17 11 * * *", "45 11 * * *", "15 13 * * *", "45 14 * * *", "7 5 * * *"
 [observability]
 enabled = true
 
+# Exposes the deployed version id to the code (2026-10-07), so the invocation
+# log in scheduled() can show which version each duplicate trigger ran.
+[version_metadata]
+binding = "CF_VERSION_METADATA"
+
 # Failure alerts via Cloudflare Email Routing on statsataglance.com.
 # Requires: Email Routing enabled on the zone, and the destination address
 # verified there (it gets a one-time confirmation email).

@@ -186,6 +186,10 @@ async function dispatch(env, post = true) {
 // through and we are back to today's behaviour, not worse.
 const DEDUPE_MINUTES = 10;
 
+// Per-isolate identity for the invocation log in scheduled().
+const ISOLATE_ID = Math.random().toString(36).slice(2, 8);
+let ISOLATE_INVOCATIONS = 0;
+
 async function recentBuild(env) {
   const url = `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=5`;
   const res = await fetch(url, { headers: ghHeaders(env), cache: "no-store" });
@@ -803,6 +807,17 @@ export default {
   // risk: CHECK_CRONS has matched this way in production since the health
   // checks shipped.
   async scheduled(event, env, ctx) {
+    // Evidence for the duplicate-trigger report to Cloudflare (2026-10-07).
+    // Same scheduledTime on both copies = one trigger delivered twice; same
+    // version id rules out a stale deployment; the isolate id and count show
+    // whether both copies landed in one isolate. Remove once it's explained.
+    ISOLATE_INVOCATIONS += 1;
+    const v = env.CF_VERSION_METADATA || {};
+    console.log(
+      `invocation: cron="${event.cron}" scheduledTime=` +
+      `${new Date(event.scheduledTime).toISOString()} now=${new Date().toISOString()} ` +
+      `version=${v.id || "?"} isolate=${ISOLATE_ID} n=${ISOLATE_INVOCATIONS}`
+    );
     // Never let Cloudflare re-run a trigger (2026-10-06, see the duplicate-
     // trigger guard above): a missed run is caught by the health checks, a
     // doubled one is the thing we are guarding against.
