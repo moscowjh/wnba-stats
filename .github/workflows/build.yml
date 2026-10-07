@@ -45,10 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -85,8 +85,12 @@ jobs:
       # calls on a schedule. The reason for this one is the athlete_id
       # renumbering ESPN applied retroactively, plus a clean baseline before
       # the playoffs. Next planned re-fetch: the 2027 All-Star break.
+      #
+      # The key's vN token and the action's @vN are unrelated: the action went
+      # @v4 -> @v6 on 2026-10-06 (Node 24) WITHOUT bumping the key, so the
+      # existing wnba-data-v6- entries should still restore.
       - name: Restore fetched-data cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: sites/wnba/data
           key: wnba-data-v6-${{ github.run_id }}
