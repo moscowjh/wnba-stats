@@ -165,6 +165,52 @@ async function dispatch(env, post = true) {
   return { ok, status: res.status, detail };
 }
 
+// ── Duplicate-trigger guard (added 2026-10-06) ─────────────────────────────
+// From the 05:07 trigger on 2026-10-06 onward, Cloudflare invoked EVERY cron
+// on this Worker twice, seconds to minutes apart (the logs show 01:07:14 and
+// 01:07:26 EDT, 07:17:15 and 07:17:28, ...), with the trigger list showing
+// each cron once and one version at 100%. Through 10-05 each fired once; the
+// change coincides with that afternoon's redeploy, cause unknown. The doubled
+// 11:17 dispatch queued a second build.yml behind the first (concurrency
+// group), pinned to the pre-first-build commit, and it died rebasing
+// validation_report.json. Harmless while `post` defaults to false, but once
+// it is flipped back to true a second build is a second Bluesky post, which
+// cannot be undone. So every SCHEDULED dispatch now asks GitHub first, and
+// skips if a build.yml run was created in the last DEDUPE_MINUTES.
+// The manual ?action=build path is deliberately not guarded.
+//
+// Fails OPEN: if the runs query errors, dispatch anyway. A miss is caught by
+// the health checks; a guard that silently stops the daily build is worse.
+// Known limit: the runs list has served a stale view before (09-29, 10-05);
+// if it does so in the seconds between two triggers, the duplicate gets
+// through and we are back to today's behaviour, not worse.
+const DEDUPE_MINUTES = 10;
+
+async function recentBuild(env) {
+  const url = `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=5`;
+  const res = await fetch(url, { headers: ghHeaders(env), cache: "no-store" });
+  if (!res.ok) throw new Error(`GitHub runs API ${res.status}`);
+  const { workflow_runs = [] } = await res.json();
+  const cutoff = Date.now() - DEDUPE_MINUTES * 60 * 1000;
+  return workflow_runs.find((r) => Date.parse(r.created_at) >= cutoff) || null;
+}
+
+async function guardedDispatch(env, post = true, label = "scheduled") {
+  try {
+    const recent = await recentBuild(env);
+    if (recent) {
+      const detail = `duplicate trigger? ${label} dispatch SKIPPED — build.yml run ` +
+        `${recent.id} was created at ${recent.created_at} (${recent.event}, ` +
+        `${recent.status}), within ${DEDUPE_MINUTES} min`;
+      console.log(detail);
+      return { ok: true, skipped: true, status: 0, detail };
+    }
+  } catch (e) {
+    console.log(`${label}: dedupe check failed (${e.message}) — dispatching anyway`);
+  }
+  return dispatch(env, post);
+}
+
 // The WWC equivalent. Deliberately its own function rather than a `workflow`
 // parameter on dispatch() above: that one carries the Bluesky `post` input,
 // which has no meaning here and whose default is the one thing in this file
@@ -485,7 +531,7 @@ async function nightBuild(env) {
       `(${played === null ? "ESPN unreachable" : "none scheduled"}) — not dispatching`);
     return { dispatched: false, evening, played };
   }
-  const r = await dispatch(env, false); // never posts
+  const r = await guardedDispatch(env, false, "night"); // never posts
   console.log(`night build for ${evening}: ${r.detail}`);
   return { dispatched: r.ok, evening, played, detail: r.detail };
 }
@@ -668,8 +714,10 @@ async function healthCheck(env, { final = false, label = "check" } = {}) {
 
   let retryDetail = null;
   if (willRetry) {
-    const r = await dispatch(env, postOnRetry);
-    retryDetail = r.ok
+    const r = await guardedDispatch(env, postOnRetry, "auto-rebuild");
+    retryDetail = r.skipped
+      ? r.detail
+      : r.ok
       ? `auto-rebuild dispatched${postOnRetry ? "" : " (post suppressed — already posted today)"}`
       : `auto-rebuild dispatch FAILED: ${r.detail}`;
     notes.push(retryDetail);
@@ -755,6 +803,10 @@ export default {
   // risk: CHECK_CRONS has matched this way in production since the health
   // checks shipped.
   async scheduled(event, env, ctx) {
+    // Never let Cloudflare re-run a trigger (2026-10-06, see the duplicate-
+    // trigger guard above): a missed run is caught by the health checks, a
+    // doubled one is the thing we are guarding against.
+    if (typeof event.noRetry === "function") event.noRetry();
     if (CHECK_CRONS.includes(event.cron)) {
       const pass = CHECK_CRONS.indexOf(event.cron) + 1;
       ctx.waitUntil(healthCheck(env, {
@@ -765,7 +817,7 @@ export default {
       // 2026-09-15 with the cron it watched — see the header. Nothing WWC runs
       // on a schedule now.
     } else if (event.cron === DISPATCH_CRON) {
-      ctx.waitUntil(dispatch(env));
+      ctx.waitUntil(guardedDispatch(env, true, "11:17"));
     } else if (event.cron === NIGHT_CRON) {
       ctx.waitUntil(nightBuild(env));
     } else {
