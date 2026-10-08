@@ -1,12 +1,12 @@
 {
-  "run_at_utc": "2026-10-07T11:18:06+00:00",
+  "run_at_utc": "2026-10-08T05:08:14+00:00",
   "data_through": "2026-09-24",
   "cutoff": null,
-  "broadcast_category": "Rebounds",
+  "broadcast_category": "Off Reb",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Rebounds",
+      "category": "Off Reb",
       "status": "SKIPPED",
       "checks": [
         {
