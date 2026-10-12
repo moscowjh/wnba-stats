@@ -335,6 +335,13 @@ def collect(sql, start: dt.date, end: dt.date | None,
                 f"WHERE blob1 = 'pageview' AND {w} GROUP BY page ORDER BY n DESC")
     expands = sql(f"SELECT blob2 AS page, {COUNT} AS n FROM {DATASET} "
                   f"WHERE blob1 = 'expand' AND {w} GROUP BY page ORDER BY n DESC")
+    # Referrer x page for every pageview that did NOT come from inside the
+    # site — i.e. where arrivals land. Added 2026-10-12 to answer "is search
+    # finding the player pages?", which the separate referrer and page lists
+    # cannot: they are two marginals of this table.
+    landings = sql(f"SELECT blob8 AS ref, blob2 AS page, {COUNT} AS n FROM {DATASET} "
+                   f"WHERE blob1 = 'pageview' AND blob8 != 'self' AND {w} "
+                   f"GROUP BY ref, page ORDER BY n DESC")
 
     return {
         "daily": [(r["d"], _n(r)) for r in daily],
@@ -345,6 +352,7 @@ def collect(sql, start: dt.date, end: dt.date | None,
         "referrers": [(r["ref"], _n(r)) for r in referrers],
         "pages": [(r["page"], _n(r)) for r in pages],
         "expands": [(r["page"], _n(r)) for r in expands],
+        "landings": [(r["ref"], r["page"], _n(r)) for r in landings],
         "owner_pageviews": _n(owner_pv[0]) if owner_pv else 0,
         "include_owner": include_owner,
     }
@@ -584,6 +592,78 @@ def _surface(page: str) -> str:
     return "main"
 
 
+def _page_kind(page: str) -> str:
+    """Coarse page type from a pageview key: 'player:x' -> 'player',
+    '' -> 'main'. Generic on purpose — the same rule reads the WWC keys
+    ('team:usa', 'game:qf-29', 'guide') without a per-site table."""
+    if not page:
+        return "main"
+    return page.split(":", 1)[0]
+
+
+# Referrer hostname -> class, for the landing breakdown. Matched as
+# substrings of the hostname, in this order: AI before search, because
+# gemini.google.com would otherwise read as Google search. A host matching
+# nothing is 'other' and is listed by name, never dropped.
+REFERRER_CLASSES = [
+    ("ai", ("chatgpt.com", "openai.com", "perplexity.ai", "claude.ai",
+            "gemini.google", "copilot.microsoft")),
+    ("search", ("google.", "bing.", "yahoo.", "duckduckgo.", "yandex.",
+                "ecosia.", "brave.", "baidu.", "so.com", "naver.",
+                "startpage.", "qwant.", "kagi.")),
+    ("social", ("bsky.app", "t.co", "twitter.com", "x.com", "reddit.com",
+                "facebook.com", "threads.", "instagram.com", "linkedin.com")),
+    ("sister", ("statsataglance.com",)),
+    ("local", ("127.0.0.1", "localhost", "10.", "192.168.")),
+]
+LANDING_CLASS_ORDER = ["search", "ai", "social", "sister", "other",
+                       "direct", "not collected", "local"]
+
+
+def _referrer_class(ref: str) -> str:
+    if not ref:
+        return "not collected"
+    if ref == "direct":
+        return "direct"
+    host = ref.lower()
+    for cls, needles in REFERRER_CLASSES:
+        if any(_host_matches(host, nd) for nd in needles):
+            return cls
+    return "other"
+
+
+def _host_matches(host: str, needle: str) -> bool:
+    # A few needles are too short to match as substrings: 'reddit.com'
+    # contains 't.co', 'dropbox.com' contains 'x.com', and any host can
+    # contain '10.'. Those match exactly or as a prefix; everything else
+    # is a substring.
+    if needle in ("t.co", "x.com", "so.com"):
+        return host == needle or host.endswith("." + needle)
+    if needle in ("10.", "192.168."):
+        return host.startswith(needle)
+    return needle in host
+
+
+def _landings(raw_landings: list[tuple[str, str, int]]) -> dict:
+    """Shape referrer x page rows into the landing breakdown."""
+    by_class: dict[str, dict[str, int]] = {}
+    named: list[dict] = []
+    for ref, page, n in raw_landings:
+        cls = _referrer_class(ref)
+        kinds = by_class.setdefault(cls, {})
+        kinds[_page_kind(page)] = kinds.get(_page_kind(page), 0) + n
+        # Every non-direct arrival is listed by name: they are few, and the
+        # name is the whole point ('bing.com -> player:rhyne-howard' on a
+        # Rhyne Howard elimination night is a finding; a count of 1 is not).
+        if cls not in ("direct", "not collected", "local"):
+            named.append({"referrer": ref, "class": cls,
+                          "page": page or "(main)", "pageviews": n})
+    order = [c for c in LANDING_CLASS_ORDER if c in by_class]
+    named.sort(key=lambda r: (LANDING_CLASS_ORDER.index(r["class"]),
+                              -r["pageviews"], r["referrer"], r["page"]))
+    return {"by_class": {c: by_class[c] for c in order}, "named": named}
+
+
 def build_report(raw: dict, start: dt.date, end: dt.date | None) -> dict:
     per_source: dict[str, dict[str, int]] = {}
     totals = {"pageview": 0, "tab": 0, "box": 0, "expand": 0}
@@ -646,6 +726,7 @@ def build_report(raw: dict, start: dt.date, end: dt.date | None) -> dict:
         "by_surface": by_surface,
         "pages": pages,
         "player_pages": player_pages,
+        "landings": _landings(raw.get("landings", [])),
         "expands_total": totals["expand"],
         "owner_pageviews": raw.get("owner_pageviews", 0),
         "include_owner": raw.get("include_owner", False),
@@ -779,6 +860,8 @@ def print_report(rep: dict, site: str = DEFAULT_SITE) -> None:
         print("    there. 'self' is in-site navigation; '(not collected)' is a")
         print("    row from before the field existed, or a cached old page.")
 
+    _print_landings(rep["landings"])
+
     r = rep["returning"]
     tot = r["returning"] + r["new"]
     print("\n── New vs returning " + "─" * 41)
@@ -787,6 +870,31 @@ def print_report(rep: dict, site: str = DEFAULT_SITE) -> None:
     print("  ! NOT a retention rate. The flag is set on first visit and never")
     print("    expires, so 'returning' means 'has ever opened the site in this")
     print("    browser' — its share only ever climbs. Fix is P3 in the handoff.")
+
+
+def _print_landings(land: dict) -> None:
+    print("\n── Landings " + "─" * 49)
+    print("  where an arrival from outside the site landed (referrer != self)")
+    by_class = land["by_class"]
+    if not by_class:
+        print("  (no arrivals in window)")
+        return
+    kinds = sorted({k for ks in by_class.values() for k in ks},
+                   key=lambda k: (k != "main", k))
+    print(f"  {'referrer':<14}" + "".join(f"{k:>9}" for k in kinds) + f"{'total':>8}")
+    for cls, ks in by_class.items():
+        print(f"  {cls:<14}" + "".join(f"{ks.get(k, 0) or '·':>9}" for k in kinds)
+              + f"{sum(ks.values()):>8}")
+    if land["named"]:
+        print(f"\n  {'referrer':<24} {'page':<30} {'views':>6}")
+        for r in land["named"]:
+            print(f"  {r['referrer']:<24} {r['page']:<30} {r['pageviews']:>6}")
+    deep = sum(n for k, n in by_class.get("direct", {}).items() if k != "main")
+    if deep:
+        print(f"  ! {deep} 'direct' arrival(s) landed on a deep page. A bookmark")
+        print("    or typed URL almost always lands on main, so some of these")
+        print("    are likely search or app links whose referrer was stripped —")
+        print("    the search row above is a floor, not a total.")
 
 
 def print_hourly(raw: dict, posts: list[dict], site: str = DEFAULT_SITE) -> None:
@@ -1061,6 +1169,11 @@ def snapshot_row(rep: dict, day: dt.date, site: str = DEFAULT_SITE) -> dict:
         # days expire.
         "top_pages": {r["page"]: r["pageviews"]
                       for r in rep["pages"][:TOP_PAGES_LIMIT]},
+        # Added 2026-10-12: referrer class x page kind for outside arrivals,
+        # so the search-finds-player-pages curve outlives its 90 days. The
+        # per-name list is left in Analytics Engine; this is the trend.
+        # Missing on older rows = not collected, as above.
+        "landings": rep["landings"]["by_class"],
         # Last, matching the shape of every row already in the file. The two
         # oldest rows lack it entirely — they predate the field (2026-08-10)
         # and are WNBA by definition; existing_snapshots() defaults them.
