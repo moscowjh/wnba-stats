@@ -81,3 +81,8 @@ __pycache__/
 # directions. Every boundary is now a directory boundary AND a git boundary on
 # the same line. Keep it that way: if something private turns up here, move it
 # out rather than adding a line below.
+
+# Codex evaluation, 2026-10-14 → ~10-28: its per-repo instruction file and
+# local state. Remove these lines (or commit AGENTS.md) when the trial ends.
+AGENTS.md
+.codex/
