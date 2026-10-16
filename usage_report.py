@@ -136,6 +136,12 @@ SESSION_GAP_MINUTES = 30
 WALK_MIN_PAGEVIEWS = 5
 WALK_MIN_PLAYER_PAGES = 3
 WALK_MAX_MEDIAN_GAP_S = 60
+# The walk rule above is tuned on FAST human verification walking and is blind
+# to a polite crawler: it scored 0 against 23 owner-tagged visits. A slow
+# crawl is many distinct player pages, no tab/expand/box interaction at all,
+# and a median gap of minutes. (Added 2026-10-16; a guess, never subtracted.)
+CRAWL_MIN_MEDIAN_GAP_S = 4 * 60
+CRAWL_MAX_MEDIAN_GAP_S = 40 * 60
 
 # A run of activity whose FIRST row has ref='self' began with an in-site
 # navigation, so the visitor was ALREADY here — it is the tail of an earlier
@@ -333,6 +339,12 @@ def collect(sql, start: dt.date, end: dt.date | None,
     # written before that date — so the split reads correctly backwards.
     pages = sql(f"SELECT blob2 AS page, {COUNT} AS n FROM {DATASET} "
                 f"WHERE blob1 = 'pageview' AND {w} GROUP BY page ORDER BY n DESC")
+    # Pageviews by source x page, so each source's tab/box rate can use only
+    # its main-page views as the denominator (player pages emit no tab/box
+    # events). Added 2026-10-16.
+    source_pages = sql(f"SELECT blob3 AS source, blob2 AS page, {COUNT} AS n "
+                       f"FROM {DATASET} WHERE blob1 = 'pageview' AND {w} "
+                       f"GROUP BY source, page")
     expands = sql(f"SELECT blob2 AS page, {COUNT} AS n FROM {DATASET} "
                   f"WHERE blob1 = 'expand' AND {w} GROUP BY page ORDER BY n DESC")
     # Referrer x page for every pageview that did NOT come from inside the
@@ -351,6 +363,7 @@ def collect(sql, start: dt.date, end: dt.date | None,
         "alltime_source": {r["source"]: _n(r) for r in alltime_src},
         "referrers": [(r["ref"], _n(r)) for r in referrers],
         "pages": [(r["page"], _n(r)) for r in pages],
+        "source_pages": [(r["source"], r["page"], _n(r)) for r in source_pages],
         "expands": [(r["page"], _n(r)) for r in expands],
         "landings": [(r["ref"], r["page"], _n(r)) for r in landings],
         "owner_pageviews": _n(owner_pv[0]) if owner_pv else 0,
@@ -511,6 +524,7 @@ def _summarize_session(rows: list[dict]) -> dict:
     }
     sess["is_owner_tagged"] = OWNER_SOURCE in sess["sources"]
     sess["looks_like_walk"] = _looks_like_a_walk(sess)
+    sess["looks_like_slow_crawl"] = _looks_like_a_slow_crawl(sess)
     return sess
 
 
@@ -522,6 +536,19 @@ def _looks_like_a_walk(sess: dict) -> bool:
         return False
     return (sess["median_gap_s"] is not None
             and sess["median_gap_s"] < WALK_MAX_MEDIAN_GAP_S)
+
+
+def _looks_like_a_slow_crawl(sess: dict) -> bool:
+    """Many player pages, zero interaction, minutes between pages."""
+    ev = sess["events"]
+    if ev.get("pageview", 0) < WALK_MIN_PAGEVIEWS:
+        return False
+    if len(sess["player_pages"]) < WALK_MIN_PLAYER_PAGES:
+        return False
+    if any(ev.get(k, 0) for k in ("tab", "expand", "box")):
+        return False
+    gap = sess["median_gap_s"]
+    return gap is not None and CRAWL_MIN_MEDIAN_GAP_S <= gap <= CRAWL_MAX_MEDIAN_GAP_S
 
 
 def read_posts(path: Path) -> list[dict]:
@@ -683,6 +710,10 @@ def build_report(raw: dict, start: dt.date, end: dt.date | None) -> dict:
     by_surface = {"main": 0, "players_index": 0, "player_pages": 0}
     for page, n in raw["pages"]:
         by_surface[_surface(page)] += n
+    by_source_main: dict[str, int] = {}
+    for source, page, n in raw.get("source_pages", []):
+        if _surface(page) == "main":
+            by_source_main[source] = by_source_main.get(source, 0) + n
     expands_by_page = dict(raw["expands"])
     views_by_page = dict(raw["pages"])
     # Union of both keys, not just pages with pageviews: a page can carry an
@@ -724,6 +755,7 @@ def build_report(raw: dict, start: dt.date, end: dt.date | None) -> dict:
         "referrers": [{"referrer": r or "(not collected)", "pageviews": n}
                       for r, n in raw["referrers"]],
         "by_surface": by_surface,
+        "by_source_main": by_source_main,
         "pages": pages,
         "player_pages": player_pages,
         "landings": _landings(raw.get("landings", [])),
@@ -761,6 +793,10 @@ def print_report(rep: dict, site: str = DEFAULT_SITE) -> None:
     w = rep["window"]
     t = rep["totals"]
     pv = t["pageview"]
+    # Only the main page emits tab and box events, so those rates divide by
+    # main-page views, not all pageviews (player pages sat in the old
+    # denominator and halved every rate; fixed 2026-10-16).
+    main_pv = rep["by_surface"]["main"]
 
     # The header names the property. It said "WNBA usage" unconditionally
     # until 2026-09-06, which was harmless while there was one site and
@@ -794,10 +830,11 @@ def print_report(rep: dict, site: str = DEFAULT_SITE) -> None:
     if not rep["tabs"]:
         print("  (no tab events in window)")
     for r in rep["tabs"]:
-        print(f"  {r['tab']:<16} {r['events']:>7}  {_rate(r['events'], pv)}/pageview")
+        print(f"  {r['tab']:<16} {r['events']:>7}  {_rate(r['events'], main_pv)}/main-page view")
 
     print("\n── Box scores " + "─" * 47)
-    print(f"  opens {t['box']}   {_rate(t['box'], pv)}/pageview")
+    print(f"  opens {t['box']}   {_rate(t['box'], main_pv)}/main-page view")
+    print("  (main page = the tab site; rates before 2026-10-16 divided by all pageviews and read low)")
 
     print("\n── Pages " + "─" * 52)
     # This three-way split is WNBA Phase 1's question — did the SEO surface
@@ -835,12 +872,13 @@ def print_report(rep: dict, site: str = DEFAULT_SITE) -> None:
 
     print("\n── Depth by source " + "─" * 42)
     print("  does a visitor from each surface explore, or bounce?")
-    print(f"  {'source':<16} {'views':>6} {'tabs/view':>10} {'boxes/view':>11}")
+    print("  per MAIN-PAGE view (player pages emit no tab/box events)")
+    print(f"  {'source':<16} {'main':>6} {'tabs/view':>10} {'boxes/view':>11}")
     for src, ev in rep["by_source"].items():
-        s_pv = ev.get("pageview", 0)
+        s_pv = rep["by_source_main"].get(src, 0)
         print(f"  {src:<16} {s_pv:>6} {_rate(ev.get('tab', 0), s_pv):>10} "
               f"{_rate(ev.get('box', 0), s_pv):>11}")
-    thin = [s for s, ev in rep["by_source"].items() if 0 < ev.get("pageview", 0) < 30]
+    thin = [s for s in rep["by_source"] if 0 < rep["by_source_main"].get(s, 0) < 30]
     if thin:
         print(f"  ! small sample ({', '.join(thin)}): a handful of visits is a "
               f"curiosity, not a trend.")
@@ -1056,6 +1094,8 @@ def print_sessions(sessions: list[dict], start: dt.date, end: dt.date | None,
             flags.append("OWNER-TAGGED")
         if s["looks_like_walk"]:
             flags.append("walk?")
+        if s["looks_like_slow_crawl"]:
+            flags.append("crawl?")
         print(f"  {_et(s['start']):<13}{_dur(s['duration_s']):>7}"
               f"{s['events'].get('pageview', 0):>4}{s['events'].get('tab', 0):>4}"
               f"{s['events'].get('box', 0):>4}  "
@@ -1066,10 +1106,14 @@ def print_sessions(sessions: list[dict], start: dt.date, end: dt.date | None,
 
     walks = [s for s in sessions if s["looks_like_walk"]]
     walk_pv = sum(s["events"].get("pageview", 0) for s in walks)
+    crawls = [s for s in sessions if s["looks_like_slow_crawl"]]
+    crawl_pv = sum(s["events"].get("pageview", 0) for s in crawls)
     tagged = [s for s in sessions if s["is_owner_tagged"]]
     print("\n── Shape check " + "─" * 46)
     print(f"  {len(walks)} visit(s) look like a fast roster walk, "
           f"{walk_pv} pageview(s) — {_pct(walk_pv, pv)} of the window")
+    print(f"  {len(crawls)} visit(s) look like a slow crawl, "
+          f"{crawl_pv} pageview(s) — {_pct(crawl_pv, pv)} of the window")
     print(f"  {len(tagged)} visit(s) carry the {OWNER_SOURCE} tag")
     agree = sum(1 for s in walks if s["is_owner_tagged"])
     if tagged:
@@ -1081,6 +1125,8 @@ def print_sessions(sessions: list[dict], start: dt.date, end: dt.date | None,
     print(f"  ! a walk flag is a GUESS from behaviour: >={WALK_MIN_PAGEVIEWS} pageviews,")
     print(f"    >={WALK_MIN_PLAYER_PAGES} distinct player pages, median gap under "
           f"{WALK_MAX_MEDIAN_GAP_S}s.")
+    print(f"    A slow crawl: same page counts, no tab/expand/box, median gap "
+          f"{CRAWL_MIN_MEDIAN_GAP_S // 60}-{CRAWL_MAX_MEDIAN_GAP_S // 60} min.")
     print(f"    It is never subtracted from any total. And a visit groups")
     print(f"    ACTIVITY, not people — two visitors at once merge into one.")
 
@@ -1154,6 +1200,9 @@ def snapshot_row(rep: dict, day: dt.date, site: str = DEFAULT_SITE) -> dict:
         # produce — would age out unrecorded. A missing key on an older row
         # means "not collected", never zero. Same rule as "referrers".
         "by_surface": rep["by_surface"],
+        # Added 2026-10-16: main-page views per source, the correct
+        # denominator for tab/box rates. Missing on older rows = not collected.
+        "by_source_main": rep["by_source_main"],
         "expands": rep["expands_total"],
         # Top 10 only: the full per-page detail lives in Analytics Engine for
         # 90 days, and committing 227 counters every day would bloat this
