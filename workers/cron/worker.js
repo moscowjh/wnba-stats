@@ -133,6 +133,32 @@ const ALERT_TO = "horowitz.jason@gmail.com";
 // is needed, and reports nothing.
 const ESPN_SCOREBOARD =
   "https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard";
+// Fallback host, same paths and response shape. The Worker's requests to the
+// primary started drawing 403s from Cloudflare's address range on 2026-10-18
+// (the 1:07 AM night build, then all four attempts of the 14:45 check) while
+// the same URL answered from other networks. Either ESPN host can fail
+// host-wide (see data-sources.md), so every scoreboard read tries both.
+const ESPN_SCOREBOARD_FALLBACK =
+  "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard";
+
+// One scoreboard read: primary host, then the fallback. Returns the first OK
+// response, or the last failing one (null if both threw).
+async function fetchScoreboard(iso, log) {
+  let last = null;
+  for (const base of [ESPN_SCOREBOARD, ESPN_SCOREBOARD_FALLBACK]) {
+    try {
+      const res = await fetch(`${base}?dates=${iso.replaceAll("-", "")}`, {
+        headers: { "User-Agent": "wnba-stats-cron" },
+      });
+      if (res.ok) return res;
+      log(`${new URL(base).host} scoreboard ${res.status}`);
+      last = res;
+    } catch (e) {
+      log(`${new URL(base).host} scoreboard error: ${e.message}`);
+    }
+  }
+  return last;
+}
 
 // ── GitHub helpers ─────────────────────────────────────────────────────────
 
@@ -487,14 +513,12 @@ async function gamesPlayedOn(iso) {
   const delays = [2000, 5000, 10000];
   for (let attempt = 0; ; attempt++) {
     try {
-      const res = await fetch(`${ESPN_SCOREBOARD}?dates=${iso.replaceAll("-", "")}`, {
-        headers: { "User-Agent": "wnba-stats-cron" },
-      });
-      if (res.ok) {
+      const res = await fetchScoreboard(iso, console.log);
+      if (res?.ok) {
         const data = await res.json();
         return (data.events?.length ?? 0) > 0;
       }
-      console.log(`ESPN scoreboard ${res.status} (attempt ${attempt + 1})`);
+      console.log(`ESPN scoreboard failed on every host (attempt ${attempt + 1})`);
     } catch (e) {
       console.log(`ESPN scoreboard error (attempt ${attempt + 1}): ${e.message}`);
     }
@@ -506,15 +530,13 @@ async function gamesPlayedOn(iso) {
 // Were PLAYOFF games (season type 3) played on `iso`? true | false | null.
 // Separate from gamesPlayedOn() on purpose: that one answers "was it a game
 // day" for the freshness check, this one decides whether a 1 AM build is
-// worth running. Null (ESPN unreachable) is treated as "don't dispatch" —
-// the 11:17 morning build still runs, so the cost is a few hours' lag.
+// worth running. Null (ESPN unreachable) is handled by nightBuild(), which
+// FAILS OPEN — see there.
 async function playoffGamesOn(iso) {
   try {
-    const res = await fetch(`${ESPN_SCOREBOARD}?dates=${iso.replaceAll("-", "")}`, {
-      headers: { "User-Agent": "wnba-stats-cron" },
-    });
-    if (!res.ok) {
-      console.log(`night build: ESPN scoreboard ${res.status}`);
+    const res = await fetchScoreboard(iso, (m) => console.log(`night build: ${m}`));
+    if (!res?.ok) {
+      console.log("night build: ESPN scoreboard failed on every host");
       return null;
     }
     const data = await res.json();
@@ -530,10 +552,18 @@ async function playoffGamesOn(iso) {
 async function nightBuild(env) {
   const evening = yesterdayIso();
   const played = await playoffGamesOn(evening);
-  if (played !== true) {
-    console.log(`night build: no playoff games on ${evening} ` +
-      `(${played === null ? "ESPN unreachable" : "none scheduled"}) — not dispatching`);
+  // Fail open (2026-10-18). This used to skip on null, on the reasoning that
+  // the 11:17 build covers it — but a 403 to the Worker skipped the Finals
+  // game 1 night build while the Actions runner, on other addresses, could
+  // have fetched fine. The check only exists to avoid a pointless build; an
+  // unneeded post=false run costs one no-op, a skipped one costs hours of
+  // stale site, so when we cannot tell, build.
+  if (played === false) {
+    console.log(`night build: no playoff games on ${evening} — not dispatching`);
     return { dispatched: false, evening, played };
+  }
+  if (played === null) {
+    console.log(`night build: ESPN unreachable for ${evening} — dispatching anyway`);
   }
   const r = await guardedDispatch(env, false, "night"); // never posts
   console.log(`night build for ${evening}: ${r.detail}`);
