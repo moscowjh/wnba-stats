@@ -1,83 +1,87 @@
 {
  "/": {
-  "date": "2026-10-21",
-  "hash": "ae687a8dc6bbb3b7"
+  "date": "2026-10-22",
+  "hash": "bf282e2836574a78"
  },
  "/games/": {
-  "date": "2026-10-20",
-  "hash": "4267c892a7745657"
+  "date": "2026-10-22",
+  "hash": "23d466194d951743"
  },
  "/games/2026-09-27-dallas-wings-golden-state-valkyries/": {
-  "date": "2026-10-20",
-  "hash": "63202986bb538937"
+  "date": "2026-10-22",
+  "hash": "9b6a9c2ae496dbde"
  },
  "/games/2026-09-27-indiana-fever-las-vegas-aces/": {
-  "date": "2026-10-20",
-  "hash": "adbed0ab6a118b6b"
+  "date": "2026-10-22",
+  "hash": "1341c1de550f42b2"
  },
  "/games/2026-09-27-new-york-liberty-minnesota-lynx/": {
-  "date": "2026-10-20",
-  "hash": "7677653b7dac0410"
+  "date": "2026-10-22",
+  "hash": "d09f3a88570d3f5a"
  },
  "/games/2026-09-27-washington-mystics-atlanta-dream/": {
-  "date": "2026-10-20",
-  "hash": "b83382efe1173fd3"
+  "date": "2026-10-22",
+  "hash": "7177e22707367210"
  },
  "/games/2026-09-29-las-vegas-aces-indiana-fever/": {
-  "date": "2026-10-20",
-  "hash": "f8c8a179c2d87130"
+  "date": "2026-10-22",
+  "hash": "e32857b5c6f7e25a"
  },
  "/games/2026-09-29-minnesota-lynx-new-york-liberty/": {
-  "date": "2026-10-20",
-  "hash": "0f4cd472739d8d6c"
+  "date": "2026-10-22",
+  "hash": "1a0d3810b75731da"
  },
  "/games/2026-09-30-atlanta-dream-washington-mystics/": {
-  "date": "2026-10-20",
-  "hash": "8051da4cab2f3851"
+  "date": "2026-10-22",
+  "hash": "8d52d08e88382dd8"
  },
  "/games/2026-09-30-golden-state-valkyries-dallas-wings/": {
-  "date": "2026-10-20",
-  "hash": "489f6fcc0d39dd33"
+  "date": "2026-10-22",
+  "hash": "7cd86132c62b152b"
  },
  "/games/2026-10-01-indiana-fever-las-vegas-aces/": {
-  "date": "2026-10-20",
-  "hash": "7e9a71312eb5f1e2"
+  "date": "2026-10-22",
+  "hash": "2742c8986ed901ae"
  },
  "/games/2026-10-02-dallas-wings-golden-state-valkyries/": {
-  "date": "2026-10-20",
-  "hash": "506f106575506c1b"
+  "date": "2026-10-22",
+  "hash": "664ebb2f9acad66f"
  },
  "/games/2026-10-04-las-vegas-aces-golden-state-valkyries/": {
-  "date": "2026-10-20",
-  "hash": "14dc6b3b2c9f5d96"
+  "date": "2026-10-22",
+  "hash": "9221ceb401e26406"
  },
  "/games/2026-10-04-new-york-liberty-atlanta-dream/": {
-  "date": "2026-10-20",
-  "hash": "c4168f83aea4316c"
+  "date": "2026-10-22",
+  "hash": "fc95415c924da82c"
  },
  "/games/2026-10-07-las-vegas-aces-golden-state-valkyries/": {
-  "date": "2026-10-20",
-  "hash": "cbe6adea511a8863"
+  "date": "2026-10-22",
+  "hash": "0bd6fdc8788026ba"
  },
  "/games/2026-10-07-new-york-liberty-atlanta-dream/": {
-  "date": "2026-10-20",
-  "hash": "15f12f054b6b05fa"
+  "date": "2026-10-22",
+  "hash": "83ee0465b0066b87"
  },
  "/games/2026-10-09-atlanta-dream-new-york-liberty/": {
-  "date": "2026-10-20",
-  "hash": "f04f722d861ef4bd"
+  "date": "2026-10-22",
+  "hash": "74e422fbf4dc3948"
  },
  "/games/2026-10-09-golden-state-valkyries-las-vegas-aces/": {
-  "date": "2026-10-20",
-  "hash": "e85b631a9183066a"
+  "date": "2026-10-22",
+  "hash": "046a2248b6e5bd74"
  },
  "/games/2026-10-17-atlanta-dream-golden-state-valkyries/": {
-  "date": "2026-10-20",
-  "hash": "309f5ebf4481ef3b"
+  "date": "2026-10-22",
+  "hash": "4ab4df31432faa12"
  },
  "/games/2026-10-19-atlanta-dream-golden-state-valkyries/": {
-  "date": "2026-10-20",
-  "hash": "d3d3efe6d5c69f15"
+  "date": "2026-10-22",
+  "hash": "eedf4a7d5f695d76"
+ },
+ "/games/2026-10-21-golden-state-valkyries-atlanta-dream/": {
+  "date": "2026-10-22",
+  "hash": "174a4ad4ae56567c"
  },
  "/players/": {
   "date": "2026-09-29",
@@ -1048,8 +1052,8 @@
   "hash": "a128831c1879228e"
  },
  "/teams/atlanta-dream/": {
-  "date": "2026-10-20",
-  "hash": "8c155344f8266a1d"
+  "date": "2026-10-22",
+  "hash": "6f50dcbcd712a639"
  },
  "/teams/chicago-sky/": {
   "date": "2026-09-29",
@@ -1064,8 +1068,8 @@
   "hash": "59de1ad24385ecab"
  },
  "/teams/golden-state-valkyries/": {
-  "date": "2026-10-20",
-  "hash": "c8baf1d71b31eec6"
+  "date": "2026-10-22",
+  "hash": "e5b739e53df16bf5"
  },
  "/teams/indiana-fever/": {
   "date": "2026-10-02",
