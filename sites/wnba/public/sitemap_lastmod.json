@@ -1,87 +1,91 @@
 {
  "/": {
-  "date": "2026-10-22",
-  "hash": "bf282e2836574a78"
+  "date": "2026-10-25",
+  "hash": "90d963d3c76528d5"
  },
  "/games/": {
-  "date": "2026-10-22",
-  "hash": "23d466194d951743"
+  "date": "2026-10-25",
+  "hash": "1e35e125d0948977"
  },
  "/games/2026-09-27-dallas-wings-golden-state-valkyries/": {
-  "date": "2026-10-22",
-  "hash": "9b6a9c2ae496dbde"
+  "date": "2026-10-25",
+  "hash": "282a30170ed730b1"
  },
  "/games/2026-09-27-indiana-fever-las-vegas-aces/": {
-  "date": "2026-10-22",
-  "hash": "1341c1de550f42b2"
+  "date": "2026-10-25",
+  "hash": "b56cd1ec6bf5fd43"
  },
  "/games/2026-09-27-new-york-liberty-minnesota-lynx/": {
-  "date": "2026-10-22",
-  "hash": "d09f3a88570d3f5a"
+  "date": "2026-10-25",
+  "hash": "0efa65254a195b33"
  },
  "/games/2026-09-27-washington-mystics-atlanta-dream/": {
-  "date": "2026-10-22",
-  "hash": "7177e22707367210"
+  "date": "2026-10-25",
+  "hash": "c7ca7aa20630a8c3"
  },
  "/games/2026-09-29-las-vegas-aces-indiana-fever/": {
-  "date": "2026-10-22",
-  "hash": "e32857b5c6f7e25a"
+  "date": "2026-10-25",
+  "hash": "2c0e53ebf9750bad"
  },
  "/games/2026-09-29-minnesota-lynx-new-york-liberty/": {
-  "date": "2026-10-22",
-  "hash": "1a0d3810b75731da"
+  "date": "2026-10-25",
+  "hash": "93c1988c04dae023"
  },
  "/games/2026-09-30-atlanta-dream-washington-mystics/": {
-  "date": "2026-10-22",
-  "hash": "8d52d08e88382dd8"
+  "date": "2026-10-25",
+  "hash": "62aafc46dd8a64c2"
  },
  "/games/2026-09-30-golden-state-valkyries-dallas-wings/": {
-  "date": "2026-10-22",
-  "hash": "7cd86132c62b152b"
+  "date": "2026-10-25",
+  "hash": "24464c291c00708f"
  },
  "/games/2026-10-01-indiana-fever-las-vegas-aces/": {
-  "date": "2026-10-22",
-  "hash": "2742c8986ed901ae"
+  "date": "2026-10-25",
+  "hash": "d2567097f503feb1"
  },
  "/games/2026-10-02-dallas-wings-golden-state-valkyries/": {
-  "date": "2026-10-22",
-  "hash": "664ebb2f9acad66f"
+  "date": "2026-10-25",
+  "hash": "5128b13a7c949259"
  },
  "/games/2026-10-04-las-vegas-aces-golden-state-valkyries/": {
-  "date": "2026-10-22",
-  "hash": "9221ceb401e26406"
+  "date": "2026-10-25",
+  "hash": "7ebefd88f0405bc2"
  },
  "/games/2026-10-04-new-york-liberty-atlanta-dream/": {
-  "date": "2026-10-22",
-  "hash": "fc95415c924da82c"
+  "date": "2026-10-25",
+  "hash": "7f2de039ae368444"
  },
  "/games/2026-10-07-las-vegas-aces-golden-state-valkyries/": {
-  "date": "2026-10-22",
-  "hash": "0bd6fdc8788026ba"
+  "date": "2026-10-25",
+  "hash": "9b2e577fb3dc69c5"
  },
  "/games/2026-10-07-new-york-liberty-atlanta-dream/": {
-  "date": "2026-10-22",
-  "hash": "83ee0465b0066b87"
+  "date": "2026-10-25",
+  "hash": "c6608229477ff505"
  },
  "/games/2026-10-09-atlanta-dream-new-york-liberty/": {
-  "date": "2026-10-22",
-  "hash": "74e422fbf4dc3948"
+  "date": "2026-10-25",
+  "hash": "721af2dd7afe44c5"
  },
  "/games/2026-10-09-golden-state-valkyries-las-vegas-aces/": {
-  "date": "2026-10-22",
-  "hash": "046a2248b6e5bd74"
+  "date": "2026-10-25",
+  "hash": "7ea62b019b7b95f5"
  },
  "/games/2026-10-17-atlanta-dream-golden-state-valkyries/": {
-  "date": "2026-10-22",
-  "hash": "4ab4df31432faa12"
+  "date": "2026-10-25",
+  "hash": "b777ec53b7734e57"
  },
  "/games/2026-10-19-atlanta-dream-golden-state-valkyries/": {
-  "date": "2026-10-22",
-  "hash": "eedf4a7d5f695d76"
+  "date": "2026-10-25",
+  "hash": "7a119d0fb2537afc"
  },
  "/games/2026-10-21-golden-state-valkyries-atlanta-dream/": {
-  "date": "2026-10-22",
-  "hash": "174a4ad4ae56567c"
+  "date": "2026-10-25",
+  "hash": "a9bdf041239441d4"
+ },
+ "/games/2026-10-24-golden-state-valkyries-atlanta-dream/": {
+  "date": "2026-10-25",
+  "hash": "007b32ef1df99bf8"
  },
  "/players/": {
   "date": "2026-09-29",
@@ -1052,8 +1056,8 @@
   "hash": "a128831c1879228e"
  },
  "/teams/atlanta-dream/": {
-  "date": "2026-10-22",
-  "hash": "6f50dcbcd712a639"
+  "date": "2026-10-25",
+  "hash": "ae4125e4e6bc2fc8"
  },
  "/teams/chicago-sky/": {
   "date": "2026-09-29",
@@ -1068,8 +1072,8 @@
   "hash": "59de1ad24385ecab"
  },
  "/teams/golden-state-valkyries/": {
-  "date": "2026-10-22",
-  "hash": "e5b739e53df16bf5"
+  "date": "2026-10-25",
+  "hash": "28bf3df0b2157f71"
  },
  "/teams/indiana-fever/": {
   "date": "2026-10-02",
