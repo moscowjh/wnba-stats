@@ -1,12 +1,12 @@
 {
-  "run_at_utc": "2026-10-31T11:18:27+00:00",
+  "run_at_utc": "2026-11-01T05:08:02+00:00",
   "data_through": "2026-09-24",
   "cutoff": null,
-  "broadcast_category": "Scoring",
+  "broadcast_category": "3PT%",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Scoring",
+      "category": "3PT%",
       "status": "SKIPPED",
       "checks": [
         {
