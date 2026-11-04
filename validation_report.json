@@ -1,12 +1,12 @@
 {
-  "run_at_utc": "2026-11-03T11:18:28+00:00",
+  "run_at_utc": "2026-11-04T11:46:48+00:00",
   "data_through": "2026-09-24",
   "cutoff": null,
-  "broadcast_category": "Assists",
+  "broadcast_category": "FT%",
   "gate_mode": true,
   "categories": [
     {
-      "category": "Assists",
+      "category": "FT%",
       "status": "SKIPPED",
       "checks": [
         {
