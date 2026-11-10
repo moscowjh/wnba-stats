@@ -28,13 +28,30 @@ compatibility_date = "2025-06-01"
 # slot free — the first headroom this account has had since 2026-08-30. A
 # sixth trigger anywhere on the account will fail to deploy.
 #
+# [History — removed 2026-11-10, see the pause note below.]
 # 05:07 UTC = 1:07 AM EDT — the PLAYOFF late-night build (added 2026-09-25),
 # NIGHT_CRON in worker.js. Dispatches only after a night with playoff games,
 # always with post=false. This is the 5th slot: the account is now at **5 of
 # 5**. REMOVE it after the Finals, together with NIGHT_CRON and its branch in
 # scheduled(), to free the slot.
+# ── PAUSED 2026-11-10 for the WNBA offseason — NO cron triggers ─────────
+# Jason approved. The 2026 season ended with the Finals (late October); every
+# offseason daily build republished the same page. The dispatch and its three
+# health checks were paused TOGETHER (a health check with no build to check
+# would email "no run today" every morning), and the 05:07 playoff night
+# build was removed for good. The account is now at **0 of 5** Free-plan Cron
+# Triggers; one is intended for the Ivy League site.
+#
+# RESTORE BEFORE THE 2027 SEASON (~April 2027) — replace the empty list with:
+#
+#   crons = ["17 11 * * *", "45 11 * * *", "15 13 * * *", "45 14 * * *"]
+#
+# then `npx wrangler deploy` from this directory. The code paths in worker.js
+# are untouched, so that one line is the whole restore. An explicit empty list
+# (not a deleted [triggers] table) is what makes `wrangler deploy` REMOVE the
+# schedules already on the deployed Worker.
 [triggers]
-crons = ["17 11 * * *", "45 11 * * *", "15 13 * * *", "45 14 * * *", "7 5 * * *"]
+crons = []
 
 # Keep logs (added 2026-09-29): with this off, a false "No run today" alert
 # left no record of what the Worker saw. Free plan retention is short but enough.
