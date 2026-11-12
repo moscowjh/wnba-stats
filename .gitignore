@@ -30,6 +30,9 @@ sites/*/data/
 sites/*/*-stats-explorer.html
 sites/*/social_payload.json
 sites/*/preview/
+# The Ivy site's build output is deployed from CI and never committed: each data
+# pull rewrites ~170 game pages (contrast sites/wwc/public, a frozen archive).
+sites/ivy/public/
 # Golden-harness snapshot + pinned renders (golden_check.py) — local dev tool;
 # no fetched CSVs are committed to this public repo.
 sites/*/golden/

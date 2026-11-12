@@ -112,9 +112,18 @@ core/       shared library, installed with `pip install -e core/`, imported as `
 sites/      one directory per site; each has its own config.py, wrangler.toml, data/, public/
               wnba/  the daily stats site      (build.yml)
               wwc/   the WWC 2026 programme    (wwc.yml) — added 2026-08-25
+              ivy/   Ivy League WBB, PRIVATE PREVIEW (ivy.yml) — added 2026-11-11
 workers/    cron/ analytics/ espn-proxy/ — shared infra, NOT deployed by CI
 docs/       engineering docs, shipped with the code they govern
 ```
+
+**Ivy (added 2026-11-11, private preview).** `ivy.yml` fetches ESPN NCAAW, builds
+`sites/ivy/public/` and deploys the `ivy-hoops` Worker on every push to main touching
+`sites/ivy/**` or `core/**`, and on "Run workflow". Unlike WWC it does NOT commit its
+build output (gitignored; every data pull rewrites ~170 game pages). Until launch the
+hostname is behind Cloudflare Access and robots.txt disallows everything. Editorial
+text lives in `sites/ivy/reference/` as Markdown that Claude drafts and Jason edits.
+No scheduled build yet — that needs a cron slot in `workers/cron/`.
 
 **Two sites, two workflows, one shared `core/`.** `build.yml` deploys
 `sites/wnba/`; `wwc.yml` deploys `sites/wwc/`. Neither can block the other,
