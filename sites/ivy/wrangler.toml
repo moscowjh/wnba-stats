@@ -1,0 +1,19 @@
+name = "ivy-hoops"
+compatibility_date = "2025-06-01"
+# Same posture as the other sites: the public URL is a Custom Domain
+# (ivy-hoops.statsataglance.com), so the name-bearing *.workers.dev URL is off.
+workers_dev = false
+
+# Serve the built static site — no Worker code. `directory` resolves relative
+# to THIS file, which is why ivy.yml passes `-c sites/ivy/wrangler.toml`.
+[assets]
+directory = "./public"
+
+# ── PRIVATE PREVIEW (2026-11-11) ────────────────────────────────────────────
+# Until launch the hostname is protected by Cloudflare Access (Zero Trust →
+# Access → Applications, self-hosted, policy: Jason's email, one-time PIN).
+# Access is configured in the DASHBOARD, not here, and so is the custom
+# domain: the shared CLOUDFLARE_API_TOKEN is scoped to Workers Scripts only
+# (DEPLOY.md). Create the Access application BEFORE attaching the domain, so
+# there is no window in which the site is publicly reachable.
+# Launch = delete the Access application; nothing here changes.

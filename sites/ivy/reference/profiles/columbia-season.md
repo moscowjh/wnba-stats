@@ -1,0 +1,1 @@
+Columbia is 3-0, with wins over Davidson, Rhode Island and Belmont by an average of 13 points. Senior guard Riley Weiss leads at 19.0 points a game. The schedule now gets real fast: No. 2 Michigan at Levien on Nov. 12, at No. 19 Maryland on Nov. 15, then No. 5 Duke at home on Nov. 21.
